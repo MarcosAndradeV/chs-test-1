@@ -1,9 +1,15 @@
 #![allow(unused)]
 pub mod vm;
+pub mod assembler;
+pub mod instructions;
+
+
 
 #[cfg(test)]
 mod test {
     use super::vm::*;
+    use crate::instructions::{Instr, InstrKind};
+
 
     #[test]
     fn test_vm() {
