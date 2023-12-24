@@ -5,24 +5,27 @@ pub mod vm;
 mod test {
     use super::vm::*;
 
-   #[test]
-   fn test_vm() {
-        let mut vm = CHSVM::new();
+    #[test]
+    fn test_vm() {
         let program = vec![
-            Instr::new(InstrKind::Push, Some(4)),
-            Instr::new(InstrKind::Push, Some(2)),
-            Instr::new(InstrKind::Div, None),
-            ];
+            // start:
+            Instr::new(InstrKind::Push, Some(0)),
+            Instr::new(InstrKind::Push, Some(1)),
+            Instr::new(InstrKind::Dup, Some(1)),
+            Instr::new(InstrKind::Dup, Some(1)),
+            Instr::new(InstrKind::Add, None),
 
-        for i in program {
-            match vm.execute_instr(i) {
-                Ok(_) => {println!("{:?}", vm.stack)},
-                Err(trap) => {
-                    eprintln!("ERROR: {:?}", trap);
-                    break;
-                },
-            }
+            Instr::new(InstrKind::Dup, Some(0)),
+            Instr::new(InstrKind::Push, Some(2584)),
+            Instr::new(InstrKind::Lte, None),
+            Instr::new(InstrKind::JmpIf, Some(10)),
+            Instr::new(InstrKind::Jmp, Some(2)),
 
-        }
-   }
+            Instr::new(InstrKind::Print, None),
+            Instr::new(InstrKind::Halt, None),
+        ];
+        let mut vm = CHSVM::new(program);
+
+        vm.run();
+    }
 }
