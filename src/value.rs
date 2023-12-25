@@ -1,0 +1,245 @@
+use core::{fmt, ops::{Div, Mul, Sub, Add}};
+use std::str::FromStr;
+
+use crate::exepitons::Trap;
+
+#[derive(Debug, PartialOrd, Clone, Copy)]
+pub enum CHSValue {
+    I(i64),
+    U(u64),
+    F(f64),
+    P(usize),
+    B(u8),
+}
+
+impl CHSValue {
+    pub fn is_zero(&self) -> bool {
+        match self {
+            CHSValue::I(v) => *v == 0,
+            CHSValue::U(v) => *v == 0,
+            CHSValue::F(v) => *v == 0.0,
+            CHSValue::P(v) => *v == 0,
+            CHSValue::B(v) => *v == 0,
+        }
+    }
+}
+
+impl Into<usize> for CHSValue {
+    fn into(self) -> usize {
+        match self {
+            CHSValue::P(v) => v,
+            CHSValue::I(v) => v as usize,
+            CHSValue::U(v) => v as usize,
+            CHSValue::F(v) => v as usize,
+            CHSValue::B(v) => v as usize,
+        }
+    }
+}
+
+impl PartialEq for CHSValue {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            CHSValue::I(v) => {
+                match other {
+                    CHSValue::I(o) => v == o,
+                    _ => false
+                }
+            },
+            CHSValue::U(v) => {
+                match other {
+                    CHSValue::U(o) => v == o,
+                    _ => false
+                }
+            },
+            CHSValue::F(v) => {
+                match other {
+                    CHSValue::F(o) => v == o,
+                    _ => false
+                }
+            },
+            CHSValue::P(v) => {
+                match other {
+                    CHSValue::P(o) => v == o,
+                    _ => false
+                }
+            },
+            CHSValue::B(v) => {
+                match other {
+                    CHSValue::B(o) => v == o,
+                    _ => false
+                }
+            },
+        }
+    }
+}
+
+impl Eq for CHSValue {}
+
+impl Add for CHSValue {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match self {
+            CHSValue::I(v) => {
+                match rhs {
+                    CHSValue::I(o) => CHSValue::I(v + o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::U(v) => {
+                match rhs {
+                    CHSValue::U(o) => CHSValue::U(v + o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::F(v) => {
+                match rhs {
+                    CHSValue::F(o) => CHSValue::F(v + o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::P(v) => {
+                match rhs {
+                    CHSValue::P(o) => CHSValue::P(v + o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::B(v) => {
+                match rhs {
+                    CHSValue::B(o) => CHSValue::B(v + o),
+                    _ => unreachable!()
+                }
+            },
+        }
+    }
+}
+
+impl Sub for CHSValue {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match self {
+            CHSValue::I(v) => {
+                match rhs {
+                    CHSValue::I(o) => CHSValue::I(v - o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::U(v) => {
+                match rhs {
+                    CHSValue::U(o) => CHSValue::U(v - o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::F(v) => {
+                match rhs {
+                    CHSValue::F(o) => CHSValue::F(v - o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::P(v) => {
+                match rhs {
+                    CHSValue::P(o) => CHSValue::P(v - o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::B(v) => {
+                match rhs {
+                    CHSValue::B(o) => CHSValue::B(v - o),
+                    _ => unreachable!()
+                }
+            },
+        }
+    }
+}
+
+impl Mul for CHSValue {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match self {
+            CHSValue::I(v) => {
+                match rhs {
+                    CHSValue::I(o) => CHSValue::I(v * o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::U(v) => {
+                match rhs {
+                    CHSValue::U(o) => CHSValue::U(v * o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::F(v) => {
+                match rhs {
+                    CHSValue::F(o) => CHSValue::F(v * o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::P(v) => {
+                match rhs {
+                    CHSValue::P(o) => CHSValue::P(v * o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::B(v) => {
+                match rhs {
+                    CHSValue::B(o) => CHSValue::B(v * o),
+                    _ => unreachable!()
+                }
+            },
+        }
+    }
+}
+
+impl Div for CHSValue {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match self {
+            CHSValue::I(v) => {
+                match rhs {
+                    CHSValue::I(o) => CHSValue::I(v / o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::U(v) => {
+                match rhs {
+                    CHSValue::U(o) => CHSValue::U(v / o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::F(v) => {
+                match rhs {
+                    CHSValue::F(o) => CHSValue::F(v / o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::P(v) => {
+                match rhs {
+                    CHSValue::P(o) => CHSValue::P(v / o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::B(v) => {
+                match rhs {
+                    CHSValue::B(o) => CHSValue::B(v / o),
+                    _ => unreachable!()
+                }
+            },
+        }
+    }
+}
+
+impl fmt::Display for CHSValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CHSValue::I(v) => write!(f, "{}", v),
+            CHSValue::U(v) => write!(f, "{}", v),
+            CHSValue::F(v) => write!(f, "{}", v),
+            CHSValue::P(v) => write!(f, "{}", v),
+            CHSValue::B(v) => write!(f, "{}", v),
+        }
+    }
+}
+

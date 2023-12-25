@@ -1,5 +1,5 @@
+use crate::value::CHSValue;
 
-type Word = i64;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum InstrKind {
@@ -26,7 +26,7 @@ pub enum InstrKind {
     Print,
     Debug,
     Nop,
-
+    
 }
 
 impl From<u8> for InstrKind {
@@ -61,9 +61,9 @@ impl From<u8> for InstrKind {
 #[derive(Debug, Clone, Copy)]
 pub struct Instr {
     pub kind: InstrKind,
-    pub operands: Option<Word>,
+    pub operands: Option<CHSValue>,
 }
 
 impl Instr {
-    pub fn new(kind: InstrKind, operands: Option<Word>) -> Self { Self { kind, operands } }
+    pub fn new(kind: InstrKind, operands: Option<CHSValue>) -> Self { Self { kind, operands } }
 }

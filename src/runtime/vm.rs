@@ -1,23 +1,13 @@
-use crate::instructions::{Instr, InstrKind};
+use crate::{exepitons::Trap, instructions::{Instr, InstrKind}, value::CHSValue};
+
 
 
 const STACK_CAPACITY: usize = 1024;
 
-type Word = i64;
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Trap {
-    StackOverflow,
-    StackUnderflow,
-    DivByZero,
-    OperandNotProvided,
-    AddersOutOfBounds,
-    ProgramEndWithoutHalt,
-}
 
 #[derive(Debug)]
 pub struct CHSVM {
-    pub stack: Vec<Word>,
+    pub stack: Vec<CHSValue>,
     pub is_halted: bool,
     pub ip: usize,
     sp: usize,
@@ -37,7 +27,6 @@ impl CHSVM {
         let instr = self.program[self.ip - 1];
         match instr.kind {
             InstrKind::Push => {
-
                 let value = match instr.operands {
                     Some(v) => v,
                     None => return Err(Trap::OperandNotProvided)
@@ -45,29 +34,18 @@ impl CHSVM {
                 self.push_stack(value)
             },
             InstrKind::Dup => {
-                // if self.stack.len() >= 1 {
-                //     let op_1 = self.pop_stack()?;
-                //     self.push_stack(op_1)?;
-                //     self.push_stack(op_1)?;
-                // }
-                // return Err(Trap::StackUnderflow);
-
-                let addr = match instr.operands {
+                let addrs = match instr.operands {
                     Some(v) => v,
                     None => return Err(Trap::OperandNotProvided)
                 };
 
-                if (addr as usize) > self.program.len() {
+                if Into::<usize>::into(addrs) > self.program.len() {
                     return Err(Trap::StackOverflow);
                 }
 
-                if (self.sp as i64 - addr <= 0) {
-                    return Err(Trap::StackUnderflow);
-                }
-
-                let value = match self.stack.get(self.sp - 1 - (addr as usize)) {
+                let value = match self.stack.get(self.sp - 1 - Into::<usize>::into(addrs)) {
                     Some(v) => *v,
-                    None => todo!(),
+                    None => return Err(Trap::StackUnderflow),
                 };
 
                 self.push_stack(value)?;
@@ -123,7 +101,7 @@ impl CHSVM {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
-                    if op_2 == 0 {return Err(Trap::DivByZero);}
+                    if op_2.is_zero() {return Err(Trap::DivByZero);}
                     self.push_stack(op_1 / op_2)?;
                     return Ok(());
                 }
@@ -132,31 +110,32 @@ impl CHSVM {
             InstrKind::Jmp => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => todo!()
+                    None => return Err(Trap::OperandNotProvided),
                 };
-                if addrs < 0 || (addrs as usize) > self.program.len() {
+                if Into::<usize>::into(addrs) > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 } 
-                self.ip = addrs as usize;
+                self.ip = addrs.into();
                 Ok(())
             },
             InstrKind::JmpIf => {
                 let op_1 = self.pop_stack()?;
+                if Into::<usize>::into(op_1) != 1 {return Ok(());}
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => todo!()
+                    None => return Err(Trap::OperandNotProvided),
                 };
-                if addrs < 0 || (addrs as usize) > self.program.len() {
+                if Into::<usize>::into(addrs) > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 } 
-                if op_1 == 1 {self.ip = addrs as usize}
+                self.ip = Into::<usize>::into(addrs);
                 Ok(())
             },
             InstrKind::Eq => {
                 if self.stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
-                    self.push_stack((op_1 == op_2) as i64)?;
+                    self.push_stack(CHSValue::B((op_1 == op_2) as u8))?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -165,7 +144,7 @@ impl CHSVM {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
-                    self.push_stack((op_1 < op_2) as i64)?;
+                    self.push_stack(CHSValue::B((op_1 < op_2) as u8))?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -174,7 +153,7 @@ impl CHSVM {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
-                    self.push_stack((op_1 <= op_2) as i64)?;
+                    self.push_stack(CHSValue::B((op_1 <= op_2) as u8))?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -183,7 +162,7 @@ impl CHSVM {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
-                    self.push_stack((op_1 > op_2) as i64)?;
+                    self.push_stack(CHSValue::B((op_1 > op_2) as u8))?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -192,7 +171,7 @@ impl CHSVM {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
-                    self.push_stack((op_1 >= op_2) as i64)?;
+                    self.push_stack(CHSValue::B((op_1 >= op_2) as u8))?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -222,13 +201,13 @@ impl CHSVM {
     pub fn run(&mut self) {
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {}//{println!("Stack: {:?}", self.stack);},
+                Ok(_) => {}     //{println!("Stack: {:?}", self.stack);},
                 Err(e) => { eprintln!("It's a trap: {:?}", e); break; }
             }
         }
     }
 
-    fn pop_stack(&mut self) -> Result<Word, Trap> {
+    fn pop_stack(&mut self) -> Result<CHSValue, Trap> {
         if !(self.sp == 0) {self.sp -= 1}
         match self.stack.pop() {
             Some(v) => Ok(v),
@@ -236,7 +215,7 @@ impl CHSVM {
         }
     }
     
-    fn push_stack(&mut self, value: Word) -> Result<(), Trap> {
+    fn push_stack(&mut self, value: CHSValue) -> Result<(), Trap> {
         if ((self.sp+1) > self.stack.capacity() ) {return Err(Trap::StackOverflow);}
         self.sp += 1;
         self.stack.push(value);
