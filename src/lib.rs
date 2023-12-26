@@ -1,6 +1,6 @@
 #![allow(unused)]
 pub mod runtime;
-pub mod assembler;
+pub mod compiler;
 pub mod instructions;
 pub mod exepitons;
 pub mod value;

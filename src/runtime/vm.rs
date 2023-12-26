@@ -8,9 +8,10 @@ const STACK_CAPACITY: usize = 1024;
 
 #[derive(Debug)]
 pub struct CHSVM {
-    pub stack: Vec<CHSValue>,
-    pub is_halted: bool,
-    pub ip: usize,
+    data_stack: Vec<CHSValue>,
+    return_stack: Vec<CHSValue>,
+    is_halted: bool,
+    ip: usize,
     sp: usize,
     program: Vec<Instr>,
 
@@ -18,15 +19,31 @@ pub struct CHSVM {
 
 impl CHSVM {
     pub fn new(program: Vec<Instr>) -> Self {
-        Self { stack: Vec::with_capacity(STACK_CAPACITY), sp: 0, ip: 0, is_halted: false, program }
+        Self {
+            data_stack: Vec::with_capacity(STACK_CAPACITY),
+            return_stack: Vec::with_capacity(STACK_CAPACITY),
+            sp: 0,
+            ip: 0,
+            is_halted: false,
+            program
+        }
     }
     pub fn execute_next_instr(&mut self) -> Result<(), Trap>{
         let instr = self.decode_instr()?;
         match instr.opcode {
-            Opcode::Push => {
+            Opcode::Pushi => {
                 let value = match instr.operands {
-                    v => v,
-                    CHSValue::None => return Err(Trap::OperandNotProvided)
+                    CHSValue::I(v) => instr.operands,
+                    CHSValue::None => return Err(Trap::OperandNotProvided),
+                    _ => return Err(Trap::OperandTypeNotCorrect)
+                };
+                self.push_stack(value)
+            },
+            Opcode::Pushf => {
+                let value = match instr.operands {
+                    CHSValue::F(v) => instr.operands,
+                    CHSValue::None => return Err(Trap::OperandNotProvided),
+                    _ => return Err(Trap::OperandTypeNotCorrect)
                 };
                 self.push_stack(value)
             },
@@ -40,7 +57,7 @@ impl CHSVM {
                     return Err(Trap::StackOverflow);
                 }
 
-                let value = match self.stack.get(self.sp - 1 - addrs.as_usize()) {
+                let value = match self.data_stack.get(self.sp - 1 - addrs.as_usize()) {
                     Some(v) => *v,
                     None => return Err(Trap::StackUnderflow),
                 };
@@ -51,7 +68,7 @@ impl CHSVM {
                 
             },
             Opcode::Swap => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
                     self.push_stack(op_1)?;
@@ -61,14 +78,45 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Pop => {
-                if self.stack.len() >= 1 {
+                if self.data_stack.len() >= 1 {
                     let _ = self.pop_stack()?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
             },
+            Opcode::Bind => {
+                let q = match instr.operands {
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided)
+                };
+                if q.as_usize() <= self.data_stack.len() {
+                    for _ in 0..q.as_usize() {
+                        let value = self.pop_stack()?;
+                        self.return_stack.push(value);
+                    }
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            },
+            Opcode::BindPush => {
+                let q = match instr.operands {
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided)
+                };
+                if q.as_usize() > self.data_stack.len() {return  Err(Trap::StackOverflow);}
+                let local = match self.return_stack.get(q.as_usize()) {
+                    Some(v) => *v,
+                    None => return Err(Trap::StackOverflow)
+                };
+                self.push_stack(local)?;
+                return  Ok(());
+            },
+            Opcode::Unbind => {
+                self.return_stack.clear();
+                return Ok(());
+            },
             Opcode::Add  => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
                     self.push_stack(op_1 + op_2)?;
@@ -77,7 +125,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Minus  => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
                     self.push_stack(op_1 - op_2)?;
@@ -86,7 +134,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Mul  => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
                     self.push_stack(op_1 * op_2)?;
@@ -95,7 +143,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Div  => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
                     if op_2.is_zero() {return Err(Trap::DivByZero);}
@@ -129,7 +177,7 @@ impl CHSVM {
                 Ok(())
             },
             Opcode::Eq => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
                     self.push_stack(CHSValue::B((op_1 == op_2) as u8))?;
@@ -138,7 +186,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Gt => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
                     self.push_stack(CHSValue::B((op_1 < op_2) as u8))?;
@@ -147,7 +195,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Gte => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
                     self.push_stack(CHSValue::B((op_1 <= op_2) as u8))?;
@@ -156,7 +204,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Lt => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
                     self.push_stack(CHSValue::B((op_1 > op_2) as u8))?;
@@ -165,7 +213,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Lte => {
-                if self.stack.len() >= 2 {
+                if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
                     self.push_stack(CHSValue::B((op_1 >= op_2) as u8))?;
@@ -175,7 +223,7 @@ impl CHSVM {
             },
 
             Opcode::Print => {
-                if self.stack.len() >= 1 {
+                if self.data_stack.len() >= 1 {
                     let value = self.pop_stack()?;
                     println!("Output: {}", value);
                     return Ok(());
@@ -183,7 +231,8 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
             Opcode::Debug => {
-                println!("CHSVM: {:?}, SP: {}, STACK_LEN: {}", self.stack, self.sp, self.stack.len());
+                println!("CHSVM: {:?}, SP: {}, STACK_LEN: {}", self.data_stack, self.sp, self.data_stack.len());
+                println!("Local: {:?}, STACK_LEN: {}", self.return_stack, self.return_stack.len());
                 return Ok(());
             },
             Opcode::Nop => {return Ok(());}
@@ -198,7 +247,7 @@ impl CHSVM {
     pub fn run(&mut self) {
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {}     //{println!("Stack: {:?}", self.stack);},
+                Ok(_) => {println!("Stack: {:?}", self.data_stack);},
                 Err(e) => { eprintln!("It's a trap: {:?}", e); break; }
             }
         }
@@ -206,16 +255,16 @@ impl CHSVM {
 
     fn pop_stack(&mut self) -> Result<CHSValue, Trap> {
         if !(self.sp == 0) {self.sp -= 1}
-        match self.stack.pop() {
+        match self.data_stack.pop() {
             Some(v) => Ok(v),
             None => Err(Trap::StackUnderflow),
         }
     }
     
     fn push_stack(&mut self, value: CHSValue) -> Result<(), Trap> {
-        if ((self.sp+1) > self.stack.capacity() ) {return Err(Trap::StackOverflow);}
+        if ((self.sp+1) > self.data_stack.capacity() ) {return Err(Trap::StackOverflow);}
         self.sp += 1;
-        self.stack.push(value);
+        self.data_stack.push(value);
         Ok(())
     }
 

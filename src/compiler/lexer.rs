@@ -8,6 +8,14 @@ pub enum TokenKind {
     Invalid,
     Null,
     Whitespace,
+    Proc,
+    Add,
+    Minus,
+    Mul,
+    Div,
+    Print,
+    CurlyOpen,
+    CurlyClose,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -90,7 +98,9 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-' => self.operator(),
+            b'-'| b'+' | b'*' | b'/'  => self.operator(),
+            b'{' => self.make_token(TokenKind::CurlyOpen),
+            b'}' => self.make_token(TokenKind::CurlyClose),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -108,10 +118,13 @@ impl Lexer {
 
                 match self.next_byte() {
                     b'0'..=b'9' => self.number(true),
-                    _ => self.make_token(TokenKind::Invalid)
+                    _ => self.make_token(TokenKind::Minus)
                 }
                 
             },
+            b'+' => self.make_token(TokenKind::Add),
+            b'*' => self.make_token(TokenKind::Mul),
+            b'/' => self.make_token(TokenKind::Div),
             _ => self.make_token(TokenKind::Invalid)
         }
     }
@@ -178,6 +191,10 @@ impl Lexer {
         let value = self.slice_string(start, self.position);
 
         let kind = match value.len() {
+            4 => match value.as_str() {
+                "proc" => TokenKind::Proc,
+                _ => TokenKind::Identifier
+            }
             _ => TokenKind::Identifier,
         };
 

@@ -4,6 +4,7 @@ pub enum Trap {
     StackUnderflow,
     DivByZero,
     OperandNotProvided,
+    OperandTypeNotCorrect,
     AddersOutOfBounds,
     ProgramEndWithoutHalt,
 }
