@@ -1,8 +1,9 @@
-use crate::{exepitons::Trap, instructions::{Instr, InstrKind}, value::CHSValue};
+use crate::{exepitons::Trap, instructions::{Instr, Opcode}, value::CHSValue};
 
 
 
 const STACK_CAPACITY: usize = 1024;
+
 
 
 #[derive(Debug)]
@@ -20,30 +21,26 @@ impl CHSVM {
         Self { stack: Vec::with_capacity(STACK_CAPACITY), sp: 0, ip: 0, is_halted: false, program }
     }
     pub fn execute_next_instr(&mut self) -> Result<(), Trap>{
-        self.ip+=1;
-        if self.ip > self.program.len() {
-            return Err(Trap::ProgramEndWithoutHalt);
-        }
-        let instr = self.program[self.ip - 1];
-        match instr.kind {
-            InstrKind::Push => {
+        let instr = self.decode_instr()?;
+        match instr.opcode {
+            Opcode::Push => {
                 let value = match instr.operands {
-                    Some(v) => v,
-                    None => return Err(Trap::OperandNotProvided)
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided)
                 };
                 self.push_stack(value)
             },
-            InstrKind::Dup => {
+            Opcode::Dup => {
                 let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => return Err(Trap::OperandNotProvided)
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided)
                 };
 
-                if Into::<usize>::into(addrs) > self.program.len() {
+                if addrs.as_usize() > self.program.len() {
                     return Err(Trap::StackOverflow);
                 }
 
-                let value = match self.stack.get(self.sp - 1 - Into::<usize>::into(addrs)) {
+                let value = match self.stack.get(self.sp - 1 - addrs.as_usize()) {
                     Some(v) => *v,
                     None => return Err(Trap::StackUnderflow),
                 };
@@ -53,7 +50,7 @@ impl CHSVM {
                 return  Ok(());
                 
             },
-            InstrKind::Swap => {
+            Opcode::Swap => {
                 if self.stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
@@ -63,14 +60,14 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Pop => {
+            Opcode::Pop => {
                 if self.stack.len() >= 1 {
                     let _ = self.pop_stack()?;
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Add  => {
+            Opcode::Add  => {
                 if self.stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
@@ -79,7 +76,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Minus  => {
+            Opcode::Minus  => {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
@@ -88,7 +85,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Mul  => {
+            Opcode::Mul  => {
                 if self.stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
@@ -97,7 +94,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Div  => {
+            Opcode::Div  => {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
@@ -107,31 +104,31 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Jmp => {
+            Opcode::Jmp => {
                 let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => return Err(Trap::OperandNotProvided),
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided)
                 };
-                if Into::<usize>::into(addrs) > self.program.len() {
+                if addrs.as_usize() > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 } 
-                self.ip = addrs.into();
+                self.ip = addrs.as_usize();
                 Ok(())
             },
-            InstrKind::JmpIf => {
+            Opcode::JmpIf => {
                 let op_1 = self.pop_stack()?;
-                if Into::<usize>::into(op_1) != 1 {return Ok(());}
+                if op_1.as_usize() != 1 {return Ok(());}
                 let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => return Err(Trap::OperandNotProvided),
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided)
                 };
-                if Into::<usize>::into(addrs) > self.program.len() {
+                if addrs.as_usize() > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 } 
-                self.ip = Into::<usize>::into(addrs);
+                self.ip = addrs.as_usize();
                 Ok(())
             },
-            InstrKind::Eq => {
+            Opcode::Eq => {
                 if self.stack.len() >= 2 {
                     let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
@@ -140,7 +137,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Gt => {
+            Opcode::Gt => {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
@@ -149,7 +146,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Gte => {
+            Opcode::Gte => {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
@@ -158,7 +155,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Lt => {
+            Opcode::Lt => {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
@@ -167,7 +164,7 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Lte => {
+            Opcode::Lte => {
                 if self.stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
                     let op_1 = self.pop_stack()?;
@@ -177,7 +174,7 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
 
-            InstrKind::Print => {
+            Opcode::Print => {
                 if self.stack.len() >= 1 {
                     let value = self.pop_stack()?;
                     println!("Output: {}", value);
@@ -185,12 +182,12 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             },
-            InstrKind::Debug => {
+            Opcode::Debug => {
                 println!("CHSVM: {:?}, SP: {}, STACK_LEN: {}", self.stack, self.sp, self.stack.len());
                 return Ok(());
             },
-            InstrKind::Nop => {return Ok(());}
-            InstrKind::Halt => {
+            Opcode::Nop => {return Ok(());}
+            Opcode::Halt => {
                 self.is_halted = true;
                 return Ok(());
             }
@@ -221,12 +218,14 @@ impl CHSVM {
         self.stack.push(value);
         Ok(())
     }
+
+    fn decode_instr(&mut self) -> Result<Instr, Trap> {
+        self.ip+=1;
+        if self.ip > self.program.len() {
+            return Err(Trap::ProgramEndWithoutHalt);
+        }
+        Ok(self.program[self.ip-1])
+
+    }
 }
 
-
-#[cfg(test)]
-mod test {
-    use super::CHSVM;
-
-
-}

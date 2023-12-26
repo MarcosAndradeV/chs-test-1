@@ -10,6 +10,7 @@ pub enum CHSValue {
     F(f64),
     P(usize),
     B(u8),
+    None,
 }
 
 impl CHSValue {
@@ -20,21 +21,38 @@ impl CHSValue {
             CHSValue::F(v) => *v == 0.0,
             CHSValue::P(v) => *v == 0,
             CHSValue::B(v) => *v == 0,
+            CHSValue::None => false,
         }
     }
-}
 
-impl Into<usize> for CHSValue {
-    fn into(self) -> usize {
+    pub fn as_i64(self) -> i64 {
+        match self {
+            CHSValue::P(v) => v as i64,
+            CHSValue::I(v) => v as i64,
+            CHSValue::U(v) => v as i64,
+            CHSValue::F(v) => v as i64,
+            CHSValue::B(v) => v  as i64,
+            CHSValue::None => 0
+        }
+    }
+
+    pub fn as_usize(self) -> usize {
         match self {
             CHSValue::P(v) => v,
             CHSValue::I(v) => v as usize,
             CHSValue::U(v) => v as usize,
             CHSValue::F(v) => v as usize,
             CHSValue::B(v) => v as usize,
+            CHSValue::None => 0
         }
     }
+
+    pub fn none() -> Self {
+        Self::None
+    }
 }
+
+
 
 impl PartialEq for CHSValue {
     fn eq(&self, other: &Self) -> bool {
@@ -69,6 +87,7 @@ impl PartialEq for CHSValue {
                     _ => false
                 }
             },
+            CHSValue::None => false
         }
     }
 }
@@ -110,6 +129,7 @@ impl Add for CHSValue {
                     _ => unreachable!()
                 }
             },
+            CHSValue::None => CHSValue::None
         }
     }
 }
@@ -149,6 +169,7 @@ impl Sub for CHSValue {
                     _ => unreachable!()
                 }
             },
+            CHSValue::None => CHSValue::None
         }
     }
 }
@@ -188,6 +209,7 @@ impl Mul for CHSValue {
                     _ => unreachable!()
                 }
             },
+            CHSValue::None => CHSValue::None
         }
     }
 }
@@ -227,6 +249,7 @@ impl Div for CHSValue {
                     _ => unreachable!()
                 }
             },
+            CHSValue::None => CHSValue::None
         }
     }
 }
@@ -239,7 +262,25 @@ impl fmt::Display for CHSValue {
             CHSValue::F(v) => write!(f, "{}", v),
             CHSValue::P(v) => write!(f, "{}", v),
             CHSValue::B(v) => write!(f, "{}", v),
+            CHSValue::None => write!(f, "{}", 0)
         }
     }
 }
 
+impl From<i64> for CHSValue  {
+    fn from(value: i64) -> Self {
+        Self::I(value)
+    }
+}
+
+impl From<f64> for CHSValue  {
+    fn from(value: f64) -> Self {
+        Self::F(value)
+    }
+}
+
+impl From<usize> for CHSValue  {
+    fn from(value: usize) -> Self {
+        Self::P(value)
+    }
+}
