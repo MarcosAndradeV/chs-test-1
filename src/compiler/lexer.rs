@@ -1,27 +1,39 @@
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum TokenKind {
     Comment,
-    Identifier,
+    Whitespace,
+    
+    Invalid,
+    Null,
+
     Int,
     Float,
     Addrs,
-    Invalid,
-    Null,
-    Whitespace,
+
+    Identifier,
+    
+    Hlt,
+    Print,
+    
     Proc,
+    If,
+    Else,
+    Whlie,
+    
     Add,
     Minus,
     Mul,
     Div,
-    Print,
+    
+    Eq,
+    Gt,
+    
     CurlyOpen,
     CurlyClose,
+    
     Pop,
     Dup,
-    Eq,
-    If,
-    Hlt,
-    Else,
+    Over,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -104,7 +116,7 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/' | b'=' => self.operator(),
+            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             _ => {
@@ -132,6 +144,8 @@ impl Lexer {
             b'*' => self.make_token(TokenKind::Mul),
             b'/' => self.make_token(TokenKind::Div),
             b'=' => self.make_token(TokenKind::Eq),
+            b'=' => self.make_token(TokenKind::Eq),
+            b'>' => self.make_token(TokenKind::Gt),
             _ => self.make_token(TokenKind::Invalid)
         }
     }
@@ -211,10 +225,12 @@ impl Lexer {
             4 => match value.as_str() {
                 "proc" => TokenKind::Proc,
                 "else" => TokenKind::Else,
+                "over" => TokenKind::Over,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
                 "print" => TokenKind::Print,
+                "while" => TokenKind::Whlie,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,
