@@ -196,7 +196,15 @@ impl CHSVM {
                 }
                 self.ip = addrs.as_usize();
                 Ok(())
-            }
+            },
+            Opcode::JmpWhile => {
+                let addrs = match self.return_stack.get(0) {
+                    Some(v) => *v,
+                    None => return Err(Trap::OperandNotProvided)
+                };
+                self.ip = addrs.as_usize();
+                return Ok(());
+            },
             Opcode::End => {
                 self.ip += 1;
                 Ok(())
@@ -245,15 +253,12 @@ impl CHSVM {
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
-            }
+            },
 
             Opcode::While => {
-                if self.data_stack.len() >= 1 {
-                    self.return_stack.push(CHSValue::P(self.ip));
-                    return Ok(());
-                }
-                return Err(Trap::StackUnderflow);
-            }
+                self.return_stack.push(CHSValue::P(self.ip));
+                return Ok(());
+            },
 
             Opcode::Print => {
                 if self.data_stack.len() >= 1 {
@@ -293,9 +298,9 @@ impl CHSVM {
         }
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {} // {println!("ip: {:?}", self.ip);},
+                Ok(_) => {}
                 Err(e) => {
-                    eprintln!("It's a trap: {:?}", e);
+                    eprintln!("It's a trap: {:?} at {}", e, self.ip);
                     break;
                 }
             }
@@ -326,6 +331,8 @@ impl CHSVM {
         if self.ip > self.program.len() {
             return Err(Trap::ProgramEndWithoutHalt);
         }
+        //println!("{:?}", self.program[self.ip - 1]);
+        //println!("DATA: {:?}", self.data_stack);
         Ok(self.program[self.ip - 1])
     }
 }

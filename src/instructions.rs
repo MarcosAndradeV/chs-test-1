@@ -22,8 +22,8 @@ pub enum Opcode {
 
     Jmp,
     JmpIf,
+    JmpWhile,
     End,
-
     While,
 
     Eq,

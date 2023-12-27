@@ -146,10 +146,16 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::If => {self.if_block(&mut body)?; continue;},
+                TokenKind::If => {
+                    self.if_block(&mut body)?;
+                    continue;
+                }
+                TokenKind::Whlie => {
+                    self.while_block(&mut body)?;
+                    continue;
+                }
                 _ => body.push(self.instr(tok)?),
             }
-            
         }
         Ok(body)
     }
@@ -165,21 +171,62 @@ impl Parser {
                 TokenKind::CurlyClose => break,
                 TokenKind::Else => {
                     has_else = true;
-                    offset2 = body.len()+1;
-                    body.insert(offset, Instr::new(Opcode::JmpIf, CHSValue::P(body.len()+2)));
-                },
+                    offset2 = body.len() + 1;
+                    body.insert(
+                        offset,
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 2)),
+                    );
+                }
                 _ => body.push(self.instr(tok)?),
             }
         }
         if !has_else {
-            body.insert(offset, Instr::new(Opcode::JmpIf, CHSValue::P(body.len()+1)));
+            body.insert(
+                offset,
+                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 1)),
+            );
         }
         if has_else {
-            body.insert(offset2, Instr::new(Opcode::Jmp, CHSValue::P(body.len()+1)));
+            body.insert(
+                offset2,
+                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + 1)),
+            );
         }
         Ok(())
     }
 
+    fn while_block(&mut self, body: &mut Vec<Instr>) -> Result<(), ParseError> {
+        body.push(Instr::new(Opcode::While, CHSValue::None));
+        let mut ifoffset = 0usize;
+        loop {
+            // condition
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyOpen => {
+                    ifoffset = body.len();
+                    break;
+                }
+                _ => body.push(self.instr(tok)?),
+            }
+        }
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => {
+                    body.push(Instr::new(Opcode::JmpWhile, CHSValue::None));
+                    body.insert(
+                        ifoffset,
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 1)),
+                    );
+                    body.push(Instr::new(Opcode::Nop, CHSValue::None));
+                    break;
+                }
+                TokenKind::If => self.if_block(body)?,
+                _ => body.push(self.instr(tok)?),
+            }
+        }
+        Ok(())
+    }
 
     fn instr(&mut self, tok: Token) -> Result<Instr, ParseError> {
         let instr = match tok.kind {
@@ -196,6 +243,7 @@ impl Parser {
             TokenKind::Hlt => Instr::new(Opcode::Halt, CHSValue::none()),
             TokenKind::Eq => Instr::new(Opcode::Eq, CHSValue::none()),
             TokenKind::Dup => Instr::new(Opcode::Dup, CHSValue::none()),
+            TokenKind::Gt => Instr::new(Opcode::Gt, CHSValue::none()),
             //TokenKind::Lt => Instr::new(Opcode::Lt, CHSValue::none()),
             TokenKind::Over => Instr::new(Opcode::Over, self.operand()?),
             _ => return error!("{:?} is not a Instr at {}", tok, self.pos),
@@ -207,6 +255,4 @@ impl Parser {
         let tok = self.expect(TokenKind::Int)?;
         Ok(CHSValue::P(tok.value.parse::<usize>().unwrap()))
     }
-
-
 }
