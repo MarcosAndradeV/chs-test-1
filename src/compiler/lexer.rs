@@ -16,6 +16,12 @@ pub enum TokenKind {
     Print,
     CurlyOpen,
     CurlyClose,
+    Pop,
+    Dup,
+    Eq,
+    If,
+    Hlt,
+    Else,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -98,7 +104,7 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/'  => self.operator(),
+            b'-'| b'+' | b'*' | b'/' | b'=' => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             _ => {
@@ -125,6 +131,7 @@ impl Lexer {
             b'+' => self.make_token(TokenKind::Add),
             b'*' => self.make_token(TokenKind::Mul),
             b'/' => self.make_token(TokenKind::Div),
+            b'=' => self.make_token(TokenKind::Eq),
             _ => self.make_token(TokenKind::Invalid)
         }
     }
@@ -191,8 +198,23 @@ impl Lexer {
         let value = self.slice_string(start, self.position);
 
         let kind = match value.len() {
+            2 => match value.as_str() {
+                "if" => TokenKind::If,
+                _ => TokenKind::Identifier
+            }
+            3 => match value.as_str() {
+                "pop" => TokenKind::Pop,
+                "dup" => TokenKind::Dup,
+                "hlt" => TokenKind::Hlt,
+                _ => TokenKind::Identifier
+            }
             4 => match value.as_str() {
                 "proc" => TokenKind::Proc,
+                "else" => TokenKind::Else,
+                _ => TokenKind::Identifier
+            }
+            5 => match value.as_str() {
+                "print" => TokenKind::Print,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,

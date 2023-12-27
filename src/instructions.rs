@@ -9,6 +9,7 @@ pub enum Opcode {
     Pop,
     Dup,
     Swap,
+
     Bind,
     BindPush,
     Unbind,
@@ -20,6 +21,8 @@ pub enum Opcode {
 
     Jmp,
     JmpIf,
+
+    While,
 
     Eq,
     Gt,

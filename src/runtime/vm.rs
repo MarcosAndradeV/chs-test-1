@@ -57,6 +57,10 @@ impl CHSVM {
                     return Err(Trap::StackOverflow);
                 }
 
+                if (self.sp as i64  - 1 - addrs.as_i64()) < 0 {
+                    return Err(Trap::AddersOutOfBounds);
+                }
+
                 let value = match self.data_stack.get(self.sp - 1 - addrs.as_usize()) {
                     Some(v) => *v,
                     None => return Err(Trap::StackUnderflow),
@@ -165,7 +169,7 @@ impl CHSVM {
             },
             Opcode::JmpIf => {
                 let op_1 = self.pop_stack()?;
-                if op_1.as_usize() != 1 {return Ok(());}
+                if op_1.as_usize() == 1 {return Ok(());}
                 let addrs = match instr.operands {
                     v => v,
                     CHSValue::None => return Err(Trap::OperandNotProvided)
@@ -173,7 +177,7 @@ impl CHSVM {
                 if addrs.as_usize() > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 } 
-                self.ip = addrs.as_usize();
+                self.ip += addrs.as_usize();
                 Ok(())
             },
             Opcode::Eq => {
@@ -222,10 +226,19 @@ impl CHSVM {
                 return Err(Trap::StackUnderflow);
             },
 
+            Opcode::While => {
+                if self.data_stack.len() >= 1 {
+                    let t_op = self.pop_stack()?;
+                    self.return_stack.push(t_op);
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            },
+
             Opcode::Print => {
                 if self.data_stack.len() >= 1 {
                     let value = self.pop_stack()?;
-                    println!("Output: {}", value);
+                    println!("{}", value);
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -247,7 +260,7 @@ impl CHSVM {
     pub fn run(&mut self) {
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {println!("Stack: {:?}", self.data_stack);},
+                Ok(_) => {} //{println!("Stack: {:?}", self.data_stack);},
                 Err(e) => { eprintln!("It's a trap: {:?}", e); break; }
             }
         }

@@ -2,16 +2,19 @@
 mod test {
     use std::path::PathBuf;
 
-    use crate::{compiler::parser::Parser, runtime::vm::CHSVM};
+    use crate::{compiler::{parser::Parser, make_ast}, runtime::vm::CHSVM};
 
     use super::*;
     
     #[test]
     fn test_comp() {
-        let input = String::from("1 1 +");
-        let mut parser = Parser::new(input.into_bytes(), PathBuf::new());
-        let ast = parser.parse().unwrap();
+        let source = String::from("proc main { 1 1 + print }");
+        let ast = match make_ast(source) {
+            Ok(s) => s.stmt,
+            Err(e) => return
+        };
         let mut vm = CHSVM::new(ast);
         vm.run();
+
     }
 }
