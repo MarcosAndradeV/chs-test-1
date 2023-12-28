@@ -34,7 +34,7 @@ pub struct Parser {
     lexer: Lexer,
     peeked: Option<Token>,
     pos: usize,
-    proc_table: HashMap<String, usize>,
+    label_table: HashMap<String, usize>,
     instr_count: usize,
 }
 
@@ -49,7 +49,7 @@ impl Parser {
             lexer,
             peeked: None,
             pos: 0,
-            proc_table: HashMap::new(),
+            label_table: HashMap::new(),
             instr_count: 0
         }
     }
@@ -62,8 +62,8 @@ impl Parser {
 
             if token.kind == TokenKind::Null {
                 let file = self.file.clone();
-                println!("{:?}", self.proc_table);
-                let main_ = match self.proc_table.get("main") {
+                println!("{:?}", self.label_table);
+                let main_ = match self.label_table.get("main") {
                     Some(v) => *v,
                     None => error!("main Not Found.")
                 };
@@ -139,14 +139,14 @@ impl Parser {
 
     fn top_level(&mut self, token: Token) -> Result<Vec<Instr>, ParseError> {
         match token.kind {
-            TokenKind::Proc => self.proc(),
+            TokenKind::Func => self.func(),
             _ => error!("Not top level {:?}", token),
         }
     }
 
-    fn proc(&mut self) -> Result<Vec<Instr>, ParseError> {
+    fn func(&mut self) -> Result<Vec<Instr>, ParseError> {
         let name = self.expect(TokenKind::Identifier)?;
-        self.proc_table.insert(name.value.clone(), self.instr_count+1);
+        self.label_table.insert(name.value.clone(), self.instr_count+1);
         let _ = self.expect(TokenKind::CurlyOpen)?;
         let mut body = vec![Instr::new(Opcode::PreProc, CHSValue::None)];
         loop {
@@ -263,7 +263,7 @@ impl Parser {
             TokenKind::Over => Instr::new(Opcode::Over, self.operand()?),
             TokenKind::Jmp => Instr::new(Opcode::Jmp, self.operand()?),
             TokenKind::Identifier => {
-                let pos = match self.proc_table.get(&tok.value) {
+                let pos = match self.label_table.get(&tok.value) {
                     Some(v) => *v,
                     None => error!("{} not found.", tok.value)
                 };

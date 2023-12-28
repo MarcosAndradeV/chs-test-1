@@ -16,7 +16,7 @@ pub enum TokenKind {
     Print,
     Debug,
     
-    Proc,
+    Func,
     If,
     Else,
     Whlie,
@@ -239,7 +239,7 @@ impl Lexer {
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {
-                "proc" => TokenKind::Proc,
+                "func" => TokenKind::Func,
                 "else" => TokenKind::Else,
                 "over" => TokenKind::Over,
                 "call" => TokenKind::Call,

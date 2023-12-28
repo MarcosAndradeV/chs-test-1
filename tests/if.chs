@@ -1,4 +1,4 @@
-proc main {
+func main {
     1 if {
         1 print
         else
