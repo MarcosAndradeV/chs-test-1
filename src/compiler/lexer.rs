@@ -19,6 +19,9 @@ pub enum TokenKind {
     If,
     Else,
     Whlie,
+
+    Call,
+    Ret,
     
     Add,
     Minus,
@@ -27,6 +30,7 @@ pub enum TokenKind {
     
     Eq,
     Gt,
+    Lt,
     
     CurlyOpen,
     CurlyClose,
@@ -34,6 +38,7 @@ pub enum TokenKind {
     Pop,
     Dup,
     Over,
+    Jmp, // tmp
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -116,7 +121,7 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' => self.operator(),
+            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             _ => {
@@ -146,6 +151,7 @@ impl Lexer {
             b'=' => self.make_token(TokenKind::Eq),
             b'=' => self.make_token(TokenKind::Eq),
             b'>' => self.make_token(TokenKind::Gt),
+            b'<' => self.make_token(TokenKind::Lt),
             _ => self.make_token(TokenKind::Invalid)
         }
     }
@@ -220,12 +226,15 @@ impl Lexer {
                 "pop" => TokenKind::Pop,
                 "dup" => TokenKind::Dup,
                 "hlt" => TokenKind::Hlt,
+                "ret" => TokenKind::Ret,
+                "jmp" => TokenKind::Jmp,
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {
                 "proc" => TokenKind::Proc,
                 "else" => TokenKind::Else,
                 "over" => TokenKind::Over,
+                "call" => TokenKind::Call,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {

@@ -34,8 +34,8 @@ pub struct Parser {
     lexer: Lexer,
     peeked: Option<Token>,
     pos: usize,
-    labels: HashMap<String, usize>,
-    label_count: usize,
+    proc_table: HashMap<String, usize>,
+    instr_count: usize,
 }
 
 type ResTok = Result<Token, ParseError>;
@@ -49,8 +49,8 @@ impl Parser {
             lexer,
             peeked: None,
             pos: 0,
-            labels: HashMap::new(),
-            label_count: 0,
+            proc_table: HashMap::new(),
+            instr_count: 0
         }
     }
 
@@ -62,9 +62,17 @@ impl Parser {
 
             if token.kind == TokenKind::Null {
                 let file = self.file.clone();
+                println!("{:?}", self.proc_table);
+                let main_ = match self.proc_table.get("main") {
+                    Some(v) => *v,
+                    None => error!("...")
+                };
+                instrs.insert(0, Instr::new(Opcode::Jmp, CHSValue::P(main_)));
                 return Ok(Program { stmt: instrs, file });
             }
+            self.instr_count = instrs.len();
             instrs.append(&mut self.top_level(token)?);
+            println!("{}:{}", self.instr_count, instrs.len());
         }
     }
 
@@ -138,10 +146,9 @@ impl Parser {
 
     fn proc(&mut self) -> Result<Vec<Instr>, ParseError> {
         let name = self.expect(TokenKind::Identifier)?;
-        self.labels.insert(name.value.clone(), self.label_count);
-        self.label_count += 1;
+        self.proc_table.insert(name.value.clone(), self.instr_count+1);
         let _ = self.expect(TokenKind::CurlyOpen)?;
-        let mut body = vec![];
+        let mut body = vec![Instr::new(Opcode::PreProc, CHSValue::None)];
         loop {
             let tok = self.require()?;
             match tok.kind {
@@ -154,6 +161,7 @@ impl Parser {
                     self.while_block(&mut body)?;
                     continue;
                 }
+                
                 _ => body.push(self.instr(tok)?),
             }
         }
@@ -174,7 +182,7 @@ impl Parser {
                     offset2 = body.len() + 1;
                     body.insert(
                         offset,
-                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 2)),
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 3)),
                     );
                 }
                 _ => body.push(self.instr(tok)?),
@@ -183,13 +191,13 @@ impl Parser {
         if !has_else {
             body.insert(
                 offset,
-                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 1)),
+                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 2)),
             );
         }
         if has_else {
             body.insert(
                 offset2,
-                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + 1)),
+                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + 2)),
             );
         }
         Ok(())
@@ -216,9 +224,9 @@ impl Parser {
                     body.push(Instr::new(Opcode::JmpWhile, CHSValue::None));
                     body.insert(
                         ifoffset,
-                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 1)),
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 2)),
                     );
-                    body.push(Instr::new(Opcode::Nop, CHSValue::None));
+                    body.push(Instr::new(Opcode::Unbind, CHSValue::P(1)));
                     break;
                 }
                 TokenKind::If => self.if_block(body)?,
@@ -244,8 +252,18 @@ impl Parser {
             TokenKind::Eq => Instr::new(Opcode::Eq, CHSValue::none()),
             TokenKind::Dup => Instr::new(Opcode::Dup, CHSValue::none()),
             TokenKind::Gt => Instr::new(Opcode::Gt, CHSValue::none()),
-            //TokenKind::Lt => Instr::new(Opcode::Lt, CHSValue::none()),
+            TokenKind::Lt => Instr::new(Opcode::Lt, CHSValue::none()),
+            TokenKind::Call => Instr::new(Opcode::Call, CHSValue::none()),
+            TokenKind::Ret => Instr::new(Opcode::Ret, CHSValue::none()),
             TokenKind::Over => Instr::new(Opcode::Over, self.operand()?),
+            TokenKind::Jmp => Instr::new(Opcode::Jmp, self.operand()?),
+            TokenKind::Identifier => {
+                let pos = match self.proc_table.get(&tok.value) {
+                    Some(v) => *v,
+                    None => error!("...")
+                };
+                Instr::new(Opcode::Pushi, CHSValue::P(pos))
+            }
             _ => return error!("{:?} is not a Instr at {}", tok, self.pos),
         };
         Ok(instr)

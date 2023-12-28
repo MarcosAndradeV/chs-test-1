@@ -33,6 +33,7 @@ impl CHSVM {
             Opcode::Pushi => {
                 let value = match instr.operands {
                     CHSValue::I(v) => instr.operands,
+                    CHSValue::P(v) => instr.operands,
                     CHSValue::None => return Err(Trap::OperandNotProvided),
                     _ => return Err(Trap::OperandTypeNotCorrect),
                 };
@@ -134,8 +135,8 @@ impl CHSVM {
             }
             Opcode::Add => {
                 if self.data_stack.len() >= 2 {
-                    let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
+                    let op_1 = self.pop_stack()?;
                     self.push_stack(op_1 + op_2)?;
                     return Ok(());
                 }
@@ -152,8 +153,8 @@ impl CHSVM {
             }
             Opcode::Mul => {
                 if self.data_stack.len() >= 2 {
-                    let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
+                    let op_1 = self.pop_stack()?;
                     self.push_stack(op_1 * op_2)?;
                     return Ok(());
                 }
@@ -202,6 +203,9 @@ impl CHSVM {
                     Some(v) => *v,
                     None => return Err(Trap::OperandNotProvided)
                 };
+                if addrs.as_usize() > self.program.len() {
+                    return Err(Trap::AddersOutOfBounds);
+                }
                 self.ip = addrs.as_usize();
                 return Ok(());
             },
@@ -211,8 +215,8 @@ impl CHSVM {
             }
             Opcode::Eq => {
                 if self.data_stack.len() >= 2 {
-                    let op_1 = self.pop_stack()?;
                     let op_2 = self.pop_stack()?;
+                    let op_1 = self.pop_stack()?;
                     self.push_stack(CHSValue::B((op_1 == op_2) as u8))?;
                     return Ok(());
                 }
@@ -260,6 +264,29 @@ impl CHSVM {
                 return Ok(());
             },
 
+            Opcode::Call => {
+                self.return_stack.push(CHSValue::P(self.ip));
+                if self.data_stack.len() >= 1 {
+                    let value = self.pop_stack()?;
+                    self.ip = value.as_usize();
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            },
+            Opcode::Ret => {
+                let addrs = match self.return_stack.pop() {
+                    Some(v) => v,
+                    None => return Err(Trap::OperandNotProvided)
+                };
+                if addrs.as_usize() > self.program.len() {
+                    return Err(Trap::AddersOutOfBounds);
+                }
+                self.ip = addrs.as_usize();
+                return Ok(());
+            },
+            Opcode::PreProc => {
+                Ok(())
+            },
             Opcode::Print => {
                 if self.data_stack.len() >= 1 {
                     let value = self.pop_stack()?;

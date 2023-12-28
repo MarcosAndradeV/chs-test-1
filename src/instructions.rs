@@ -15,6 +15,10 @@ pub enum Opcode {
     BindPush,
     Unbind,
 
+    Call,
+    Ret,
+    PreProc,
+
     Add,
     Minus,
     Mul,
