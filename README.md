@@ -1,33 +1,20 @@
-# CHS Programming Language
+# CHSVM - Stack-Based Virtual Machine
+
+- [Introduction](#introduction)
+- [Development Milestones](#development-milestones)
 
 ## Introduction
+CHSVM is a lightweight and versatile stack-based virtual machine written in Rust. It is designed for learning, experimenting, and serving as a base for cross-platform runtimes in my projects.
 
-CHS is a lightweight and versatile programming language designed for learnig and experimenting proposes.
-With a stack-based virtual machine writen in Rust (CHSVM).
-
-
-## Development Milestones (WIP)
-- [ ] 
-- [ ] 
-- [ ] 
+## Development Milestones
+- [ ] Add support for binary files (WIP: Create a module for converting chsvm instructions as binary code)
 
 ## License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## References & Inspirations:
+- BM: [GitHub - tsoding/bm](https://github.com/tsoding/bm)
+- Porth: [GitLab - tsoding/porth](https://gitlab.com/tsoding/porth)
+- SmallVM: [GitHub - tarekwiz/smallvm](https://github.com/tarekwiz/smallvm)
+- IridiumVM: [GitHub - fhaynes/iridium](https://github.com/fhaynes/iridium)
 
-BM is the fist inspiration of this project:
-- <https://github.com/tsoding/bm><br/>
-
-WebAssembly is:
-- <https://webassembly.org/specs/><br/>
-
-Porth is:
-- <https://gitlab.com/tsoding/porth><br/>
-
-SmallVM is:
-- <https://github.com/tarekwiz/smallvm><br/>
-
-IridiumVM is:
-- <https://github.com/fhaynes/iridium><br/>
