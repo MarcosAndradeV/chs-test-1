@@ -232,14 +232,14 @@ impl CHSVM {
                 Ok(())
             },
             Opcode::JmpWhile => {
-                let addrs = match self.return_stack.pop() {
-                    Some(v) => v,
+                let addrs = match self.return_stack.last() {
+                    Some(v) => *v,
                     None => return Err(Trap::OperandNotProvided)
                 };
                 if addrs.as_usize() > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 }
-                self.ip = addrs.as_usize()-1;
+                self.ip = addrs.as_usize();
                 return Ok(());
             },
             Opcode::End => {
@@ -358,7 +358,7 @@ impl CHSVM {
         }
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {} //{println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
+                Ok(_) => {} // {println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
                 Err(e) => {
                     eprintln!("It's a trap: {:?} at {}", e, self.ip);
                     break;

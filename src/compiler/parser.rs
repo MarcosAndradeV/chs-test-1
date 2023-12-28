@@ -10,7 +10,7 @@ use super::{
     node::Program,
 };
 
-const BODY_OFFSET: usize = 2;
+const BODY_OFFSET: usize = 4;
 
 macro_rules! error {
     ($message: expr, $($field: expr),*) => {
@@ -69,7 +69,9 @@ impl Parser {
                     Some(v) => *v,
                     None => error!("main Not Found.")
                 };
-                instrs.insert(0, Instr::new(Opcode::Jmp, CHSValue::P(main_)));
+                instrs.insert(0, Instr::new(Opcode::Halt, CHSValue::none()));
+                instrs.insert(0, Instr::new(Opcode::Call, CHSValue::none()));
+                instrs.insert(0, Instr::new(Opcode::Pushi, CHSValue::P(main_+2)));
                 return Ok(Program { stmt: instrs, file });
             }
             self.instr_count = instrs.len();
@@ -166,6 +168,9 @@ impl Parser {
                 
                 _ => body.push(self.instr(tok)?),
             }
+        }
+        if !body.last().is_some_and(|x| x.opcode == Opcode::Ret) {
+            return error!("...");
         }
         Ok(body)
     }
@@ -269,7 +274,7 @@ impl Parser {
                     Some(v) => *v,
                     None => error!("{} not found.", tok.value)
                 };
-                Instr::new(Opcode::Pushi, CHSValue::P(pos))
+                Instr::new(Opcode::Pushi, CHSValue::P(pos+2))
             }
             _ => return error!("{:?} is not a Instr at {}", tok, self.pos),
         };
