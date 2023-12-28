@@ -20,11 +20,11 @@ CHSVM is a lightweight and versatile stack-based virtual machine written in Rust
 ## How to use
 
 Is not stable!!!
-´´´bash
+```bash
 $ make chsvm
 $ cd tmp
 $ ./chsvm run main.chs
-´´´
+```
 
 ## License
 
