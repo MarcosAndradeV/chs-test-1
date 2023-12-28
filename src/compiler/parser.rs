@@ -65,7 +65,7 @@ impl Parser {
                 println!("{:?}", self.proc_table);
                 let main_ = match self.proc_table.get("main") {
                     Some(v) => *v,
-                    None => error!("...")
+                    None => error!("main Not Found.")
                 };
                 instrs.insert(0, Instr::new(Opcode::Jmp, CHSValue::P(main_)));
                 return Ok(Program { stmt: instrs, file });
@@ -246,7 +246,11 @@ impl Parser {
             TokenKind::Minus => Instr::new(Opcode::Minus, CHSValue::none()),
             TokenKind::Mul => Instr::new(Opcode::Mul, CHSValue::none()),
             TokenKind::Div => Instr::new(Opcode::Div, CHSValue::none()),
+            TokenKind::Inc => Instr::new(Opcode::Inc, CHSValue::none()),
+            TokenKind::Mod => Instr::new(Opcode::Mod, CHSValue::none()),
+            TokenKind::Lgor => Instr::new(Opcode::Lgor, CHSValue::none()),
             TokenKind::Print => Instr::new(Opcode::Print, CHSValue::none()),
+            TokenKind::Debug => Instr::new(Opcode::Debug, CHSValue::none()),
             TokenKind::Pop => Instr::new(Opcode::Pop, CHSValue::none()),
             TokenKind::Hlt => Instr::new(Opcode::Halt, CHSValue::none()),
             TokenKind::Eq => Instr::new(Opcode::Eq, CHSValue::none()),
@@ -255,12 +259,13 @@ impl Parser {
             TokenKind::Lt => Instr::new(Opcode::Lt, CHSValue::none()),
             TokenKind::Call => Instr::new(Opcode::Call, CHSValue::none()),
             TokenKind::Ret => Instr::new(Opcode::Ret, CHSValue::none()),
+            TokenKind::Swap => Instr::new(Opcode::Swap, CHSValue::none()),
             TokenKind::Over => Instr::new(Opcode::Over, self.operand()?),
             TokenKind::Jmp => Instr::new(Opcode::Jmp, self.operand()?),
             TokenKind::Identifier => {
                 let pos = match self.proc_table.get(&tok.value) {
                     Some(v) => *v,
-                    None => error!("...")
+                    None => error!("{} not found.", tok.value)
                 };
                 Instr::new(Opcode::Pushi, CHSValue::P(pos))
             }

@@ -14,6 +14,7 @@ pub enum TokenKind {
     
     Hlt,
     Print,
+    Debug,
     
     Proc,
     If,
@@ -27,6 +28,9 @@ pub enum TokenKind {
     Minus,
     Mul,
     Div,
+    Inc,
+    Mod,
+    Lgor,
     
     Eq,
     Gt,
@@ -38,6 +42,7 @@ pub enum TokenKind {
     Pop,
     Dup,
     Over,
+    Swap,
     Jmp, // tmp
 }
 
@@ -121,7 +126,7 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' => self.operator(),
+            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             _ => {
@@ -228,6 +233,9 @@ impl Lexer {
                 "hlt" => TokenKind::Hlt,
                 "ret" => TokenKind::Ret,
                 "jmp" => TokenKind::Jmp,
+                "inc" => TokenKind::Inc,
+                "mod" => TokenKind::Mod,
+                "lor" => TokenKind::Lgor,
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {
@@ -235,11 +243,13 @@ impl Lexer {
                 "else" => TokenKind::Else,
                 "over" => TokenKind::Over,
                 "call" => TokenKind::Call,
+                "swap" => TokenKind::Swap,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
                 "print" => TokenKind::Print,
                 "while" => TokenKind::Whlie,
+                "debug" => TokenKind::Debug,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,

@@ -1,5 +1,5 @@
 use core::{fmt, ops::{Div, Mul, Sub, Add}};
-use std::str::FromStr;
+use std::{str::FromStr, ops::Rem};
 
 use crate::exepitons::Trap;
 
@@ -33,6 +33,13 @@ impl CHSValue {
             CHSValue::F(v) => v as i64,
             CHSValue::B(v) => v  as i64,
             CHSValue::None => 0
+        }
+    }
+
+    pub fn as_bool(self) -> bool {
+        match self {
+            CHSValue::B(v) => v != 0,
+            _ => false
         }
     }
 
@@ -244,6 +251,46 @@ impl Div for CHSValue {
             CHSValue::B(v) => {
                 match rhs {
                     CHSValue::B(o) => CHSValue::B(v / o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::None => CHSValue::None
+        }
+    }
+}
+
+impl Rem for CHSValue {
+    type Output = Self;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        match self {
+            CHSValue::I(v) => {
+                match rhs {
+                    CHSValue::I(o) => CHSValue::I(v % o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::U(v) => {
+                match rhs {
+                    CHSValue::U(o) => CHSValue::U(v % o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::F(v) => {
+                match rhs {
+                    CHSValue::F(o) => CHSValue::F(v % o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::P(v) => {
+                match rhs {
+                    CHSValue::P(o) => CHSValue::P(v % o),
+                    _ => unreachable!()
+                }
+            },
+            CHSValue::B(v) => {
+                match rhs {
+                    CHSValue::B(o) => CHSValue::B(v % o),
                     _ => unreachable!()
                 }
             },

@@ -23,6 +23,9 @@ pub enum Opcode {
     Minus,
     Mul,
     Div,
+    Inc,
+    Mod,
+    Lgor,
 
     Jmp,
     JmpIf,

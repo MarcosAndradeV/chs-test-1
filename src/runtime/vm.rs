@@ -160,6 +160,15 @@ impl CHSVM {
                 }
                 return Err(Trap::StackUnderflow);
             }
+            Opcode::Lgor => {
+                if self.data_stack.len() >= 2 {
+                    let op_2 = self.pop_stack()?;
+                    let op_1 = self.pop_stack()?;
+                    self.push_stack(CHSValue::B((op_1.as_bool() || op_2.as_bool()) as u8))?;
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            }
             Opcode::Div => {
                 if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
@@ -168,6 +177,26 @@ impl CHSVM {
                         return Err(Trap::DivByZero);
                     }
                     self.push_stack(op_1 / op_2)?;
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            }
+            Opcode::Mod => {
+                if self.data_stack.len() >= 2 {
+                    let op_2 = self.pop_stack()?;
+                    let op_1 = self.pop_stack()?;
+                    if op_2.is_zero() {
+                        return Err(Trap::DivByZero);
+                    }
+                    self.push_stack(op_1 % op_2)?;
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            }
+            Opcode::Inc => {
+                if self.data_stack.len() >= 1 {
+                    let v = self.pop_stack()?;
+                    self.push_stack( CHSValue::I(v.as_i64()+1) );
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
