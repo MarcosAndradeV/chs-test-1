@@ -130,7 +130,11 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::Unbind => {
-                self.return_stack.clear();
+                let q = match instr.operands {
+                    v => v,
+                    CHSValue::None => return Err(Trap::OperandNotProvided),
+                };
+                self.return_stack.truncate(self.return_stack.len()-q.as_usize());
                 return Ok(());
             }
             Opcode::Add => {
@@ -228,14 +232,14 @@ impl CHSVM {
                 Ok(())
             },
             Opcode::JmpWhile => {
-                let addrs = match self.return_stack.get(0) {
-                    Some(v) => *v,
+                let addrs = match self.return_stack.pop() {
+                    Some(v) => v,
                     None => return Err(Trap::OperandNotProvided)
                 };
                 if addrs.as_usize() > self.program.len() {
                     return Err(Trap::AddersOutOfBounds);
                 }
-                self.ip = addrs.as_usize();
+                self.ip = addrs.as_usize()-1;
                 return Ok(());
             },
             Opcode::End => {
@@ -354,7 +358,7 @@ impl CHSVM {
         }
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {}
+                Ok(_) => {} //{println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
                 Err(e) => {
                     eprintln!("It's a trap: {:?} at {}", e, self.ip);
                     break;

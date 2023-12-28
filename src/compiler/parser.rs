@@ -10,6 +10,8 @@ use super::{
     node::Program,
 };
 
+const BODY_OFFSET: usize = 2;
+
 macro_rules! error {
     ($message: expr, $($field: expr),*) => {
         return Err(ParseError {
@@ -182,7 +184,7 @@ impl Parser {
                     offset2 = body.len() + 1;
                     body.insert(
                         offset,
-                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 3)),
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET + 1)),
                     );
                 }
                 _ => body.push(self.instr(tok)?),
@@ -191,13 +193,13 @@ impl Parser {
         if !has_else {
             body.insert(
                 offset,
-                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 2)),
+                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET)),
             );
         }
         if has_else {
             body.insert(
                 offset2,
-                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + 2)),
+                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + BODY_OFFSET)),
             );
         }
         Ok(())
@@ -224,7 +226,7 @@ impl Parser {
                     body.push(Instr::new(Opcode::JmpWhile, CHSValue::None));
                     body.insert(
                         ifoffset,
-                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + 2)),
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET)),
                     );
                     body.push(Instr::new(Opcode::Unbind, CHSValue::P(1)));
                     break;
