@@ -1,9 +1,10 @@
 use core::{fmt, ops::{Div, Mul, Sub, Add}};
 use std::{str::FromStr, ops::Rem};
-
+use serde::{Deserialize, Serialize};
 use crate::exepitons::Trap;
 
 #[derive(Debug, PartialOrd, Clone, Copy)]
+#[derive(Serialize, Deserialize)]
 pub enum CHSValue {
     I(i64),
     U(u64),

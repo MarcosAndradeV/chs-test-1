@@ -1,7 +1,8 @@
 use crate::value::CHSValue;
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize)]
 pub enum Opcode {
     Halt = 0,
     Pushi,
@@ -47,6 +48,7 @@ pub enum Opcode {
 
 
 #[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize)]
 pub struct Instr {
     pub opcode: Opcode,
     pub operands: CHSValue,
