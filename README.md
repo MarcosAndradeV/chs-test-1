@@ -7,7 +7,8 @@
 CHSVM is a lightweight and versatile stack-based virtual machine written in Rust. It is designed for learning, experimenting, and serving as a base for cross-platform runtimes in my projects.
 
 ## Development Milestones
-- [ ] Add support for binary files (WIP: Create a module for converting chsvm instructions as binary code)
+- [ ] Add support for binary files (WIP: Create a module for converting chsvm instructions into binary code)
+- [ ] Add memory allocation
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
