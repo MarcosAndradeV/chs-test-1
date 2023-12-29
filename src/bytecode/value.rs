@@ -39,8 +39,12 @@ impl CHSValue {
 
     pub fn as_bool(self) -> bool {
         match self {
-            CHSValue::B(v) => v != 0,
-            _ => false
+            CHSValue::P(v) => v >= 1usize,
+            CHSValue::I(v) => v >= 1i64,
+            CHSValue::U(v) => v >= 1u64,
+            CHSValue::F(v) => v >= 1.0,
+            CHSValue::B(v) => v >= 1u8,
+            CHSValue::None => false
         }
     }
 

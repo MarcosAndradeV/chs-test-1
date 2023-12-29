@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     exepitons::Trap,
     bytecode::instructions::{Instr, Opcode},
@@ -342,6 +344,19 @@ impl CHSVM {
             Opcode::PreProc => {
                 Ok(())
             },
+            Opcode::Write => {
+                if self.data_stack.len() >= 2 {
+                    let op_2 = self.pop_stack()?;
+                    let op_1 = self.pop_stack()?;
+                    let mut w = String::new();
+                    for i in op_1.as_usize()..=op_2.as_usize() {
+                        w.push(self.memory[i] as char);
+                    }
+                    println!("{}", w);
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            }
             Opcode::Print => {
                 if self.data_stack.len() >= 1 {
                     let value = self.pop_stack()?;
@@ -375,9 +390,9 @@ impl CHSVM {
     }
 
     pub fn run(&mut self) {
-        for i in self.program.code.iter().enumerate() {
-            println!("{} -> {:?}", i.0, i.1);
-        }
+        // for i in self.program.code.iter().enumerate() {
+        //     println!("{} -> {:?}", i.0, i.1);
+        // }
         while !self.is_halted {
             match self.execute_next_instr() {
                 Ok(_) => {} // {println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}

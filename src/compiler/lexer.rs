@@ -47,6 +47,7 @@ pub enum TokenKind {
     Over,
     Swap,
     Jmp, // tmp
+    Write,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -160,6 +161,7 @@ impl Lexer {
             b'=' => self.make_token(TokenKind::Eq),
             b'>' => self.make_token(TokenKind::Gt),
             b'<' => self.make_token(TokenKind::Lt),
+            b'|' => self.make_token(TokenKind::Lgor),
             _ => self.make_token(TokenKind::Invalid)
         }
     }
@@ -238,7 +240,6 @@ impl Lexer {
                 "jmp" => TokenKind::Jmp,
                 "inc" => TokenKind::Inc,
                 "mod" => TokenKind::Mod,
-                "lor" => TokenKind::Lgor,
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {
@@ -255,6 +256,7 @@ impl Lexer {
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
                 "store" => TokenKind::Store,
+                "write" => TokenKind::Write,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,

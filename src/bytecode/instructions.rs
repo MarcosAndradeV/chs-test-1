@@ -11,6 +11,7 @@ pub enum Opcode {
     Dup,
     Over,
     Swap,
+    Write,
 
     Store,
     Load,

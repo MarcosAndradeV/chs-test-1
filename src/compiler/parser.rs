@@ -64,7 +64,6 @@ impl Parser {
 
             if token.kind == TokenKind::Null {
                 let file = self.file.clone();
-                println!("{:?}", self.label_table);
                 let main_ = match self.label_table.get("main") {
                     Some(v) => *v,
                     None => error!("main Not Found.")
@@ -76,7 +75,6 @@ impl Parser {
             }
             self.instr_count = instrs.len();
             instrs.append(&mut self.top_level(token)?);
-            println!("{}:{}", self.instr_count, instrs.len());
         }
     }
 
@@ -269,6 +267,7 @@ impl Parser {
             TokenKind::Swap => Instr::new(Opcode::Swap, CHSValue::none()),
             TokenKind::Load => Instr::new(Opcode::Load, CHSValue::none()),
             TokenKind::Store => Instr::new(Opcode::Store, CHSValue::none()),
+            TokenKind::Write => Instr::new(Opcode::Write, CHSValue::none()),
             TokenKind::Over => Instr::new(Opcode::Over, self.operand()?),
             TokenKind::Jmp => Instr::new(Opcode::Jmp, self.operand()?),
             TokenKind::Identifier => {
