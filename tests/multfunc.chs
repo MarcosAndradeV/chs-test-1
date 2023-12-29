@@ -10,7 +10,7 @@ func test1 {
         1 -
     }
     pop
-    ret
+
 }
 
 
@@ -25,11 +25,11 @@ func test2 {
         1 -
     }
     pop
-    ret
+
 }
 
 func main {
     test1 call
     test2 call
-    ret
+
 }

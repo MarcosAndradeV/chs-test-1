@@ -160,16 +160,14 @@ impl Parser {
                     continue;
                 }
                 TokenKind::Whlie => {
-                    self.while_block(&mut body)?;
+                    self.while_block(&mut body, 0)?;
                     continue;
                 }
                 
                 _ => body.push(self.instr(tok)?),
             }
         }
-        if !body.last().is_some_and(|x| x.opcode == Opcode::Ret) {
-            return error!("...");
-        }
+        body.push(Instr::new(Opcode::Ret, CHSValue::none()));
         Ok(body)
     }
 
@@ -208,7 +206,7 @@ impl Parser {
         Ok(())
     }
 
-    fn while_block(&mut self, body: &mut Vec<Instr>) -> Result<(), ParseError> {
+    fn while_block(&mut self, body: &mut Vec<Instr>, depth: usize) -> Result<(), ParseError> {
         body.push(Instr::new(Opcode::While, CHSValue::None));
         let mut ifoffset = 0usize;
         loop {
@@ -229,12 +227,13 @@ impl Parser {
                     body.push(Instr::new(Opcode::JmpWhile, CHSValue::None));
                     body.insert(
                         ifoffset,
-                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET)),
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET + depth)),
                     );
                     body.push(Instr::new(Opcode::Unbind, CHSValue::P(1)));
                     break;
                 }
                 TokenKind::If => self.if_block(body)?,
+                TokenKind::Whlie => self.while_block(body, depth+1)?,
                 _ => body.push(self.instr(tok)?),
             }
         }
@@ -263,7 +262,7 @@ impl Parser {
             TokenKind::Gt => Instr::new(Opcode::Gt, CHSValue::none()),
             TokenKind::Lt => Instr::new(Opcode::Lt, CHSValue::none()),
             TokenKind::Call => Instr::new(Opcode::Call, CHSValue::none()),
-            TokenKind::Ret => Instr::new(Opcode::Ret, CHSValue::none()),
+            //TokenKind::Ret => Instr::new(Opcode::Ret, CHSValue::none()),
             TokenKind::Swap => Instr::new(Opcode::Swap, CHSValue::none()),
             TokenKind::Load => Instr::new(Opcode::Load, CHSValue::none()),
             TokenKind::Store => Instr::new(Opcode::Store, CHSValue::none()),

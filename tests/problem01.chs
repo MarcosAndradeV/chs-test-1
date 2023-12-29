@@ -9,5 +9,5 @@ func main {
   }
   pop
   print
-  ret
+
 }

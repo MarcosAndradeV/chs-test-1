@@ -77,11 +77,12 @@ impl CHSVM {
             }
             Opcode::Dup => {
                 if self.data_stack.len() >= 1 {
-                    let value = match self.data_stack.get(0) {
-                        Some(v) => *v,
+                    let value = match self.data_stack.pop() {
+                        Some(v) => v,
                         None => return Err(Trap::StackUnderflow),
                     };
 
+                    self.push_stack(value)?;
                     self.push_stack(value)?;
 
                     return Ok(());
@@ -395,7 +396,7 @@ impl CHSVM {
         // }
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {} // {println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
+                Ok(_) => {} //{println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
                 Err(e) => {
                     eprintln!("It's a trap: {:?} at {}", e, self.ip);
                     break;
@@ -428,7 +429,7 @@ impl CHSVM {
         if self.ip > self.program.code.len() {
             return Err(Trap::ProgramEndWithoutHalt);
         }
-        //println!("{:?}", self.program[self.ip - 1]);
+        //println!("{:?}", self.program.code[self.ip - 1]);
         //println!("DATA: {:?}", self.data_stack);
         Ok(self.program.code[self.ip - 1])
     }

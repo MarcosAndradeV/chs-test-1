@@ -6,5 +6,5 @@ func main {
     0 0 | print
     # 
     
-    ret
+
 }

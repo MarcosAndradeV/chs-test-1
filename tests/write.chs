@@ -6,5 +6,5 @@ func main {
     5 111 store
     
     1 5 write
-    ret
+
 }
