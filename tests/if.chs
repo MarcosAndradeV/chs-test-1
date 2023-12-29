@@ -9,5 +9,5 @@ func main {
         else
         0 print
     }
-    hlt
+    ret
 }

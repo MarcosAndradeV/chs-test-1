@@ -4,5 +4,5 @@ func main {
         dup print
         inc
     }
-    hlt
+    ret
 }

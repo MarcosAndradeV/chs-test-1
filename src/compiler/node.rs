@@ -1,7 +1,7 @@
 use std::cmp::{Eq, PartialEq};
 use std::path::PathBuf;
 
-use crate::instructions::Instr;
+use crate::bytecode::instructions::Instr;
 
 #[derive(Debug)]
 pub struct Program {

@@ -1,8 +1,8 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
-    instructions::{Instr, Opcode},
-    value::CHSValue,
+    bytecode::instructions::{Instr, Opcode},
+    bytecode::value::CHSValue,
 };
 
 use super::{

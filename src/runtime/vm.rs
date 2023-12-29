@@ -1,7 +1,7 @@
 use crate::{
     exepitons::Trap,
-    instructions::{Instr, Opcode},
-    value::CHSValue,
+    bytecode::instructions::{Instr, Opcode},
+    bytecode::{value::CHSValue, ByteCode},
 };
 
 const STACK_CAPACITY: usize = 1024;
@@ -13,11 +13,11 @@ pub struct CHSVM {
     is_halted: bool,
     ip: usize,
     sp: usize,
-    program: Vec<Instr>,
+    program: ByteCode,
 }
 
 impl CHSVM {
-    pub fn new(program: Vec<Instr>) -> Self {
+    pub fn new(program: ByteCode) -> Self {
         Self {
             data_stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
@@ -53,7 +53,7 @@ impl CHSVM {
                     CHSValue::None => return Err(Trap::OperandNotProvided),
                 };
 
-                if addrs.as_usize() > self.program.len() {
+                if addrs.as_usize() > self.program.code.len() {
                     return Err(Trap::StackOverflow);
                 }
 
@@ -210,7 +210,7 @@ impl CHSVM {
                     v => v,
                     CHSValue::None => return Err(Trap::OperandNotProvided),
                 };
-                if addrs.as_usize() > self.program.len() {
+                if addrs.as_usize() > self.program.code.len() {
                     return Err(Trap::AddersOutOfBounds);
                 }
                 self.ip = addrs.as_usize();
@@ -225,7 +225,7 @@ impl CHSVM {
                     v => v,
                     CHSValue::None => return Err(Trap::OperandNotProvided),
                 };
-                if addrs.as_usize() > self.program.len() {
+                if addrs.as_usize() > self.program.code.len() {
                     return Err(Trap::AddersOutOfBounds);
                 }
                 self.ip = addrs.as_usize();
@@ -236,7 +236,7 @@ impl CHSVM {
                     Some(v) => *v,
                     None => return Err(Trap::OperandNotProvided)
                 };
-                if addrs.as_usize() > self.program.len() {
+                if addrs.as_usize() > self.program.code.len() {
                     return Err(Trap::AddersOutOfBounds);
                 }
                 self.ip = addrs.as_usize();
@@ -311,7 +311,7 @@ impl CHSVM {
                     Some(v) => v,
                     None => return Err(Trap::OperandNotProvided)
                 };
-                if addrs.as_usize() > self.program.len() {
+                if addrs.as_usize() > self.program.code.len() {
                     return Err(Trap::AddersOutOfBounds);
                 }
                 self.ip = addrs.as_usize();
@@ -353,7 +353,7 @@ impl CHSVM {
     }
 
     pub fn run(&mut self) {
-        for i in self.program.iter().enumerate() {
+        for i in self.program.code.iter().enumerate() {
             println!("{} -> {:?}", i.0, i.1);
         }
         while !self.is_halted {
@@ -388,11 +388,11 @@ impl CHSVM {
 
     fn decode_instr(&mut self) -> Result<Instr, Trap> {
         self.ip += 1;
-        if self.ip > self.program.len() {
+        if self.ip > self.program.code.len() {
             return Err(Trap::ProgramEndWithoutHalt);
         }
         //println!("{:?}", self.program[self.ip - 1]);
         //println!("DATA: {:?}", self.data_stack);
-        Ok(self.program[self.ip - 1])
+        Ok(self.program.code[self.ip - 1])
     }
 }

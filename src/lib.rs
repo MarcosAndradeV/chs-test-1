@@ -3,15 +3,15 @@
 use std::{path::Path, ffi::OsStr, fs::File, io::Read};
 use bincode;
 
+use bytecode::{instructions::Instr, ByteCode};
 use compiler::make_ast;
 use exepitons::GenericError;
-use instructions::Instr;
+
 use runtime::vm::CHSVM;
 pub mod runtime;
 pub mod compiler;
-pub mod instructions;
+pub mod bytecode;
 pub mod exepitons;
-pub mod value;
 mod tests;
 pub mod cli;
 
@@ -35,14 +35,14 @@ pub fn load_file(name: &String) -> Result<(String, &String), GenericError> {
 
     let mut f = match File::open(file_path) {
         Ok(ok) => ok,
-        Err(_) => return generic_error!("..."),
+        Err(_) => return generic_error!("Cannot open the file"),
     };
 
     let mut buffer = String::new();
 
     match f.read_to_string(&mut buffer) {
         Ok(_) => {}
-        Err(_) => return generic_error!("...")
+        Err(_) => return generic_error!("Cannot read the file")
     }
     Ok((buffer, name))
 
@@ -51,7 +51,7 @@ pub fn load_file(name: &String) -> Result<(String, &String), GenericError> {
 pub fn compile_chs_file(source: (String, &String)) -> Result<String, GenericError> {
 
     let ast = match make_ast(source.0) {
-        Ok(s) => s.stmt,
+        Ok(s) => ByteCode { code: s.stmt },
         Err(e) => {
             return Err(e);
         }
@@ -68,19 +68,20 @@ pub fn compile_chs_file(source: (String, &String)) -> Result<String, GenericErro
 pub fn run_file(name: String) -> Result<(), GenericError> {
     let mut f = match File::open(name) {
         Ok(ok) => ok,
-        Err(_) => return generic_error!("..."),
+        Err(_) => return generic_error!("Cannot open the file"),
     };
 
     let mut buffer = Vec::new();
 
     match f.read_to_end(&mut buffer) {
         Ok(_) => {}
-        Err(_) => return generic_error!("...")
+        Err(_) => return generic_error!("Cannot read the file")
     }
-    let a = match bincode::deserialize::<Vec<Instr>>(&buffer[..]) {
+    let a = match bincode::deserialize::<ByteCode>(&buffer[..]) {
         Ok(ok) => ok,
-        Err(_) => generic_error!("...")
+        Err(_) => generic_error!("Cannot read the file")
     };
+    
 
     let mut vm = CHSVM::new(a);
 
