@@ -5,11 +5,13 @@ use crate::{
 };
 
 const STACK_CAPACITY: usize = 1024;
+const MEMORY_CAPACITY: usize = 60000;
 
 #[derive(Debug)]
 pub struct CHSVM {
     data_stack: Vec<CHSValue>,
     return_stack: Vec<CHSValue>,
+    memory: [u8; MEMORY_CAPACITY],
     is_halted: bool,
     ip: usize,
     sp: usize,
@@ -21,6 +23,7 @@ impl CHSVM {
         Self {
             data_stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
+            memory: [0; MEMORY_CAPACITY],
             sp: 0,
             ip: 0,
             is_halted: false,
@@ -137,6 +140,25 @@ impl CHSVM {
                 self.return_stack.truncate(self.return_stack.len()-q.as_usize());
                 return Ok(());
             }
+            Opcode::Store => {
+                if self.data_stack.len() >= 2 {
+                    let op_2 = self.pop_stack()?; // value
+                    let op_1 = self.pop_stack()?; // ptr
+                    if op_1.as_usize() > MEMORY_CAPACITY {return Err(Trap::StackUnderflow);}
+                    self.store(op_1, op_2)?;
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            },
+            Opcode::Load => {
+                if self.data_stack.len() >= 1 {
+                    let op_1 = self.pop_stack()?; // ptr
+                    if op_1.as_usize() > MEMORY_CAPACITY {return Err(Trap::StackUnderflow);}
+                    self.load(op_1)?;
+                    return Ok(());
+                }
+                return Err(Trap::StackUnderflow);
+            },
             Opcode::Add => {
                 if self.data_stack.len() >= 2 {
                     let op_2 = self.pop_stack()?;
@@ -394,5 +416,14 @@ impl CHSVM {
         //println!("{:?}", self.program[self.ip - 1]);
         //println!("DATA: {:?}", self.data_stack);
         Ok(self.program.code[self.ip - 1])
+    }
+
+    fn store(&mut self, op_1: CHSValue, op_2: CHSValue) -> Result<(), Trap> {
+        self.memory[op_1.as_usize()] = op_2.as_u8();
+        Ok(())
+    }
+    fn load(&mut self, op_1: CHSValue) -> Result<(), Trap> {
+        self.push_stack(CHSValue::I(self.memory[op_1.as_usize()] as i64))?;
+        Ok(())
     }
 }

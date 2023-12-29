@@ -38,6 +38,9 @@ pub enum TokenKind {
     
     CurlyOpen,
     CurlyClose,
+
+    Store,
+    Load,
     
     Pop,
     Dup,
@@ -244,12 +247,14 @@ impl Lexer {
                 "over" => TokenKind::Over,
                 "call" => TokenKind::Call,
                 "swap" => TokenKind::Swap,
+                "load" => TokenKind::Load,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
                 "print" => TokenKind::Print,
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
+                "store" => TokenKind::Store,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,

@@ -267,6 +267,8 @@ impl Parser {
             TokenKind::Call => Instr::new(Opcode::Call, CHSValue::none()),
             TokenKind::Ret => Instr::new(Opcode::Ret, CHSValue::none()),
             TokenKind::Swap => Instr::new(Opcode::Swap, CHSValue::none()),
+            TokenKind::Load => Instr::new(Opcode::Load, CHSValue::none()),
+            TokenKind::Store => Instr::new(Opcode::Store, CHSValue::none()),
             TokenKind::Over => Instr::new(Opcode::Over, self.operand()?),
             TokenKind::Jmp => Instr::new(Opcode::Jmp, self.operand()?),
             TokenKind::Identifier => {

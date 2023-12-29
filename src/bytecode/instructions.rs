@@ -12,6 +12,9 @@ pub enum Opcode {
     Over,
     Swap,
 
+    Store,
+    Load,
+
     Bind,
     BindPush,
     Unbind,

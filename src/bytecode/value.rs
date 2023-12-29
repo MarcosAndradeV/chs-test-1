@@ -44,6 +44,17 @@ impl CHSValue {
         }
     }
 
+    pub fn as_u8(self) -> u8 {
+        match self {
+            CHSValue::P(v) => v as u8,
+            CHSValue::I(v) => v as u8,
+            CHSValue::U(v) => v as u8,
+            CHSValue::F(v) => v as u8,
+            CHSValue::B(v) => v as u8,
+            CHSValue::None => 0
+        }
+    }
+
     pub fn as_usize(self) -> usize {
         match self {
             CHSValue::P(v) => v,
