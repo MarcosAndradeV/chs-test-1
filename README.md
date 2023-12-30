@@ -1,6 +1,6 @@
 # CHSVM - Stack-Based Virtual Machine
 
-[logo] https://github.com/MarcosAndradeV/chsvm/blob/master/_3c9707c7-d537-4bd3-9601-631d76e56ad1.jpeg
+[logo]: https://github.com/MarcosAndradeV/chsvm/blob/master/_3c9707c7-d537-4bd3-9601-631d76e56ad1.jpeg "Logo Title Text 2"
 
 - [Introduction](#introduction)
 - [Development Milestones](#development-milestones)
