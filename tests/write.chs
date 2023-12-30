@@ -4,7 +4,8 @@ func main {
     3 108 store
     4 108 store
     5 111 store
+    6 10 store
     
-    1 5 write
+    1 6 write
 
 }

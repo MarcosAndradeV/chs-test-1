@@ -6,7 +6,7 @@ use crate::{
     bytecode::{value::CHSValue, ByteCode},
 };
 
-const STACK_CAPACITY: usize = 1024;
+const STACK_CAPACITY: usize = 10240;
 const MEMORY_CAPACITY: usize = 60000;
 
 #[derive(Debug)]
@@ -353,7 +353,7 @@ impl CHSVM {
                     for i in op_1.as_usize()..=op_2.as_usize() {
                         w.push(self.memory[i] as char);
                     }
-                    println!("{}", w);
+                    print!("{}", w);
                     return Ok(());
                 }
                 return Err(Trap::StackUnderflow);
@@ -398,7 +398,9 @@ impl CHSVM {
             match self.execute_next_instr() {
                 Ok(_) => {} //{println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
                 Err(e) => {
-                    eprintln!("It's a trap: {:?} at {}", e, self.ip);
+                    eprintln!(
+                        "It's a trap: {:?} at {}\nCurrent stack: {:?}\nCurrent Instr: {:?}\nCurrent Stack Pointer: {}\nCurrent Local Stack: {:?}",
+                        e, self.ip-1, self.data_stack, self.program.code[self.ip-1], self.sp, self.return_stack);
                     break;
                 }
             }

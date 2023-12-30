@@ -156,7 +156,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::CurlyClose => break,
                 TokenKind::If => {
-                    self.if_block(&mut body)?;
+                    self.if_block(&mut body, 0)?;
                     continue;
                 }
                 TokenKind::Whlie => {
@@ -171,7 +171,7 @@ impl Parser {
         Ok(body)
     }
 
-    fn if_block(&mut self, body: &mut Vec<Instr>) -> Result<(), ParseError> {
+    fn if_block(&mut self, body: &mut Vec<Instr>, depth: usize) -> Result<(), ParseError> {
         self.expect(TokenKind::CurlyOpen);
         let offset = body.len();
         let mut offset2 = 0;
@@ -185,7 +185,7 @@ impl Parser {
                     offset2 = body.len() + 1;
                     body.insert(
                         offset,
-                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET + 1)),
+                        Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET + 1 + depth)),
                     );
                 }
                 _ => body.push(self.instr(tok)?),
@@ -194,13 +194,13 @@ impl Parser {
         if !has_else {
             body.insert(
                 offset,
-                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET)),
+                Instr::new(Opcode::JmpIf, CHSValue::P(body.len() + BODY_OFFSET + depth)),
             );
         }
         if has_else {
             body.insert(
                 offset2,
-                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + BODY_OFFSET)),
+                Instr::new(Opcode::Jmp, CHSValue::P(body.len() + BODY_OFFSET + depth)),
             );
         }
         Ok(())
@@ -232,7 +232,7 @@ impl Parser {
                     body.push(Instr::new(Opcode::Unbind, CHSValue::P(1)));
                     break;
                 }
-                TokenKind::If => self.if_block(body)?,
+                TokenKind::If => self.if_block(body, depth+1)?,
                 TokenKind::Whlie => self.while_block(body, depth+1)?,
                 _ => body.push(self.instr(tok)?),
             }
