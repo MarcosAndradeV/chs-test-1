@@ -9,7 +9,10 @@ build:
 install:
 	cp target/$(target)/$(prog) ./tmp/$(prog)
 
-chsvm: build install
+retest: build install
+	python3 test.py retest
+
+chsvm: build install retest
 
 test: chsvm
 	python3 test.py

@@ -1,6 +1,7 @@
 # WIP
 
 func main {
+    ret
      1 1 store
     28 1 store
 
