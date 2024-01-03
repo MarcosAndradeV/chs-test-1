@@ -7,7 +7,6 @@ use crate::exepitons::Trap;
 #[derive(Serialize, Deserialize)]
 pub enum CHSValue {
     I(i64),
-    U(u64),
     F(f64),
     P(usize),
     B(u8),
@@ -18,7 +17,6 @@ impl CHSValue {
     pub fn is_zero(&self) -> bool {
         match self {
             CHSValue::I(v) => *v == 0,
-            CHSValue::U(v) => *v == 0,
             CHSValue::F(v) => *v == 0.0,
             CHSValue::P(v) => *v == 0,
             CHSValue::B(v) => *v == 0,
@@ -30,7 +28,6 @@ impl CHSValue {
         match self {
             CHSValue::P(v) => v as i64,
             CHSValue::I(v) => v as i64,
-            CHSValue::U(v) => v as i64,
             CHSValue::F(v) => v as i64,
             CHSValue::B(v) => v  as i64,
             CHSValue::None => 0
@@ -41,7 +38,6 @@ impl CHSValue {
         match self {
             CHSValue::P(v) => v >= 1usize,
             CHSValue::I(v) => v >= 1i64,
-            CHSValue::U(v) => v >= 1u64,
             CHSValue::F(v) => v >= 1.0,
             CHSValue::B(v) => v >= 1u8,
             CHSValue::None => false
@@ -52,7 +48,6 @@ impl CHSValue {
         match self {
             CHSValue::P(v) => v as u8,
             CHSValue::I(v) => v as u8,
-            CHSValue::U(v) => v as u8,
             CHSValue::F(v) => v as u8,
             CHSValue::B(v) => v as u8,
             CHSValue::None => 0
@@ -63,7 +58,6 @@ impl CHSValue {
         match self {
             CHSValue::P(v) => v,
             CHSValue::I(v) => v as usize,
-            CHSValue::U(v) => v as usize,
             CHSValue::F(v) => v as usize,
             CHSValue::B(v) => v as usize,
             CHSValue::None => 0
@@ -81,12 +75,6 @@ impl PartialEq for CHSValue {
             CHSValue::I(v) => {
                 match other {
                     CHSValue::I(o) => v == o,
-                    _ => false
-                }
-            },
-            CHSValue::U(v) => {
-                match other {
-                    CHSValue::U(o) => v == o,
                     _ => false
                 }
             },
@@ -126,12 +114,6 @@ impl Add for CHSValue {
                     _ => unreachable!()
                 }
             },
-            CHSValue::U(v) => {
-                match rhs {
-                    CHSValue::U(o) => CHSValue::U(v + o),
-                    _ => unreachable!()
-                }
-            },
             CHSValue::F(v) => {
                 match rhs {
                     CHSValue::F(o) => CHSValue::F(v + o),
@@ -163,12 +145,6 @@ impl Sub for CHSValue {
             CHSValue::I(v) => {
                 match rhs {
                     CHSValue::I(o) => CHSValue::I(v - o),
-                    _ => unreachable!()
-                }
-            },
-            CHSValue::U(v) => {
-                match rhs {
-                    CHSValue::U(o) => CHSValue::U(v - o),
                     _ => unreachable!()
                 }
             },
@@ -206,12 +182,6 @@ impl Mul for CHSValue {
                     _ => unreachable!()
                 }
             },
-            CHSValue::U(v) => {
-                match rhs {
-                    CHSValue::U(o) => CHSValue::U(v * o),
-                    _ => unreachable!()
-                }
-            },
             CHSValue::F(v) => {
                 match rhs {
                     CHSValue::F(o) => CHSValue::F(v * o),
@@ -243,12 +213,6 @@ impl Div for CHSValue {
             CHSValue::I(v) => {
                 match rhs {
                     CHSValue::I(o) => CHSValue::I(v / o),
-                    _ => unreachable!()
-                }
-            },
-            CHSValue::U(v) => {
-                match rhs {
-                    CHSValue::U(o) => CHSValue::U(v / o),
                     _ => unreachable!()
                 }
             },
@@ -286,12 +250,6 @@ impl Rem for CHSValue {
                     _ => unreachable!()
                 }
             },
-            CHSValue::U(v) => {
-                match rhs {
-                    CHSValue::U(o) => CHSValue::U(v % o),
-                    _ => unreachable!()
-                }
-            },
             CHSValue::F(v) => {
                 match rhs {
                     CHSValue::F(o) => CHSValue::F(v % o),
@@ -319,7 +277,6 @@ impl fmt::Display for CHSValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CHSValue::I(v) => write!(f, "{}", v),
-            CHSValue::U(v) => write!(f, "{}", v),
             CHSValue::F(v) => write!(f, "{}", v),
             CHSValue::P(v) => write!(f, "{}", v),
             CHSValue::B(v) => write!(f, "{}", v),
