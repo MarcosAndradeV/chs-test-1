@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 bincode = "1.0"
 clap = { version = "4.4.11", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }

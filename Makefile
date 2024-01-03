@@ -14,7 +14,7 @@ retest: build install
 
 chsvm: build install retest
 
-test: chsvm
+test: build install
 	python3 test.py
 
 help:
