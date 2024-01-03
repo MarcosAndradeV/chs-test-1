@@ -1,4 +1,4 @@
-# CHSVM - Stack-Based Virtual Machine
+# CHS-test-1- Stack-Based Virtual Machine
 
 - [Introduction](#introduction)
 - [Development Milestones](#development-milestones)
