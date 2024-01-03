@@ -1,4 +1,4 @@
-use chsvm::{load_file, exepitons::GenericError, compile_chs_file, run_file};
+use chsvm::{load_file, exepitons::GenericError, run_chs_file};
 use clap::{Arg, Command};
 
 fn main() -> Result<(), GenericError>{
@@ -24,8 +24,7 @@ fn main() -> Result<(), GenericError>{
                     .get_one::<String>("filename")
                     .expect("contains_id");
                 let res = load_file(filename)?;
-                let res2 = compile_chs_file(res)?;
-                run_file(res2)?;
+                run_chs_file(res)?;
                 return Ok(());
             }
             println!("File not provided.");

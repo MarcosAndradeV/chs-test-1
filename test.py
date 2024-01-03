@@ -11,8 +11,6 @@ if len(sys.argv) > 1 :
             if filename.endswith('.chs') and "chsvm" in os.listdir("./tmp"):
                     out = subprocess.run(f"./tmp/chsvm run {directory}/{filename}", shell=True, executable="/usr/sbin/zsh", capture_output=True)
                     with open(f"{directory}/out/{filename}.out.expect", "w", encoding="utf-8") as f: f.write(out.stdout.decode("utf-8"))
-                            
-        subprocess.run(f"rm {directory}/*.chsb", shell=True, executable="/usr/sbin/zsh")
         exit(0)
 
 
@@ -25,5 +23,3 @@ for filename in os.listdir(directory):
                     print(f"{filename} has incompatibilities.")
                     continue
                 print(f"{filename} has passed.")
-                     
-subprocess.run(f"rm {directory}/*.chsb", shell=True, executable="/usr/sbin/zsh")
