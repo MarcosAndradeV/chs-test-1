@@ -72,17 +72,45 @@ impl Parser {
 
     fn parse_fn(&mut self) -> Result<TopLevelStmt, GenericError> {
         let name = self.expect(TokenKind::Identifier)?.value;
-
-
+        let body = self.parse_stmts()?;
+        
         return Ok(TopLevelStmt::Fn(Box::new(
             FnStmt {
                 name,
                 arguments: vec![],
-                body: vec![],
+                body,
                 return_type: None
             }
         )));
-        //generic_error!("Not implemeted yet")
+    }
+    
+    fn parse_stmts(&mut self) -> Result<Vec<Stmt>, GenericError> {
+        self.expect(TokenKind::CurlyOpen)?;
+        let mut values = Vec::new();
+
+        loop {
+            let token = self.require()?;
+
+            if token.kind == TokenKind::CurlyClose {
+                return Ok(values);
+            }
+
+            values.push(self.parse_stmt(token)?);
+        }
     }
 
+    fn parse_stmt(&mut self, tok: Token) -> Result<Stmt, GenericError> {
+        let stmt = match tok.kind {
+            TokenKind::Print => self.parse_print_stmt()?,
+            _ => return generic_error!("Not implemeted yet")
+        };
+        
+        Ok(stmt)
+    }
+
+    fn parse_print_stmt(&mut self) -> Result<Stmt, GenericError> {
+        
+        
+        generic_error!("Not implemeted yet")
+    }
 }
