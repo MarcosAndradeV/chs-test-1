@@ -44,6 +44,8 @@ pub enum TokenKind {
     ParenOpen,
     ParenClose,
 
+    SemiColon,
+
     Store,
     Load,
     
@@ -149,6 +151,7 @@ impl Lexer {
             b'}' => self.make_token(TokenKind::CurlyClose),
             b'(' => self.make_token(TokenKind::ParenOpen),
             b')' => self.make_token(TokenKind::ParenClose),
+            b';' => self.make_token(TokenKind::SemiColon),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
