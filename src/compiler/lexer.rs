@@ -1,3 +1,5 @@
+use core::fmt;
+
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum TokenKind {
     Comment,
@@ -16,7 +18,7 @@ pub enum TokenKind {
     Print,
     Debug,
     
-    Func,
+    Fn,
     If,
     Else,
     Whlie,
@@ -39,6 +41,9 @@ pub enum TokenKind {
     CurlyOpen,
     CurlyClose,
 
+    ParenOpen,
+    ParenClose,
+
     Store,
     Load,
     
@@ -48,12 +53,20 @@ pub enum TokenKind {
     Swap,
     Jmp, // tmp
     Write,
+    
+    Str,
 }
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: String,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
 }
 
 impl Token {
@@ -127,12 +140,15 @@ impl Lexer {
     fn next_regular_token(&mut self) -> Token {
         match self.current_byte() {
             b'0'..=b'9' => self.number(false),
+            b'\"' => self.string(),
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
             b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
+            b'(' => self.make_token(TokenKind::ParenOpen),
+            b')' => self.make_token(TokenKind::ParenClose),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -230,6 +246,7 @@ impl Lexer {
         let kind = match value.len() {
             2 => match value.as_str() {
                 "if" => TokenKind::If,
+                "fn" => TokenKind::Fn,
                 _ => TokenKind::Identifier
             }
             3 => match value.as_str() {
@@ -243,7 +260,6 @@ impl Lexer {
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {
-                "func" => TokenKind::Func,
                 "else" => TokenKind::Else,
                 "over" => TokenKind::Over,
                 "call" => TokenKind::Call,
@@ -293,5 +309,19 @@ impl Lexer {
 
     fn null(&self) -> Token {
         Token::null()
+    }
+
+    fn string(&mut self) -> Token {
+        let mut buffer = String::new();
+            loop {// " "
+                match self.current_byte() {
+                    b'\"' => break,
+                    0 => break,
+                    _ => buffer.push(self.next_byte() as char)
+                }
+    
+                self.position += 1;
+            }
+        Token::new(TokenKind::Str, buffer)
     }
 }
