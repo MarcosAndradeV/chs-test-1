@@ -25,3 +25,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Porth: [GitLab - tsoding/porth](https://gitlab.com/tsoding/porth)
 - SmallVM: [GitHub - tarekwiz/smallvm](https://github.com/tarekwiz/smallvm)
 - IridiumVM: [GitHub - fhaynes/iridium](https://github.com/fhaynes/iridium)
+- WebAssembly: [Rc memory management](https://binji.github.io/posts/webassembly-type-checking/)
+- Inko: [GitHub - inko-lang/inko](https://github.com/inko-lang/inko)
+- Boson-lang: [GitHub - Narasimha1997/boson-lang](https://github.com/Narasimha1997/boson-lang)
