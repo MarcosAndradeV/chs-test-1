@@ -4,8 +4,8 @@ use super::value::CHSValue;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Opcode {
     Halt = 0,
-    Pushi,
-    Pushf,
+    Iconst,
+    Oconst,
     Pop,
     Dup,
     Over,
@@ -19,13 +19,12 @@ pub enum Opcode {
     Ret,
     PreProc,
 
-    Add,
-    Minus,
-    Mul,
-    Div,
-    Inc,
-    Mod,
-    Lgor,
+    Iadd,
+    IMinus,
+    IMul,
+    IDiv,
+    IInc,
+    IMod,
 
     Jmp,
     JmpIf,
@@ -49,9 +48,9 @@ pub enum Opcode {
 #[derive(Debug, Clone, Copy)]
 pub struct Instr {
     pub opcode: Opcode,
-    pub operands: CHSValue,
+    pub operand: usize,
 }
 
 impl Instr {
-    pub fn new(kind: Opcode, operands: CHSValue) -> Self { Self { opcode: kind, operands } }
+    pub fn new(kind: Opcode, operand: usize) -> Self { Self { opcode: kind, operand } }
 }
