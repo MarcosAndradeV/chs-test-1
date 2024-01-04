@@ -1,11 +1,19 @@
-# CHS-test-1- Stack-Based Virtual Machine
+# CHS
 
 - [Introduction](#introduction)
 - [Development Milestones](#development-milestones)
 
 ## Introduction
 
-CHSVM is a lightweight and versatile stack-based virtual machine written in Rust. It is designed for learning, experimenting, and serving as a base for cross-platform runtimes in my projects.
+CHS is a versatile programing language based on virtual machine written in Rust. It is designed for learning, experimenting.
+
+## Development Milestones
+- [ ] Turing Complete
+- [ ] Automatic memory management with Reference Counting
+- [ ] Macros Support
+- [ ] Multthred Support
+- [ ] Just-in-time
+
 
 ## License
 
