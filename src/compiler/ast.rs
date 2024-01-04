@@ -40,7 +40,7 @@ pub struct Set {
     value: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum OperatorKind {
     Add,
     BitAnd,
@@ -62,12 +62,12 @@ pub enum OperatorKind {
     UnsignedShr,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Operator {
     pub kind: OperatorKind,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Binary {
     pub left: Expression,
     pub right: Expression,
@@ -79,7 +79,8 @@ pub struct Binary {
 pub enum Expression {
     IntLit(Box<IntLiteral>),
     StrLit(Box<StrLiteral>),
-    Ident(Box<Identfier>)
+    Ident(Box<Identfier>),
+    Binary(Box<Binary>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
