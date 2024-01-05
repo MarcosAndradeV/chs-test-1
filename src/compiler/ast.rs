@@ -7,12 +7,12 @@ pub struct Identfier {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IntLiteral {
-    name: String,
+    pub value: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StrLiteral {
-    name: String,
+    pub value: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -128,7 +128,7 @@ mod test {
                     body: vec![
                         Stmt::PrintStmt(Box::new(
                             Expression::StrLit(Box::new(
-                                StrLiteral { name: "Hello, world!".to_string() }
+                                StrLiteral { value: "Hello, world!".to_string() }
                             ))
                         ))
                     ],
