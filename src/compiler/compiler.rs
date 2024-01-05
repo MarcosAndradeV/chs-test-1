@@ -15,22 +15,22 @@ impl Compiler {
     }
 
     pub fn compile(&self) -> Result<ByteCode, GenericError> {
-        let ast = self.ast.clone();
-        for stmt in ast.top_level_stmts.into_iter() {
-            match stmt {
-                TopLevelStmt::PrintStmt(v) => {
-                    match *v {
-                        Expression::StrLit(s) => {
-                            let val = CHSValue::Obj(Rc::new(CHSObj::Str(s.value)));
-                            let instr = Instr { opcode: Opcode::Print, operand: 0 };
-                            return Ok(ByteCode { code: vec![instr], constants: vec![val.into()]  });
-                        },
-                        _ => return generic_error!("")
-                    }
-                },
-                _ => return generic_error!("???")
-            }
-        }
+        // let ast = self.ast.clone();
+        // for stmt in ast.top_level_stmts.into_iter() {
+        //     match stmt {
+        //         TopLevelStmt::PrintStmt(v) => {
+        //             match *v {
+        //                 Expression::StrLit(s) => {
+        //                     let val = CHSValue::Obj(Rc::new(CHSObj::Str(s.value)));
+        //                     let instr = Instr { opcode: Opcode::Print, operand: 0 };
+        //                     return Ok(ByteCode { code: vec![instr], constants: vec![val.into()]  });
+        //                 },
+        //                 _ => return generic_error!("")
+        //             }
+        //         },
+        //         _ => return generic_error!("???")
+        //     }
+        // }
 
         generic_error!("Not Implemeted yet")
     }
