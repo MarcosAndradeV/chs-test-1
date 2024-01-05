@@ -99,18 +99,19 @@ impl Parser {
         }
     }
 
-    fn parse_stmt(&mut self, tok: Token) -> Result<Stmt, GenericError> {
-        let stmt = match tok.kind {
-            TokenKind::Print => self.parse_print_stmt()?,
-            _ => return generic_error!("Not implemeted yet")
-        };
-        
-        Ok(stmt)
+    fn parse_stmt(&self, token: Token) -> Result<Stmt, GenericError> {
+        generic_error!("{:?} Not implemetide yet.", token)
     }
 
-    fn parse_print_stmt(&mut self) -> Result<Stmt, GenericError> {
-        
-        
-        generic_error!("Not implemeted yet")
-    }
+}
+
+
+#[cfg(test)]
+mod test {
+   use super::*;
+   #[test]
+   fn test(){
+    let mut p = Parser::new("fn main { print }".to_string());
+    println!("{:?}", p.parse_program());
+   }
 }
