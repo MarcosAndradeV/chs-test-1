@@ -316,15 +316,30 @@ impl Lexer {
 
     fn string(&mut self) -> Token {
         let mut buffer = String::new();
-            loop {// " "
-                match self.current_byte() {
-                    b'\"' => break,
-                    0 => break,
-                    _ => buffer.push(self.next_byte() as char)
-                }
-    
-                self.position += 1;
+        self.advance_char();
+        loop {
+            match self.current_byte() {
+                0 | b'\"' => {self.advance_char(); break;}
+                _ => {buffer.push(self.current_byte() as char); self.advance_char()}
             }
+        }
         Token::new(TokenKind::Str, buffer)
     }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::{Lexer, TokenKind};
+
+   #[test]
+   fn test(){
+    let mut lex = Lexer::new("fn main () { print \"Hello\" ; }".to_string().into_bytes());
+    loop {
+        let tok = lex.next_token();
+        println!("{:?}", tok);
+
+        if tok.kind == TokenKind::Null {break;}
+    }
+   }
 }
