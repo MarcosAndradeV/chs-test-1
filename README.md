@@ -1,4 +1,4 @@
-# CHS
+# CHS (WIP)
 
 - [Introduction](#introduction)
 - [Development Milestones](#development-milestones)
@@ -8,6 +8,7 @@
 CHS is a versatile programing language based on virtual machine written in Rust. It is designed for learning, experimenting.
 
 ## Development Milestones
+
 - [ ] Turing Complete
 - [ ] Automatic memory management with Reference Counting
 - [ ] Macros Support
