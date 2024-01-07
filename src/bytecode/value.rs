@@ -1,13 +1,8 @@
-use std::rc::Rc;
-
-use super::object::CHSObj;
-
 
 #[derive(Debug, PartialOrd, Clone)]
 pub enum CHSValue {
     Null,
     I(i64),
-    Obj(Rc<CHSObj>)
 }
 
 impl PartialEq for CHSValue {
@@ -25,7 +20,6 @@ impl PartialEq for CHSValue {
                     _ => false
                 }
             },
-            CHSValue::Obj(_) => false,
         }
     }
 }
