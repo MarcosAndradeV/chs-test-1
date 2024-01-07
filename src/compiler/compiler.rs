@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{exepitons::GenericError, generic_error, bytecode::{ByteCode, value::CHSValue, object::CHSObj, instructions::{Instr, Opcode}}};
+use crate::{exepitons::GenericError, generic_error, bytecode::{ByteCode, value::CHSValue, instructions::{Instr, Opcode}}};
 
 use super::ast::*;
 
