@@ -46,7 +46,7 @@ impl CHSVM {
         // }
         while !self.is_halted {
             match self.execute_next_instr() {
-                Ok(_) => {}
+                Ok(_) => {} //{println!("{:?}\n{:?}\n{:?}\n{:?}\n", self.data_stack, self.return_stack, self.ip, self.sp)}
                 Err(e) => {
                     eprintln!(
                         "It's a trap: {:?} at {}\nCurrent stack: {:?}\nCurrent Instr: {:?}\nCurrent Return Pointer: {}\nCurrent Local Stack: {:?}",
