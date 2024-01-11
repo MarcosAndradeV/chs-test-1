@@ -1,21 +1,21 @@
-# prog :=chsvm
+prog :=chsc
 
-# release :=--release --bin
-# target :=release
+release :=--release --bin
+target :=release
 
-# build:
-# 	cargo build $(release) chsvm
+build:
+	cargo build $(release) chsc
 
-# install:
-# 	cp target/$(target)/$(prog) ./tmp/$(prog)
+install:
+	cp target/$(target)/$(prog) ./tmp/$(prog)
 
-# retest: build install
-# 	python3 test.py retest
+retest: build install
+	python3 test.py retest
 
-# chsvm: build install retest
+chsc: build install retest
 
-# test: build install
-# 	python3 test.py
+test: build install
+	python3 test.py
 
-# help:
-# 	@echo "usage: make $(prog)"
+help:
+	@echo "usage: make $(prog)"
