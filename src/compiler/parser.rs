@@ -13,6 +13,7 @@ pub struct Parser {
     pos: usize,
     peeked: Option<Token>,
     consts_def: HashMap<String, Token>,
+    macro_def: HashMap<String, Vec<Token>>,
 }
 
 impl Parser {
@@ -24,7 +25,8 @@ impl Parser {
             consts: Vec::new(), instrs:Vec::new(),
             pos: 0,
             peeked: None,
-            consts_def: HashMap::new()
+            consts_def: HashMap::new(),
+            macro_def: HashMap::new(),
         }
     }
     pub fn parse(&mut self) -> Result<(Vec<Instr>, Vec<Value>), GenericError> {
@@ -56,6 +58,14 @@ impl Parser {
         }
 
         generic_error!("Expect {:?} or {:?} at {}", kind, kind_2, self.pos)
+    }
+
+    fn name_def(&mut self) -> ResTok {
+        let token = self.expect(TokenKind::Identifier)?;
+        if self.consts_def.get(&token.value).is_some() || self.macro_def.get(&token.value).is_some() {
+            return generic_error!("{} is already defined", token.value);
+        }
+        Ok(token)
     }
 
     fn not_expect(&mut self, kind: TokenKind) -> ResTok {
@@ -189,6 +199,8 @@ impl Parser {
                 self.consts.push(Value::Str(token.value));
                 Ok(Instr::new(Opcode::PushStr, Some(self.consts.len()-1)))
             }
+
+            // TODO: Eliminate this :(
             TokenKind::Add => Ok(Instr::new(Opcode::Add, None)),
             TokenKind::Minus => Ok(Instr::new(Opcode::Minus, None)),
             TokenKind::Mul => Ok(Instr::new(Opcode::Mul, None)),
@@ -215,19 +227,29 @@ impl Parser {
             TokenKind::Mem => Ok(Instr::new(Opcode::Mem, None)),
             TokenKind::Write => Ok(Instr::new(Opcode::Write, None)),
             TokenKind::Pstr => Ok(Instr::new(Opcode::Pstr, None)),
+            TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
+            // ################################################################## //
+
             TokenKind::Identifier => {
-                let val = match self.consts_def.get(&token.value) {
+                match self.consts_def.get(&token.value) {
                     Some(v) => {
                         if !matches!(v.kind, TokenKind::Int | TokenKind::Str) {
                             return generic_error!("{:?} is not valid", token.value);
                         }
-                        v
+                        self.parse_one(v.clone())?;
+                        return Ok(());
                     },
-                    None => return generic_error!("{:?} is not valid", token.value)
-                };
-                // self.consts.push(Value::Int64(val.value.parse().unwrap()));
-                // Ok(Instr::new(Opcode::Pushi, Some(self.consts.len()-1)));
-                self.parse_one(val.clone())?;
+                    None => {}
+                }
+                match self.macro_def.get(&token.value) {
+                    Some(v) => {
+                        for t in v.clone() {
+                            self.parse_one(t)?;
+                        }
+                    }
+                    None => return generic_error!("{} is not defined", token.value)
+                }
+
                 return Ok(());
             }
             _ => generic_error!("{:?} is not implemented yet", token.kind)
@@ -240,9 +262,25 @@ impl Parser {
         let tok = self.next();
         match tok.kind {
             TokenKind::Def => {
-                let name = self.expect(TokenKind::Identifier)?;
+                let name = self.name_def()?;
+
                 let val = self.expect_or(TokenKind::Int, TokenKind::Str)?;
                 self.consts_def.insert(name.value, val);
+            }
+            TokenKind::Macro => {
+                let name = self.name_def()?;
+                let mut toks = vec![];
+                self.expect(TokenKind::CurlyOpen)?;
+                loop {
+                    let tok = self.require()?;
+                    match tok.kind {
+                        TokenKind::CurlyClose => {
+                            break;
+                        }
+                        _ => toks.push(tok),
+                    }
+                }
+                self.macro_def.insert(name.value, toks);
             }
             _ => return generic_error!("...")
         }

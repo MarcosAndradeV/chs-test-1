@@ -10,6 +10,7 @@ pub enum TokenKind {
 
     Directive,
     Def,
+    Macro,
     
     Invalid,
     Null,
@@ -297,6 +298,7 @@ impl Lexer {
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
                 "store" => TokenKind::Store,
+                "macro" => TokenKind::Macro,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,
