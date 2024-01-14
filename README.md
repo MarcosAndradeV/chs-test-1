@@ -14,23 +14,27 @@ This is a fist version of the languag, the current syntax resemble [Forth](https
 (Not stable yet! you may have some troubles.)
 
 ```console
-$ make chsc
-$ make test
-$ cd tmp/
-$ chsc run <file.chs>
+make chsc
+make test
+cd tmp/
+chsc run <file.chs>
 ```
 
 ## Using CHS
 
 - Hello world
+
 ```pascal
 "Hello, world!\n" pstr
 ```
+
 - Variables
-```
+
+```sh
 var <name> <type> <value>;
 set <name> <value>;
 ```
+
 ```pascal
 var interger int 10;
 var unsigned-interger uint 10;
@@ -39,14 +43,17 @@ var text str "Some text";
 set interger 20;
 set unsigned-interger 20 10 +;
 ```
+
 - if-statmets
-```
+
+```sh
 <condition> if {
   <truly-block>
   else
   <false-block>
 }
 ```
+
 ```c
 1 1 = if {
   "Everything is fine\n" pstr
@@ -54,28 +61,35 @@ set unsigned-interger 20 10 +;
   "Some thing is wrong\n" pstr
 }
 ```
+
 - while-loops
-```
+
+```sh
 while <condition> {
   <while-block>
 }
 ```
+
 ```c
 0 while dup 100 < {
   dup print
   1 +
 }
 ```
+
 - stack operations
-```
+
+```sh
 dup # [a] -> [a a]
 dup2 # [a b] -> [a b a b]
 over # [a b] -> [a b a]
 pop # [a] -> []
 swap # [a b] -> [b a]
 ```
+
 - logical operations
-```
+
+```sh
 = # equal
 != # not equal
 < # less than
@@ -85,30 +99,31 @@ swap # [a b] -> [b a]
 || # Logical or
 
 ```
+
 - Bitwise operations
-```
+
+```sh
 >> # right bit shift
 << # left bit shift
 | # bit or
 & # bit and
 ```
+
 - Special operations
-```
+
+```sh
 print # Dumps the top of the stack
 pstr # prints the top of the stack after convertig to str
 debug # show the current state of the CHSVM
 ```
 
-## 
-
 ## Development Milestones
 
-- [ ] Turing Complete
+- [X] [Turing Complete](exemples/rule110.chs)
 - [ ] Automatic memory management with Reference Counting
 - [ ] Macros Support
 - [ ] Multthred Support
 - [ ] Just-in-time
-
 
 ## License
 
