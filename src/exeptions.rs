@@ -8,6 +8,7 @@ pub enum VMError {
     StackUnderflow,
     AddersOutOfBounds,
     OperandNotProvided,
+    TypeIncorrect,
     ProgramEndWithoutHalt,
 }
 
@@ -21,6 +22,7 @@ impl fmt::Display for VMError {
             VMError::AddersOutOfBounds => write!(f, "AddersOutOfBounds"),
             VMError::OperandNotProvided => write!(f, "OperandNotProvided"),
             VMError::ProgramEndWithoutHalt => write!(f, "ProgramEndWithoutHalt"),
+            VMError::TypeIncorrect => write!(f, "TypeIncorrect"),
         }
     }
 }
