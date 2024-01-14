@@ -5,8 +5,10 @@ pub enum TokenKind {
     Comment,
     Whitespace,
 
-    Mem, // tmp
+    I64,
+
     Write, // tmp
+    Var,
 
     Directive,
     Def,
@@ -42,8 +44,10 @@ pub enum TokenKind {
     Shr,
     Bitor,
     Bitand,
+    Lor,
     
     Eq,
+    Neq,
     Gt,
     Gte,
     Lt,
@@ -154,7 +158,7 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' => self.operator(),
+            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             b'(' => self.make_token(TokenKind::ParenOpen),
@@ -186,6 +190,12 @@ impl Lexer {
             b'*' => self.make_token(TokenKind::Mul),
             b'/' => self.make_token(TokenKind::Div),
             b'=' => self.make_token(TokenKind::Eq),
+            b'!' => {
+                match self.next_byte() {
+                    b'=' => {self.position+=2; self.token(TokenKind::Neq, self.position-2)},
+                    _ => Token::invalid("! ?".to_string())
+                }
+            }
             b'>' => {
                 match self.next_byte() {
                     b'=' => {self.position+=2; self.token(TokenKind::Gte, self.position-2)},
@@ -200,7 +210,12 @@ impl Lexer {
                     _ => self.make_token(TokenKind::Lt)
                 }
             }
-            b'|' => self.make_token(TokenKind::Bitor),
+            b'|' => {
+                match self.next_byte() {
+                    b'|' => {self.position+=2; self.token(TokenKind::Lor, self.position-2)},
+                    _ => self.make_token(TokenKind::Bitor)
+                }
+            },
             b'&' => self.make_token(TokenKind::Bitand),
             _ => self.make_token(TokenKind::Invalid)
         }
@@ -278,8 +293,9 @@ impl Lexer {
                 "hlt" => TokenKind::Hlt,
                 "ret" => TokenKind::Ret,
                 "mod" => TokenKind::Mod,
-                "mem" => TokenKind::Mem,
                 "def" => TokenKind::Def,
+                "var" => TokenKind::Var,
+                "int" => TokenKind::I64,
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {

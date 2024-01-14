@@ -14,6 +14,8 @@ pub struct Parser {
     peeked: Option<Token>,
     consts_def: HashMap<String, Token>,
     macro_def: HashMap<String, Vec<Token>>,
+    var_def: HashMap<String, usize>,
+    var_count: usize,
 }
 
 impl Parser {
@@ -27,6 +29,8 @@ impl Parser {
             peeked: None,
             consts_def: HashMap::new(),
             macro_def: HashMap::new(),
+            var_def: HashMap::new(),
+            var_count: 0
         }
     }
     pub fn parse(&mut self) -> Result<(Vec<Instr>, Vec<Value>), GenericError> {
@@ -183,6 +187,7 @@ impl Parser {
             TokenKind::If => self.if_block(d)?,
             TokenKind::Whlie => self.while_block(d)?,
             TokenKind::Directive => self.directive()?,
+            TokenKind::Var => self.var()?,
             _ => self.parse_one(token)?
         }
         
@@ -193,11 +198,11 @@ impl Parser {
         let instr = match token.kind {
             TokenKind::Int => {
                 self.consts.push(Value::Int64(token.value.parse().unwrap()));
-                Ok(Instr::new(Opcode::Pushi, Some(self.consts.len()-1)))
+                Ok(Instr::new(Opcode::Const, Some(self.consts.len()-1)))
             }
             TokenKind::Str => {
                 self.consts.push(Value::Str(token.value));
-                Ok(Instr::new(Opcode::PushStr, Some(self.consts.len()-1)))
+                Ok(Instr::new(Opcode::Const, Some(self.consts.len()-1)))
             }
 
             // TODO: Eliminate this :(
@@ -212,6 +217,7 @@ impl Parser {
             TokenKind::Swap => Ok(Instr::new(Opcode::Swap, None)),
             TokenKind::Over => Ok(Instr::new(Opcode::Over, None)),
             TokenKind::Eq => Ok(Instr::new(Opcode::Eq, None)),
+            TokenKind::Neq => Ok(Instr::new(Opcode::Neq, None)),
             TokenKind::Gt => Ok(Instr::new(Opcode::Gt, None)),
             TokenKind::Gte => Ok(Instr::new(Opcode::Gte, None)),
             TokenKind::Lte => Ok(Instr::new(Opcode::Lte, None)),
@@ -220,11 +226,11 @@ impl Parser {
             TokenKind::Shr => Ok(Instr::new(Opcode::Shr, None)),
             TokenKind::Bitand => Ok(Instr::new(Opcode::Bitand, None)),
             TokenKind::Bitor => Ok(Instr::new(Opcode::Bitor, None)),
+            TokenKind::Lor => Ok(Instr::new(Opcode::Lor, None)),
             TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
             TokenKind::Debug => Ok(Instr::new(Opcode::Debug, None)),
             TokenKind::Load => Ok(Instr::new(Opcode::Load, None)),
             TokenKind::Store => Ok(Instr::new(Opcode::Store, None)),
-            TokenKind::Mem => Ok(Instr::new(Opcode::Mem, None)),
             TokenKind::Write => Ok(Instr::new(Opcode::Write, None)),
             TokenKind::Pstr => Ok(Instr::new(Opcode::Pstr, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
@@ -246,6 +252,14 @@ impl Parser {
                         for t in v.clone() {
                             self.parse_one(t)?;
                         }
+                        return Ok(());
+                    }
+                    None => {}
+                }
+                match self.var_def.get(&token.value) {
+                    Some(v) => {
+                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                        return Ok(());
                     }
                     None => return generic_error!("{} is not defined", token.value)
                 }
@@ -282,9 +296,32 @@ impl Parser {
                 }
                 self.macro_def.insert(name.value, toks);
             }
-            _ => return generic_error!("...")
+            e => return generic_error!("{:?} is not directive", e)
         }
         Ok(())
+    }
+
+    fn var(&mut self) -> Result<(), GenericError> {
+        let name = self.name_def()?;
+        self.var_def.insert(name.value, self.var_count);
+        self.var_count += 1;
+        match self.require()?.kind {
+            TokenKind::I64 => {
+                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
+                loop {
+                    let tok = self.require()?;
+                    match tok.kind {
+                        TokenKind::SemiColon => {
+                            break;
+                        }
+                        _ => self.parse_one(tok)?
+                    }
+                }
+                self.instrs.push(Instr::new(Opcode::Store, None));
+                return Ok(());
+            },
+            e=> return generic_error!("{:?} Type not suported", e)
+        }
     }
 
 }
