@@ -30,7 +30,7 @@ chsc run <file.chs>
 
 - Variables
 
-```sh
+```pascal
 var <name> <type> <value>;
 set <name> <value>;
 ```
@@ -49,7 +49,7 @@ set mylist[0] 2;
 
 - if-statmets
 
-```sh
+```pascal
 <condition> if {
   <truly-block>
   else
@@ -67,13 +67,13 @@ set mylist[0] 2;
 
 - while-loops
 
-```sh
+```pascal
 while <condition> {
   <while-block>
 }
 ```
 
-```c
+```pascal
 0 while dup 100 < {
   dup print
   1 +
