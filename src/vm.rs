@@ -403,7 +403,10 @@ impl CHSVM {
                 let list = self.pop_stack()?;
                 let val = match list.get_indexed(&idx) {
                     Ok(v) => v,
-                    Err(_) => todo!()
+                    Err(e) => {
+                        println!("{}", e);
+                        return Err(VMError::ProgramEndWithoutHalt);
+                    }
                 };
                 self.push_stack(val)?;
                 Ok(())
@@ -476,6 +479,7 @@ impl CHSVM {
             Some(v) => {
                 match *v {
                     Value::Uint64(v) => Ok(v),
+                    Value::Int64(v) => Ok(v as u64),
                     _ => Err(VMError::OperandNotProvided)
                 }
             }

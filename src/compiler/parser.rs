@@ -404,22 +404,24 @@ impl Parser {
             Some(v) => self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v))),
             None => return generic_error!("{} is not defined yet", name.value),
         }
+        if self.peek().kind == TokenKind::BracketOpen {
+            self.next();
+            loop {
+                let idx_tok = self.require()?;
+                match idx_tok.kind {
+                    TokenKind::BracketClose => break,
+                    _ => self.parse_one(idx_tok)?
+                }
+            }
+            is_idx = true;
+        }
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::SemiColon => {
                     break;
                 }
-                TokenKind::BracketOpen => {
-                    loop {
-                        let idx_tok = self.require()?;
-                        match idx_tok.kind {
-                            TokenKind::BracketClose => break,
-                            _ => self.parse_one(idx_tok)?
-                        }
-                    }
-                    is_idx = true
-                }
+                TokenKind::BracketOpen => self.index_get()?,
                 _ => self.parse_one(tok)?
             }
         }
@@ -463,6 +465,7 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::BracketClose => break,
+                TokenKind::BracketOpen => self.index_get()?,
                 _ => self.parse_one(tok)?
             }
         }

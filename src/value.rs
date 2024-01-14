@@ -99,6 +99,17 @@ impl Value {
 
                 return Ok(result.unwrap());
             }
+            (Value::List(arr), Value::Uint64(i)) => {
+                // if *i < 0 {
+                //     return Err(format!("Index {} must be greater than or equal to zero", i));
+                // }
+                let result = arr.borrow().get_object(*i as usize);
+                if result.is_err() {
+                    return Err(result.unwrap_err());
+                }
+
+                return Ok(result.unwrap());
+            }
             (Value::Str(st), Value::Int64(i)) => {
                 if *i < 0 {
                     return Err(format!("Index {} must be greater than or equal to zero", i));
@@ -111,9 +122,21 @@ impl Value {
 
                 return Ok(Rc::new(Value::Char(ch.unwrap())));
             }
+            (Value::Str(st), Value::Uint64(i)) => {
+                // if *i < 0 {
+                //     return Err(format!("Index {} must be greater than or equal to zero", i));
+                // }
+
+                let ch = st.chars().nth(*i as usize);
+                if ch.is_none() {
+                    return Err(format!("String \"{}\" index out of bounds for {}", st, i));
+                }
+
+                return Ok(Rc::new(Value::Char(ch.unwrap())));
+            }
             _ => {
                 return Err(format!(
-                    "Object of type ?? does not support indexing of type ??"
+                    "Object of type {:?} does not support indexing of type {:?}", self, idx
                 ));
             }
         }
