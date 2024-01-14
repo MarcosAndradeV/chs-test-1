@@ -1,7 +1,7 @@
 #![allow(unused)]
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc, cell::RefCell};
 
-use crate::{exeptions::GenericError, generic_error, config::{Word, Value}, instructions::{Instr, Opcode}};
+use crate::{exeptions::GenericError, generic_error, value::{Value, List}, instructions::{Instr, Opcode}};
 
 use super::lexer::{Lexer, Token, TokenKind};
 
@@ -189,6 +189,8 @@ impl Parser {
             TokenKind::Directive => self.directive()?,
             TokenKind::Var => self.var_stmt()?,
             TokenKind::Set => self.set_stmt()?,
+            TokenKind::ParenOpen => self.list(None)?,
+            TokenKind::BracketOpen => self.index_get()?,
             _ => self.parse_one(token)?
         }
         
@@ -235,6 +237,8 @@ impl Parser {
             TokenKind::Write => Ok(Instr::new(Opcode::Write, None)),
             TokenKind::Pstr => Ok(Instr::new(Opcode::Pstr, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
+            TokenKind::IdxGet => Ok(Instr::new(Opcode::IdxGet, None)),
+            TokenKind::IdxSet => Ok(Instr::new(Opcode::IdxSet, None)),
             // ################################################################## //
 
             TokenKind::Identifier => {
@@ -358,12 +362,44 @@ impl Parser {
                 self.instrs.push(Instr::new(Opcode::Store, None));
                 return Ok(());
             }
+            TokenKind::ListT => {
+                let mut len = 0;
+                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
+                self.expect(TokenKind::BracketOpen)?;
+                let len_tok = self.require()?;
+                match len_tok.kind {
+                    TokenKind::Identifier => {
+                        match self.consts_def.get(&len_tok.value) {
+                            Some(v) => {
+                                len = v.value.parse::<usize>().unwrap();
+                            },
+                            None => return generic_error!("...")
+                        }
+                    }
+                    TokenKind::Int => {len = len_tok.value.parse::<usize>().unwrap()}
+                    _ => return generic_error!("...")
+                }
+                self.expect(TokenKind::BracketClose)?;
+                loop {
+                    let tok = self.require()?;
+                    match tok.kind {
+                        TokenKind::SemiColon => {
+                            break;
+                        }
+                        TokenKind::ParenOpen => self.list(Some(len))?,
+                        _ => return generic_error!("???")
+                    }
+                }
+                self.instrs.push(Instr::new(Opcode::Store, None));
+                return Ok(());
+            }
             e=> return generic_error!("{:?} Type not suported", e)
         }
     }
 
     fn set_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.require()?;
+        let mut is_idx = false;
         match self.var_def.get(&name.value) {
             Some(v) => self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v))),
             None => return generic_error!("{} is not defined yet", name.value),
@@ -374,13 +410,64 @@ impl Parser {
                 TokenKind::SemiColon => {
                     break;
                 }
+                TokenKind::BracketOpen => {
+                    loop {
+                        let idx_tok = self.require()?;
+                        match idx_tok.kind {
+                            TokenKind::BracketClose => break,
+                            _ => self.parse_one(idx_tok)?
+                        }
+                    }
+                    is_idx = true
+                }
                 _ => self.parse_one(tok)?
             }
         }
+        if is_idx {
+            self.instrs.push(Instr::new(Opcode::IdxSet, None));
+            self.instrs.push(Instr::new(Opcode::Store, None));
+            return Ok(());
+        }
         self.instrs.push(Instr::new(Opcode::Store, None));
-
-
         Ok(())
+    }
+
+    fn list(&mut self, len: Option<usize>) -> Result<(), GenericError> {
+        let mut list = vec![];
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::ParenClose => break,
+                TokenKind::Int => {
+                    list.push(Rc::new(Value::Int64(tok.value.parse().unwrap())));
+                }
+                _ => return generic_error!(""),
+            }
+        }
+        if len.is_some_and(|x| x == list.len()) || len.is_none() {
+            self.consts.push(Value::List(RefCell::new(List {elem: list})));
+            self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len()-1)));
+            return Ok(());
+        }
+        if len.is_some() {
+            list.resize(len.unwrap(), Rc::new(Value::Int64(0)));
+            self.consts.push(Value::List(RefCell::new(List {elem: list})));
+            self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len()-1)));
+            return Ok(());
+        }
+        generic_error!("Especified len")
+    }
+
+    fn index_get(&mut self) -> Result<(), GenericError> {
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::BracketClose => break,
+                _ => self.parse_one(tok)?
+            }
+        }
+        self.instrs.push(Instr::new(Opcode::IdxGet, None));
+        return Ok(());
     }
 
 }

@@ -23,6 +23,9 @@ pub enum Opcode {
     Bitor,
     Bitand,
     Lor,
+
+    IdxGet,
+    IdxSet,
     
     GetLabel,
     PushLabel,

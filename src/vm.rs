@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
 use crate::exeptions::VMError;
-use crate::config::{STACK_CAPACITY, MEM_CAPACITY, Value};
+use crate::config::{STACK_CAPACITY, MEM_CAPACITY};
+use crate::value::Value;
 use crate::instructions::{Instr, Opcode};
 
 
@@ -397,6 +398,29 @@ impl CHSVM {
                 self.memory[addrs] = value;
                 Ok(())
             }
+            Opcode::IdxGet => {
+                let idx = self.pop_stack()?;
+                let list = self.pop_stack()?;
+                let val = match list.get_indexed(&idx) {
+                    Ok(v) => v,
+                    Err(_) => todo!()
+                };
+                self.push_stack(val)?;
+                Ok(())
+            },
+            Opcode::IdxSet => {
+                let new_val = self.pop_stack()?;
+                let idx = self.pop_stack()?;
+                let addrs = self.stack_pop_ptr()?;
+                let mut val = match self.memory.get(addrs) {
+                    Some(v) => v.as_ref().clone(),
+                    None => return Err(VMError::AddersOutOfBounds)
+                };
+                val.set_indexed(&idx, new_val);
+                self.push_stack(Rc::new(Value::Ptr(addrs)))?;
+                self.push_stack(Rc::new(val))?;
+                Ok(())
+            },
             Opcode::Halt => {
                 self.is_halted = true;
                 return Ok(());

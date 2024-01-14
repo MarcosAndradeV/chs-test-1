@@ -8,8 +8,11 @@ pub enum TokenKind {
     I64,
     U64,
     StrT,
+    ListT,
 
     Write, // tmp
+    IdxGet,
+    IdxSet,
     Var,
     Set,
 
@@ -61,6 +64,9 @@ pub enum TokenKind {
 
     ParenOpen,
     ParenClose,
+
+    BracketOpen,
+    BracketClose,
 
     SemiColon,
 
@@ -166,6 +172,8 @@ impl Lexer {
             b'}' => self.make_token(TokenKind::CurlyClose),
             b'(' => self.make_token(TokenKind::ParenOpen),
             b')' => self.make_token(TokenKind::ParenClose),
+            b'[' => self.make_token(TokenKind::BracketOpen),
+            b']' => self.make_token(TokenKind::BracketClose),
             b'%' => self.make_token(TokenKind::Directive),
             b';' => self.make_token(TokenKind::SemiColon),
             _ => {
@@ -306,6 +314,7 @@ impl Lexer {
             4 => match value.as_str() {
                 "else" => TokenKind::Else,
                 "uint" => TokenKind::U64,
+                "List" => TokenKind::ListT,
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "call" => TokenKind::Call,
@@ -321,6 +330,11 @@ impl Lexer {
                 "debug" => TokenKind::Debug,
                 "store" => TokenKind::Store,
                 "macro" => TokenKind::Macro,
+                _ => TokenKind::Identifier
+            }
+            6 => match value.as_str() {
+                "idxget" => TokenKind::IdxGet,
+                "idxset" => TokenKind::IdxSet,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,
