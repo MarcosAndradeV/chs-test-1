@@ -4,8 +4,8 @@
 pub enum Opcode {
     Halt = 0,
 
-    Pushi,
-    PushStr,
+    Const,
+    PushPtr,
 
     Pop,
     Dup,
@@ -22,6 +22,7 @@ pub enum Opcode {
     Shl,
     Bitor,
     Bitand,
+    Lor,
     
     GetLabel,
     PushLabel,
@@ -33,6 +34,7 @@ pub enum Opcode {
     JmpIfr,
     
     Eq,
+    Neq,
     Gt,
     Lt,
     Gte,
@@ -46,7 +48,6 @@ pub enum Opcode {
     Store,
     Load,
     Write,
-    Mem,
 }
 
 #[derive(Debug, Clone, Copy)]
