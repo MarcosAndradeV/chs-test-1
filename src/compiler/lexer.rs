@@ -6,9 +6,12 @@ pub enum TokenKind {
     Whitespace,
 
     I64,
+    U64,
+    StrT,
 
     Write, // tmp
     Var,
+    Set,
 
     Directive,
     Def,
@@ -295,11 +298,14 @@ impl Lexer {
                 "mod" => TokenKind::Mod,
                 "def" => TokenKind::Def,
                 "var" => TokenKind::Var,
+                "set" => TokenKind::Set,
                 "int" => TokenKind::I64,
+                "str" => TokenKind::StrT,
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {
                 "else" => TokenKind::Else,
+                "uint" => TokenKind::U64,
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "call" => TokenKind::Call,

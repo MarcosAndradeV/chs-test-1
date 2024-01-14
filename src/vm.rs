@@ -121,10 +121,18 @@ impl CHSVM {
                         Value::Int64(v) => {
                             match *op_2 {
                                 Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v + o)))? }
-                                _ => {todo!()}
+                                Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v as u64 + o)))? }
+                                _ => {return Err(VMError::TypeIncorrect);}
                             }
                         }
-                        _ => {todo!()}
+                        Value::Uint64(v) => {
+                            match *op_2 {
+                                Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o)))? }
+                                Value::Int64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o as u64)))? }
+                                _ => {return Err(VMError::TypeIncorrect);}
+                            }
+                        }
+                        _ => {return Err(VMError::TypeIncorrect);}
                     }
 
                     return Ok(());

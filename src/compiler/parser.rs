@@ -187,7 +187,8 @@ impl Parser {
             TokenKind::If => self.if_block(d)?,
             TokenKind::Whlie => self.while_block(d)?,
             TokenKind::Directive => self.directive()?,
-            TokenKind::Var => self.var()?,
+            TokenKind::Var => self.var_stmt()?,
+            TokenKind::Set => self.set_stmt()?,
             _ => self.parse_one(token)?
         }
         
@@ -259,6 +260,7 @@ impl Parser {
                 match self.var_def.get(&token.value) {
                     Some(v) => {
                         self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                        self.instrs.push(Instr::new(Opcode::Load, None));
                         return Ok(());
                     }
                     None => return generic_error!("{} is not defined", token.value)
@@ -301,7 +303,7 @@ impl Parser {
         Ok(())
     }
 
-    fn var(&mut self) -> Result<(), GenericError> {
+    fn var_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.name_def()?;
         self.var_def.insert(name.value, self.var_count);
         self.var_count += 1;
@@ -320,8 +322,65 @@ impl Parser {
                 self.instrs.push(Instr::new(Opcode::Store, None));
                 return Ok(());
             },
+            TokenKind::U64 => {
+                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
+                loop {
+                    let tok = self.require()?;
+                    match tok.kind {
+                        TokenKind::SemiColon => {
+                            break;
+                        }
+                        TokenKind::Int => {
+                            self.consts.push(Value::Uint64(tok.value.parse().unwrap()));
+                            self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len()-1)))
+                        }
+                        _ => self.parse_one(tok)?
+                    }
+                }
+                self.instrs.push(Instr::new(Opcode::Store, None));
+                return Ok(());
+            }
+            TokenKind::StrT => {
+                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
+                loop {
+                    let tok = self.require()?;
+                    match tok.kind {
+                        TokenKind::SemiColon => {
+                            break;
+                        }
+                        TokenKind::Str => {
+                            self.consts.push(Value::Str(tok.value));
+                            self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len()-1)));
+                        }
+                        _ => return generic_error!("???")
+                    }
+                }
+                self.instrs.push(Instr::new(Opcode::Store, None));
+                return Ok(());
+            }
             e=> return generic_error!("{:?} Type not suported", e)
         }
+    }
+
+    fn set_stmt(&mut self) -> Result<(), GenericError> {
+        let name = self.require()?;
+        match self.var_def.get(&name.value) {
+            Some(v) => self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v))),
+            None => return generic_error!("{} is not defined yet", name.value),
+        }
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::SemiColon => {
+                    break;
+                }
+                _ => self.parse_one(tok)?
+            }
+        }
+        self.instrs.push(Instr::new(Opcode::Store, None));
+
+
+        Ok(())
     }
 
 }
