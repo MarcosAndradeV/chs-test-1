@@ -14,6 +14,8 @@ The syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_lan
 (Not stable yet! you may have some troubles.)
 
 ```console
+git clone git@github.com:MarcosAndradeV/chs-lang.git
+cd chs-lang
 make chsc
 make test
 cd tmp/
