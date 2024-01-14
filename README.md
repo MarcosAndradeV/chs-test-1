@@ -7,7 +7,7 @@
 ## Introduction
 
 CHS is a versatile programing language based on virtual machine written in Rust. It is designed for learning, experimenting.
-This is a fist version of the languag, the current syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but with some c-like elements.
+The syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but with some c-like elements.
 
 ## How to use
 
