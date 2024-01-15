@@ -7,13 +7,15 @@
 ## Introduction
 
 CHS is a versatile programing language based on virtual machine written in Rust. It is designed for learning, experimenting.
-This is a fist version of the languag, the current syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but with some c-like elements.
+The syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_language)) but with some c-like elements.
 
 ## How to use
 
 (Not stable yet! you may have some troubles.)
 
 ```console
+git clone git@github.com:MarcosAndradeV/chs-lang.git
+cd chs-lang
 make chsc
 make test
 cd tmp/
@@ -30,7 +32,7 @@ chsc run <file.chs>
 
 - Variables
 
-```sh
+```pascal
 var <name> <type> <value>;
 set <name> <value>;
 ```
@@ -39,14 +41,17 @@ set <name> <value>;
 var interger int 10;
 var unsigned-interger uint 10;
 var text str "Some text";
+var mylist list[4] (1 2 3 4);
 
 set interger 20;
 set unsigned-interger 20 10 +;
+set text "Other text";
+set mylist[0] 2;
 ```
 
 - if-statmets
 
-```sh
+```pascal
 <condition> if {
   <truly-block>
   else
@@ -64,13 +69,13 @@ set unsigned-interger 20 10 +;
 
 - while-loops
 
-```sh
+```pascal
 while <condition> {
   <while-block>
 }
 ```
 
-```c
+```pascal
 0 while dup 100 < {
   dup print
   1 +
