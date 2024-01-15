@@ -145,7 +145,7 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => {
-                    self.instrs.push(Instr::new(Opcode::Jmp, Some(whileaddrs)));
+                    self.instrs.push(Instr::new(Opcode::Jmp, Some(whileaddrs+d)));
                     self.instrs.insert(
                         ifoffset,
                         Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 1+d)),
@@ -153,6 +153,8 @@ impl Parser {
                     self.instrs.push(Instr::new(Opcode::DropLabel, None));
                     break;
                 }
+                TokenKind::Proc | TokenKind::Directive => 
+                {return generic_error!("You cannot declareate {} here!", tok.value);}
                 _ => self.parse_all(tok, d+1)?
             }
         }
@@ -177,13 +179,15 @@ impl Parser {
                         Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 2+d)),
                     );
                 }
+                TokenKind::Proc | TokenKind::Directive => 
+                {return generic_error!("You cannot declareate {} here!", tok.value);}
                 _ => self.parse_all(tok, d+1)?
             }
         }
         if !has_else {
             self.instrs.insert(
                 offset,
-                Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 1+d)),
+                Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 1 + d)),
             );
         }
         if has_else {
@@ -290,7 +294,7 @@ impl Parser {
 
                 return Ok(());
             }
-            _ => generic_error!("{:?} is not implemented yet", token.kind)
+            _ => generic_error!("{:?} is not implemented yet", token.value)
         };
         self.instrs.push(instr?);
         Ok(())
@@ -402,7 +406,7 @@ impl Parser {
                         }
                     }
                     TokenKind::Int => {len = len_tok.value.parse::<usize>().unwrap()}
-                    _ => return generic_error!("...")
+                    _ => return generic_error!("Cannot get len")
                 }
                 self.expect(TokenKind::BracketClose)?;
                 loop {
@@ -468,7 +472,7 @@ impl Parser {
                 TokenKind::Int => {
                     list.push(Rc::new(Value::Int64(tok.value.parse().unwrap())));
                 }
-                _ => return generic_error!(""),
+                _ => return generic_error!("{:?}({}) is not suported in List literals", tok.kind, tok.value),
             }
         }
         if len.is_some_and(|x| x == list.len()) || len.is_none() {
@@ -500,18 +504,27 @@ impl Parser {
 
     fn proc_block(&mut self, d: usize) -> Result<(), GenericError> {
         let name = self.name_def()?;
-        self.proc_def.insert(name.value, self.instrs.len());
+        let mut ret = false;
+        let pos = self.instrs.len();
+        self.proc_def.insert(name.value, pos+1);
         self.expect(TokenKind::CurlyOpen)?;
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => {
+                    if !ret {
+                        self.instrs.push(Instr::new(Opcode::GetLabel, None));
+                        self.instrs.push(Instr::new(Opcode::Jmpr, None));
+                    }
+                    self.instrs.insert(pos, Instr::new(
+                        Opcode::Jmp, Some(self.instrs.len()+1+d)));
                     break
                 },
                 TokenKind::Var => { generic_error!("TODO: Make the local variable.") }
                 TokenKind::Ret => {
                     self.instrs.push(Instr::new(Opcode::GetLabel, None));
                     self.instrs.push(Instr::new(Opcode::Jmpr, None));
+                    ret = true;
                 },
                 _ => self.parse_all(tok, d+1)?
             }
