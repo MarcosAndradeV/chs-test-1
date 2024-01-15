@@ -12,10 +12,12 @@ pub struct Parser {
     consts: Vec<Value>, instrs: Vec<Instr>,
     pos: usize,
     peeked: Option<Token>,
+    entry_point: usize,
     consts_def: HashMap<String, Token>,
     macro_def: HashMap<String, Vec<Token>>,
     var_def: HashMap<String, usize>,
     var_count: usize,
+    proc_def: HashMap<String, usize>, 
 }
 
 impl Parser {
@@ -27,18 +29,20 @@ impl Parser {
             consts: Vec::new(), instrs:Vec::new(),
             pos: 0,
             peeked: None,
+            entry_point: 0,
             consts_def: HashMap::new(),
             macro_def: HashMap::new(),
             var_def: HashMap::new(),
-            var_count: 0
+            var_count: 0,
+            proc_def: HashMap::new(),
         }
     }
-    pub fn parse(&mut self) -> Result<(Vec<Instr>, Vec<Value>), GenericError> {
+    pub fn parse(&mut self) -> Result<(Vec<Instr>, Vec<Value>, usize), GenericError> {
         loop {
             let token = self.next();
 
             if token.kind == TokenKind::Null {
-                return Ok((self.instrs.clone(), self.consts.clone()));
+                return Ok((self.instrs.clone(), self.consts.clone(), self.entry_point));
             }
             self.parse_all(token, 0)?;
         }
@@ -66,8 +70,17 @@ impl Parser {
 
     fn name_def(&mut self) -> ResTok {
         let token = self.expect(TokenKind::Identifier)?;
-        if self.consts_def.get(&token.value).is_some() || self.macro_def.get(&token.value).is_some() {
-            return generic_error!("{} is already defined", token.value);
+        if self.consts_def.get(&token.value).is_some() {
+            return generic_error!("{} is already defined as const", token.value);
+        }
+        if self.macro_def.get(&token.value).is_some() {
+            return generic_error!("{} is already defined as macro", token.value);
+        }
+        if self.var_def.get(&token.value).is_some() {
+            return generic_error!("{} is already defined as variable", token.value);
+        }
+        if self.proc_def.get(&token.value).is_some() {
+            return generic_error!("{} is already defined as procedure", token.value);
         }
         Ok(token)
     }
@@ -186,6 +199,7 @@ impl Parser {
        match token.kind {
             TokenKind::If => self.if_block(d)?,
             TokenKind::Whlie => self.while_block(d)?,
+            TokenKind::Proc => self.proc_block(d)?,
             TokenKind::Directive => self.directive()?,
             TokenKind::Var => self.var_stmt()?,
             TokenKind::Set => self.set_stmt()?,
@@ -232,13 +246,8 @@ impl Parser {
             TokenKind::Lor => Ok(Instr::new(Opcode::Lor, None)),
             TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
             TokenKind::Debug => Ok(Instr::new(Opcode::Debug, None)),
-            TokenKind::Load => Ok(Instr::new(Opcode::Load, None)),
-            TokenKind::Store => Ok(Instr::new(Opcode::Store, None)),
-            TokenKind::Write => Ok(Instr::new(Opcode::Write, None)),
             TokenKind::Pstr => Ok(Instr::new(Opcode::Pstr, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
-            TokenKind::IdxGet => Ok(Instr::new(Opcode::IdxGet, None)),
-            TokenKind::IdxSet => Ok(Instr::new(Opcode::IdxSet, None)),
             // ################################################################## //
 
             TokenKind::Identifier => {
@@ -265,6 +274,15 @@ impl Parser {
                     Some(v) => {
                         self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
                         self.instrs.push(Instr::new(Opcode::Load, None));
+                        return Ok(());
+                    }
+                    None => {}
+                }
+
+                match self.proc_def.get(&token.value) {
+                    Some(v) => {
+                        self.instrs.push(Instr::new(Opcode::PushLabel, None));
+                        self.instrs.push(Instr::new(Opcode::Jmp, Some(*v)));
                         return Ok(());
                     }
                     None => return generic_error!("{} is not defined", token.value)
@@ -302,18 +320,28 @@ impl Parser {
                 }
                 self.macro_def.insert(name.value, toks);
             }
+            TokenKind::Entry => {
+                self.entry_point = self.instrs.len();
+            }
             e => return generic_error!("{:?} is not directive", e)
         }
         Ok(())
     }
 
     fn var_stmt(&mut self) -> Result<(), GenericError> {
-        let name = self.name_def()?;
-        self.var_def.insert(name.value, self.var_count);
-        self.var_count += 1;
+        let name = self.require()?;
+        let var_count = match self.var_def.get(&name.value) {
+            Some(v) => {*v}
+            None => {
+                self.var_def.insert(name.value, self.var_count);
+                self.var_count += 1;
+                self.var_count - 1
+            }
+        } ;
+
+        self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_count)));
         match self.require()?.kind {
             TokenKind::I64 => {
-                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
                 loop {
                     let tok = self.require()?;
                     match tok.kind {
@@ -327,7 +355,6 @@ impl Parser {
                 return Ok(());
             },
             TokenKind::U64 => {
-                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
                 loop {
                     let tok = self.require()?;
                     match tok.kind {
@@ -345,7 +372,6 @@ impl Parser {
                 return Ok(());
             }
             TokenKind::StrT => {
-                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
                 loop {
                     let tok = self.require()?;
                     match tok.kind {
@@ -364,7 +390,6 @@ impl Parser {
             }
             TokenKind::ListT => {
                 let mut len = 0;
-                self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.var_count-1)));
                 self.expect(TokenKind::BracketOpen)?;
                 let len_tok = self.require()?;
                 match len_tok.kind {
@@ -471,6 +496,27 @@ impl Parser {
         }
         self.instrs.push(Instr::new(Opcode::IdxGet, None));
         return Ok(());
+    }
+
+    fn proc_block(&mut self, d: usize) -> Result<(), GenericError> {
+        let name = self.name_def()?;
+        self.proc_def.insert(name.value, self.instrs.len());
+        self.expect(TokenKind::CurlyOpen)?;
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => {
+                    break
+                },
+                TokenKind::Var => { generic_error!("TODO: Make the local variable.") }
+                TokenKind::Ret => {
+                    self.instrs.push(Instr::new(Opcode::GetLabel, None));
+                    self.instrs.push(Instr::new(Opcode::Jmpr, None));
+                },
+                _ => self.parse_all(tok, d+1)?
+            }
+        }
+        Ok(())
     }
 
 }

@@ -26,11 +26,12 @@ fn main() -> io::Result<()>{
                     .get_one::<String>("filename")
                     .expect("contains_id");
                 let bytes = lex_file(filename.into())?;
-                let (program, consts) = match Parser::new(bytes).parse() {
+                let (program, consts, entry_point) = match Parser::new(bytes).parse() {
                     Ok(o) => o,
                     Err(e) => {eprintln!("{}", e); return Ok(())}
                 };
                 let mut vm = CHSVM::new(program, consts);
+                vm.ip = entry_point;
                 vm.run();
                 return Ok(());
             }

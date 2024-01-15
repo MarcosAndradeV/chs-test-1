@@ -233,18 +233,11 @@ impl CHSVM {
                 //return Err(VMError::NotImplemeted);
             }
             Opcode::GetLabel => {
-                let addrs = match instr.operands {
+                let label = match self.return_stack.pop() {
                     Some(v) => v,
-                    None => return Err(VMError::OperandNotProvided),
-                };
-                if addrs > self.program.len() {
-                    return Err(VMError::AddersOutOfBounds);
-                }
-                let label = match self.return_stack.get(addrs) {
-                    Some(v) => *v,
                     None => return Err(VMError::StackUnderflow),
                 };
-                self.push_stack(Value::Ptr(label).into())?;
+                self.push_stack(Value::Ptr(label+1).into())?;
                 return Ok(());
                 //return Err(VMError::NotImplemeted);
             }

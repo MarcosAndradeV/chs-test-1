@@ -10,15 +10,14 @@ pub enum TokenKind {
     StrT,
     ListT,
 
-    Write, // tmp
-    IdxGet,
-    IdxSet,
     Var,
     Set,
+    Proc,
 
     Directive,
     Def,
     Macro,
+    Entry,
     
     Invalid,
     Null,
@@ -38,7 +37,6 @@ pub enum TokenKind {
     Else,
     Whlie,
 
-    Call,
     Ret,
     
     Add,
@@ -69,9 +67,6 @@ pub enum TokenKind {
     BracketClose,
 
     SemiColon,
-
-    Store,
-    Load,
     
     Pop,
     Dup,
@@ -317,24 +312,17 @@ impl Lexer {
                 "List" => TokenKind::ListT,
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
-                "call" => TokenKind::Call,
                 "swap" => TokenKind::Swap,
-                "load" => TokenKind::Load,
                 "pstr" => TokenKind::Pstr,
+                "proc" => TokenKind::Proc,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
-                "write" => TokenKind::Write,
+                "entry" => TokenKind::Entry,  
                 "print" => TokenKind::Print,
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
-                "store" => TokenKind::Store,
                 "macro" => TokenKind::Macro,
-                _ => TokenKind::Identifier
-            }
-            6 => match value.as_str() {
-                "idxget" => TokenKind::IdxGet,
-                "idxset" => TokenKind::IdxSet,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,
