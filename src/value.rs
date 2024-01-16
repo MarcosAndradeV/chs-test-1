@@ -142,4 +142,19 @@ impl Value {
             _ => None
         }
     }
+    pub fn len(&self) -> Result<Rc<Value>, String> {
+        match self {
+            Value::List(arr) => {
+                Ok(Rc::new(Value::Int64(arr.borrow().elem.len() as i64)))
+            }
+            Value::Str(s) => {
+                Ok(Rc::new(Value::Int64(s.len() as i64)))
+            }
+            _ => {
+                return Err(format!(
+                    "Object of type {:?} does not support indexing", self
+                ));
+            }
+        }
+    }
 }

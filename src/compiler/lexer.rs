@@ -13,6 +13,7 @@ pub enum TokenKind {
     Var,
     Set,
     Proc,
+    Len,
 
     Directive,
     Def,
@@ -310,6 +311,7 @@ impl Lexer {
                 "set" => TokenKind::Set,
                 "int" => TokenKind::I64,
                 "str" => TokenKind::StrT,
+                "len" => TokenKind::Len,
                 _ => TokenKind::Identifier
             }
             4 => match value.as_str() {

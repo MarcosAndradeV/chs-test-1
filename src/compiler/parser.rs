@@ -250,6 +250,7 @@ impl Parser {
             TokenKind::Lor => Ok(Instr::new(Opcode::Lor, None)),
             TokenKind::Land => Ok(Instr::new(Opcode::Land, None)),
             TokenKind::Println => Ok(Instr::new(Opcode::Println, None)),
+            TokenKind::Len => Ok(Instr::new(Opcode::Len, None)),
             TokenKind::Debug => Ok(Instr::new(Opcode::Debug, None)),
             TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),

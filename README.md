@@ -119,6 +119,7 @@ swap # [a b] -> [b a]
 ```sh
 print # prints the top of the stack
 println # prints the top of the stack with a newline
+len # get the length of the top of the stack
 debug # show the current state of the CHSVM
 ```
 

@@ -360,6 +360,14 @@ impl CHSVM {
                 self.push_stack(Rc::new(val))?;
                 Ok(())
             },
+            Opcode::Len => {
+                let val = self.pop_stack()?;
+                match val.len() {
+                    Ok(v) => self.push_stack(v)?,
+                    Err(e) => vm_error!("{}", e)
+                }
+                Ok(())
+            }
             Opcode::Halt => {
                 self.is_halted = true;
                 return Ok(());
