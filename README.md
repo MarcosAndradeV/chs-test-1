@@ -117,8 +117,8 @@ swap # [a b] -> [b a]
 - Special operations
 
 ```sh
-print # Dumps the top of the stack
-pstr # prints the top of the stack after convertig to str
+print # prints the top of the stack
+println # prints the top of the stack with a newline
 debug # show the current state of the CHSVM
 ```
 

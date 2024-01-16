@@ -7,7 +7,7 @@ var reverse int 0;
 var remainder int 0;
 var temp int Palindrome;
 
-x 0 < if  { "False\n" pstr hlt }
+x 0 < if  { "False" println hlt }
 
 while temp 0 != {
     set remainder temp 10 mod;
@@ -16,7 +16,7 @@ while temp 0 != {
 }
 
 reverse x = if {
-    "True\n" pstr
+    "True" println
     else
-    "False\n" pstr
+    "False" println
 }

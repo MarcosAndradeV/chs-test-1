@@ -10,10 +10,10 @@ var pattern int 0;
 while i BOARD_SIZE 2 - < {
     var j int 0;
     while j BOARD_SIZE < {
-        " *"[board[j]] pstr
+        " *"[board[j]] print
         set j j 1 +;
     }
-    "\n" pstr
+    "\n" print
     set pattern board[0] 1 << board[1] |;
     var j int 0;
     while j BOARD_SIZE 1 - < {

@@ -100,9 +100,6 @@ impl Value {
                 return Ok(result.unwrap());
             }
             (Value::List(arr), Value::Uint64(i)) => {
-                // if *i < 0 {
-                //     return Err(format!("Index {} must be greater than or equal to zero", i));
-                // }
                 let result = arr.borrow().get_object(*i as usize);
                 if result.is_err() {
                     return Err(result.unwrap_err());
@@ -123,10 +120,6 @@ impl Value {
                 return Ok(Rc::new(Value::Char(ch.unwrap())));
             }
             (Value::Str(st), Value::Uint64(i)) => {
-                // if *i < 0 {
-                //     return Err(format!("Index {} must be greater than or equal to zero", i));
-                // }
-
                 let ch = st.chars().nth(*i as usize);
                 if ch.is_none() {
                     return Err(format!("String \"{}\" index out of bounds for {}", st, i));
@@ -141,12 +134,12 @@ impl Value {
             }
         }
     }
-    pub fn set_indexed(&mut self, idx: &Rc<Value>, new_val: Rc<Value>) {
+    pub fn set_indexed(&mut self, idx: &Rc<Value>, new_val: Rc<Value>) -> Option<String>{
         match (self, idx.as_ref()) {
             (Value::List(arr), Value::Int64(i)) => {
-                arr.borrow_mut().set_object(*i as usize, new_val);
+                arr.borrow_mut().set_object(*i as usize, new_val)
             }
-            _ => {}
+            _ => None
         }
     }
 }

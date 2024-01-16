@@ -1,11 +1,12 @@
 var acc int 0;
 
-1 while dup 1000 < {
-    dup 3 mod 0 = 
-    over 5 mod 0 = || if {
-        acc over acc load + store
+var i int 0;
+while i 1000 < {
+    i 3 mod 0 = 
+    i 5 mod 0 = || if {
+        set acc i acc +;
     }
-    1 +
+    set i i 1 +;
 }
 
-acc load print
+acc println

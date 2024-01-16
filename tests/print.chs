@@ -1,1 +1,1 @@
-10 print
+10 println

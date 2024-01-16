@@ -1,1 +1,1 @@
-"Hello, world!\n" pstr
+"Hello, world!" println

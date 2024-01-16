@@ -248,9 +248,10 @@ impl Parser {
             TokenKind::Bitand => Ok(Instr::new(Opcode::Bitand, None)),
             TokenKind::Bitor => Ok(Instr::new(Opcode::Bitor, None)),
             TokenKind::Lor => Ok(Instr::new(Opcode::Lor, None)),
-            TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
+            TokenKind::Land => Ok(Instr::new(Opcode::Land, None)),
+            TokenKind::Println => Ok(Instr::new(Opcode::Println, None)),
             TokenKind::Debug => Ok(Instr::new(Opcode::Debug, None)),
-            TokenKind::Pstr => Ok(Instr::new(Opcode::Pstr, None)),
+            TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
             // ################################################################## //
 

@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
-use crate::exeptions::VMError;
+use crate::exeptions::{VMError, OPERAND_NOT_PROVIDED};
 use crate::config::{STACK_CAPACITY, MEM_CAPACITY};
 use crate::value::Value;
 use crate::instructions::{Instr, Opcode};
+use crate::vm_error;
 
 
 #[derive(Debug)]
@@ -45,7 +46,7 @@ impl CHSVM {
             Opcode::PushPtr => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => return Err(VMError::OperandNotProvided),
+                    None => vm_error!("{}", OPERAND_NOT_PROVIDED),
                 };
                 self.push_stack(Value::Ptr(addrs).into())?;
                 return Ok(());
@@ -53,213 +54,178 @@ impl CHSVM {
             Opcode::Const => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => return Err(VMError::OperandNotProvided),
+                    None => vm_error!("{}", OPERAND_NOT_PROVIDED),
                 };
                 let val = match self.consts.get(addrs) {
                     Some(v) => v,
-                    None => return Err(VMError::AddersOutOfBounds),
+                    None => vm_error!(""),
                 };
                 self.push_stack(Rc::new(val.clone()))?;
                 return Ok(());
             }
             Opcode::Dup => {
-                if self.stack.len() >= 1 {
-                    let op_1 = self.pop_stack()?;
-                    self.push_stack(op_1.clone())?;
-                    self.push_stack(op_1)?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+
+                let op_1 = self.pop_stack()?;
+                self.push_stack(op_1.clone())?;
+                self.push_stack(op_1)?;
+                return Ok(());
+
             }
-            Opcode::Dup2 => {
-                if self.stack.len() >= 1 { // a b -> a b a b
-                    let op_2 = self.pop_stack()?; // b
-                    let op_1 = self.pop_stack()?; // a
-                    self.push_stack(op_1.clone())?;
-                    self.push_stack(op_2.clone())?;
-                    self.push_stack(op_1)?;
-                    self.push_stack(op_2)?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+            Opcode::Dup2 => { // a b -> a b a b
+               
+                let op_2 = self.pop_stack()?; // b
+                let op_1 = self.pop_stack()?; // a
+                self.push_stack(op_1.clone())?;
+                self.push_stack(op_2.clone())?;
+                self.push_stack(op_1)?;
+                self.push_stack(op_2)?;
+                return Ok(());
             }
-            Opcode::Swap => {
-                if self.stack.len() >= 2 { // a b -> b a
-                    let op_2 = self.pop_stack()?; // b
-                    let op_1 = self.pop_stack()?; // a
-                    self.push_stack(op_2)?; // b
-                    self.push_stack(op_1)?; // a
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+            Opcode::Swap => { // a b -> b a
+               
+                let op_2 = self.pop_stack()?; // b
+                let op_1 = self.pop_stack()?; // a
+                self.push_stack(op_2)?; // b
+                self.push_stack(op_1)?; // a
+                return Ok(());
             }
             Opcode::Over => { // a b -> a b a
-                if self.stack.len() >= 2 {
-                    let op_2 = self.pop_stack()?; // b
-                    let op_1 = self.pop_stack()?; // a
-                    self.push_stack(op_1.clone())?; // a
-                    self.push_stack(op_2)?; // b
-                    self.push_stack(op_1)?; // a
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.pop_stack()?; // b
+                let op_1 = self.pop_stack()?; // a
+                self.push_stack(op_1.clone())?; // a
+                self.push_stack(op_2)?; // b
+                self.push_stack(op_1)?; // a
+                return Ok(());
+
             }
-            Opcode::Pop => {
-                if self.stack.len() >= 1 {
-                    let _ = self.pop_stack()?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+            Opcode::Pop => { // a -> _
+                let _ = self.pop_stack()?;
+                return Ok(());
+
             }
             Opcode::Add => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.pop_stack()?;
-                    let op_1 = self.pop_stack()?;
+                let op_2 = self.pop_stack()?;
+                let op_1 = self.pop_stack()?;
 
-                    if op_1.is_ptr() || op_2.is_ptr() { return Err(VMError::TypeIncorrect); }
+                if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
 
-                    match *op_1 {
-                        Value::Int64(v) => {
-                            match *op_2 {
-                                Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v + o)))? }
-                                Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v as u64 + o)))? }
-                                _ => {return Err(VMError::TypeIncorrect);}
-                            }
+                match *op_1 {
+                    Value::Int64(v) => {
+                        match *op_2 {
+                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v + o)))? }
+                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v as u64 + o)))? }
+                            _ => vm_error!("")
                         }
-                        Value::Uint64(v) => {
-                            match *op_2 {
-                                Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o)))? }
-                                Value::Int64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o as u64)))? }
-                                _ => {return Err(VMError::TypeIncorrect);}
-                            }
-                        }
-                        _ => {return Err(VMError::TypeIncorrect);}
                     }
-
-                    return Ok(());
+                    Value::Uint64(v) => {
+                        match *op_2 {
+                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o)))? }
+                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o as u64)))? }
+                            _ => vm_error!("")
+                        }
+                    }
+                    _ => vm_error!("")
                 }
-                return Err(VMError::StackUnderflow);
+
+                return Ok(());
+
             }
             Opcode::Minus => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Int64(op_1 - op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Int64(op_1 - op_2).into())?;
+                return Ok(());
             }
             Opcode::Mul => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Int64(op_1 * op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Int64(op_1 * op_2).into())?;
+                return Ok(());
             }
             Opcode::Div => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    if op_2 == 0 {
-                        return Err(VMError::DivByZero);
-                    }
-                    self.push_stack(Value::Int64(op_1 / op_2).into())?;
-                    return Ok(());
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                if op_2 == 0 {
+                    vm_error!("");
                 }
-                return Err(VMError::StackUnderflow);
+                self.push_stack(Value::Int64(op_1 / op_2).into())?;
+                return Ok(());
             }
             Opcode::Mod => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    if op_2 == 0 {
-                        return Err(VMError::DivByZero);
-                    }
-                    self.push_stack(Value::Int64(op_1 % op_2).into())?;
-                    return Ok(());
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                if op_2 == 0 {
+                    vm_error!("");
                 }
-                return Err(VMError::StackUnderflow);
+                self.push_stack(Value::Int64(op_1 % op_2).into())?;
+                return Ok(());
             }
             Opcode::Shr => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_u64()?;
-                    let op_1 = self.stack_pop_u64()?;
-                    self.push_stack(Value::Uint64(op_1 >> op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_u64()?;
+                let op_1 = self.stack_pop_u64()?;
+                self.push_stack(Value::Uint64(op_1 >> op_2).into())?;
+                return Ok(());
             }
             Opcode::Shl => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_u64()?;
-                    let op_1 = self.stack_pop_u64()?;
-                    self.push_stack(Value::Uint64(op_1 << op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_u64()?;
+                let op_1 = self.stack_pop_u64()?;
+                self.push_stack(Value::Uint64(op_1 << op_2).into())?;
+                return Ok(());
             }
             Opcode::Lor => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_bool()?;
-                    let op_1 = self.stack_pop_bool()?;
-                    self.push_stack(Value::Bool(op_1 || op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_bool()?;
+                let op_1 = self.stack_pop_bool()?;
+                self.push_stack(Value::Bool(op_1 || op_2).into())?;
+                return Ok(());
+            }
+            Opcode::Land => {
+                let op_2 = self.stack_pop_bool()?;
+                let op_1 = self.stack_pop_bool()?;
+                self.push_stack(Value::Bool(op_1 && op_2).into())?;
+                return Ok(());
             }
             Opcode::Bitor => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_u64()?;
-                    let op_1 = self.stack_pop_u64()?;
-                    self.push_stack(Value::Uint64(op_1 | op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_u64()?;
+                let op_1 = self.stack_pop_u64()?;
+                self.push_stack(Value::Uint64(op_1 | op_2).into())?;
+                return Ok(());
             }
             Opcode::Bitand => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_u64()?;
-                    let op_1 = self.stack_pop_u64()?;
-                    self.push_stack(Value::Uint64(op_1 & op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_u64()?;
+                let op_1 = self.stack_pop_u64()?;
+                self.push_stack(Value::Uint64(op_1 & op_2).into())?;
+                return Ok(());
             }
             Opcode::PushLabel => {
                 self.return_stack.push(self.ip);
                 return Ok(());
-                //return Err(VMError::NotImplemeted);
             }
             Opcode::GetLabel => {
                 let label = match self.return_stack.pop() {
                     Some(v) => v,
-                    None => return Err(VMError::StackUnderflow),
+                    None => vm_error!(""),
                 };
                 self.push_stack(Value::Ptr(label+1).into())?;
                 return Ok(());
-                //return Err(VMError::NotImplemeted);
             }
             Opcode::DropLabel => {
                 self.return_stack.pop();
                 return Ok(());
-                //return Err(VMError::NotImplemeted);
             }
             Opcode::Jmp => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => return Err(VMError::OperandNotProvided),
+                    None => vm_error!("")
                 };
                 if addrs > self.program.len() {
-                    return Err(VMError::AddersOutOfBounds);
+                    vm_error!("")
                 }
                 self.ip = addrs;
                 Ok(())
             }
             Opcode::Jmpr => {
                 let addrs = self.stack_pop_ptr()?;
-                if addrs > self.stack.capacity() { return Err(VMError::AddersOutOfBounds); }
+                if addrs > self.stack.capacity() { vm_error!("") }
                 self.ip = addrs;
                 Ok(())
             }
@@ -270,10 +236,10 @@ impl CHSVM {
                 }
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => return Err(VMError::OperandNotProvided),
+                    None => vm_error!("")
                 };
                 if addrs > self.program.len() {
-                    return Err(VMError::AddersOutOfBounds);
+                    vm_error!("")
                 }
 
                 self.ip = addrs;
@@ -286,79 +252,59 @@ impl CHSVM {
                 if op_1 {
                     return Ok(());
                 }
+                if addrs > self.program.len() {
+                    vm_error!("")
+                }
                 self.ip = addrs;
                 Ok(())
             }
             Opcode::Eq => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Bool(op_1 == op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Bool(op_1 == op_2).into())?;
+                return Ok(());
             }
             Opcode::Neq => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Bool(op_1 != op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Bool(op_1 != op_2).into())?;
+                return Ok(());
             }
-            Opcode::Gt => {
-                if self.stack.len() >= 2 { // a b > -> a > b 
-                    let op_2 = self.stack_pop_i64()?; // b
-                    let op_1 = self.stack_pop_i64()?; // a
-                    self.push_stack(Value::Bool(op_1 > op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+            Opcode::Gt => { // a b > -> a > b 
+                let op_2 = self.stack_pop_i64()?; // b
+                let op_1 = self.stack_pop_i64()?; // a
+                self.push_stack(Value::Bool(op_1 > op_2).into())?;
+                return Ok(());
             }
             Opcode::Gte => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Bool(op_1 >= op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Bool(op_1 >= op_2).into())?;
+                return Ok(());
             }
             Opcode::Lt => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Bool(op_1 < op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Bool(op_1 < op_2).into())?;
+                return Ok(());
             }
             Opcode::Lte => {
-                if self.stack.len() >= 2 {
-                    let op_2 = self.stack_pop_i64()?;
-                    let op_1 = self.stack_pop_i64()?;
-                    self.push_stack(Value::Bool(op_1 <= op_2).into())?;
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Bool(op_1 <= op_2).into())?;
+                return Ok(());
             }
 
-            Opcode::Print => {
-                if self.stack.len() >= 1 {
-                    let value = self.pop_stack()?;
-                    println!("{}", value);
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+            Opcode::Println => {
+                let value = self.pop_stack()?;
+                println!("{}", value.to_string());
+                return Ok(());
             }
-            Opcode::Pstr => {
-                if self.stack.len() >= 1 {
-                    let val = self.stack_pop_str()?;
-                    print!("{}", val);
-                    return Ok(());
-                }
-                return Err(VMError::StackUnderflow);
+            Opcode::Print => {
+                let val = self.pop_stack()?;
+                print!("{}", val.to_string());
+                return Ok(());
+
             }
             Opcode::Debug => {
                 println!(
@@ -372,14 +318,11 @@ impl CHSVM {
             Opcode::Nop => {
                 return Ok(());
             }
-            Opcode::Write => { // TODO: Need to change this
-                return Err(VMError::StackUnderflow);
-            }
             Opcode::Load => {
                 let addrs = self.stack_pop_ptr()?;
                 let val = match self.memory.get(addrs) {
                     Some(v) => v,
-                    None => return Err(VMError::AddersOutOfBounds)
+                    None => vm_error!("")
                 };
                 self.push_stack(Rc::clone(val))?;
                 Ok(())
@@ -387,7 +330,7 @@ impl CHSVM {
             Opcode::Store => {
                 let value = self.pop_stack()?;
                 let addrs = self.stack_pop_ptr()?;
-                if addrs > self.memory.len() { return Err(VMError::AddersOutOfBounds); }
+                if addrs > self.memory.len() { vm_error!("") }
                 self.memory[addrs] = value;
                 Ok(())
             }
@@ -396,10 +339,7 @@ impl CHSVM {
                 let list = self.pop_stack()?;
                 let val = match list.get_indexed(&idx) {
                     Ok(v) => v,
-                    Err(e) => {
-                        println!("{}", e);
-                        return Err(VMError::ProgramEndWithoutHalt);
-                    }
+                    Err(e) => vm_error!("{}", e)
                 };
                 self.push_stack(val)?;
                 Ok(())
@@ -410,9 +350,12 @@ impl CHSVM {
                 let addrs = self.stack_pop_ptr()?;
                 let mut val = match self.memory.get(addrs) {
                     Some(v) => v.as_ref().clone(),
-                    None => return Err(VMError::AddersOutOfBounds)
+                    None => vm_error!("") 
                 };
-                val.set_indexed(&idx, new_val);
+                match val.set_indexed(&idx, new_val) {
+                    Some(e) => vm_error!("{}", e),
+                    _ => {}
+                }
                 self.push_stack(Rc::new(Value::Ptr(addrs)))?;
                 self.push_stack(Rc::new(val))?;
                 Ok(())
@@ -425,9 +368,9 @@ impl CHSVM {
     }
 
     pub fn run(&mut self) {
-        for (i, e) in self.program.iter().enumerate() {
-            println!("{} -> {:?}", i, e);
-        }
+        // for (i, e) in self.program.iter().enumerate() {
+        //     println!("{} -> {:?}", i, e);
+        // }
         while !self.is_halted {
             match self.execute_next_instr() {
                 Ok(_) => {}
@@ -445,7 +388,7 @@ impl CHSVM {
         }
         match self.stack.pop() {
             Some(v) => Ok(v),
-            None => Err(VMError::StackUnderflow),
+            None => vm_error!(""),
         }
     }
 
@@ -457,10 +400,10 @@ impl CHSVM {
             Some(v) => {
                 match *v {
                     Value::Int64(v) => Ok(v),
-                    _ => Err(VMError::OperandNotProvided)
+                    _ => vm_error!("")
                 }
             }
-            None => Err(VMError::StackUnderflow),
+            None => vm_error!(""),
         }
     }
 
@@ -473,10 +416,10 @@ impl CHSVM {
                 match *v {
                     Value::Uint64(v) => Ok(v),
                     Value::Int64(v) => Ok(v as u64),
-                    _ => Err(VMError::OperandNotProvided)
+                    _ => vm_error!("")
                 }
             }
-            None => Err(VMError::StackUnderflow),
+            None => vm_error!(""),
         }
     }
 
@@ -488,20 +431,10 @@ impl CHSVM {
             Some(v) => {
                 match *v {
                     Value::Ptr(v) => Ok(v),
-                    _ => Err(VMError::OperandNotProvided)
+                    _ => vm_error!("")
                 }
             }
-            None => Err(VMError::StackUnderflow),
-        }
-    }
-
-    fn stack_pop_str(&mut self) -> Result<String, VMError> {
-        if !(self.sp == 0) {
-            self.sp -= 1
-        }
-        match self.stack.pop() {
-            Some(v) => Ok(v.to_string()),
-            None => Err(VMError::StackUnderflow),
+            None => vm_error!(""),
         }
     }
 
@@ -513,16 +446,16 @@ impl CHSVM {
             Some(v) => {
                 match *v {
                     Value::Bool(v) => Ok(v),
-                    _ => Err(VMError::OperandNotProvided)
+                    _ => vm_error!("")
                 }
             },
-            None => Err(VMError::StackUnderflow),
+            None => vm_error!(""),
         }
     }
 
     fn push_stack(&mut self, value: Rc<Value>) -> Result<(), VMError> {
         if (self.sp + 1) > self.stack.capacity() {
-            return Err(VMError::StackOverflow);
+            vm_error!("")
         }
         self.sp += 1;
         self.stack.push(value);

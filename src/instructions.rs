@@ -23,6 +23,7 @@ pub enum Opcode {
     Bitor,
     Bitand,
     Lor,
+    Land,
 
     IdxGet,
     IdxSet,
@@ -43,14 +44,13 @@ pub enum Opcode {
     Gte,
     Lte,
     
+    Println,
     Print,
-    Pstr,
     Debug,
     Nop,
     
     Store,
     Load,
-    Write,
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -10,7 +10,7 @@ while i NUMS_LEN < {
 	while j NUMS_LEN < {
         i j != if {
             nums[i] nums[j] + TARGET = if {
-                i pstr ", " pstr j pstr "\n" pstr
+                i print ", " print j println
                 hlt
             }
         }

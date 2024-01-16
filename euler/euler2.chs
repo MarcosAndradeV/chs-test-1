@@ -2,13 +2,16 @@
 
 var acc int 0;
 
-1 2 while over LIMIT < {
-    over dup 2 mod 0 = if {
-        acc load + acc swap store
-        else
-        pop
+var fib1 int 1;
+var fib2 int 1;
+
+while fib2 LIMIT < { 
+    fib2 2 mod 0 = if {
+        set acc acc fib2 +;
     }
-    swap over +
+    var tmp int fib1 fib2 +;
+    set fib1 fib2;
+    set fib2 tmp;
 }
 
-acc load print 
+acc println 

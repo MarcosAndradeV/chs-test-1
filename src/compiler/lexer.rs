@@ -30,7 +30,7 @@ pub enum TokenKind {
     
     Hlt,
     Print,
-    Pstr,
+    Println,
     Debug,
     
     If,
@@ -49,6 +49,7 @@ pub enum TokenKind {
     Bitor,
     Bitand,
     Lor,
+    Land,
     
     Eq,
     Neq,
@@ -222,7 +223,12 @@ impl Lexer {
                     _ => self.make_token(TokenKind::Bitor)
                 }
             },
-            b'&' => self.make_token(TokenKind::Bitand),
+            b'&' => {
+                match self.next_byte() {
+                    b'&' => {self.position+=2; self.token(TokenKind::Land, self.position-2)},
+                    _ => self.make_token(TokenKind::Bitand)
+                }
+            },
             _ => self.make_token(TokenKind::Invalid)
         }
     }
@@ -313,7 +319,6 @@ impl Lexer {
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
-                "pstr" => TokenKind::Pstr,
                 "proc" => TokenKind::Proc,
                 _ => TokenKind::Identifier
             }
@@ -323,6 +328,10 @@ impl Lexer {
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
                 "macro" => TokenKind::Macro,
+                _ => TokenKind::Identifier
+            }
+            7 => match value.as_str() {
+                "println" => TokenKind::Println,  
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,
