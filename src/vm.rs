@@ -10,7 +10,7 @@ use crate::vm_error;
 #[derive(Debug)]
 pub struct CHSVM {
     pub stack: Vec<Rc<Value>>,
-    pub return_stack: Vec<usize>,
+    pub return_stack: Vec<Rc<Value>>,
     pub consts: Rc<[Value]>,
     pub memory: Vec<Rc<Value>>,
     pub is_halted: bool,
@@ -197,15 +197,20 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::PushLabel => {
-                self.return_stack.push(self.ip);
+                self.return_stack.push(Rc::new(Value::Ptr(self.ip)));
                 return Ok(());
             }
             Opcode::GetLabel => {
                 let label = match self.return_stack.pop() {
-                    Some(v) => v,
+                    Some(v) => {
+                        match v.as_ref() {
+                            Value::Ptr(v) => *v + 1,
+                            _ => vm_error!("")
+                        }
+                    },
                     None => vm_error!(""),
                 };
-                self.push_stack(Value::Ptr(label+1).into())?;
+                self.push_stack(Value::Ptr(label).into())?;
                 return Ok(());
             }
             Opcode::DropLabel => {
@@ -294,7 +299,46 @@ impl CHSVM {
                 self.push_stack(Value::Bool(op_1 <= op_2).into())?;
                 return Ok(());
             }
-
+            Opcode::Bind => {
+                let q: usize = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("")
+                };
+                if q <= self.stack.len() {
+                    for _ in 0..q {
+                        let value = self.pop_stack()?;
+                        self.return_stack.push(value);
+                    }
+                    return Ok(());
+                }
+                vm_error!("Bind")
+            }
+            Opcode::PushBind => {
+                let q: usize = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("PushBind 1")
+                };
+                let local = match self.return_stack.iter().rev().nth(q-1) {
+                    Some(v) => v,
+                    None => vm_error!("PushBind 2"),
+                };
+                println!("{}", local);
+                self.push_stack(local.clone())?;
+                return Ok(());
+            }
+            Opcode::Unbind => {
+                let q: usize = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("")
+                };
+                if q > self.return_stack.len() {
+                    vm_error!("")
+                }
+                for _ in 0..q {
+                    self.return_stack.pop();
+                }
+                return Ok(());
+            }
             Opcode::Println => {
                 let value = self.pop_stack()?;
                 println!("{}", value.to_string());
@@ -376,9 +420,10 @@ impl CHSVM {
     }
 
     pub fn run(&mut self) {
-        // for (i, e) in self.program.iter().enumerate() {
-        //     println!("{} -> {:?}", i, e);
-        // }
+        println!("{}", self.ip);
+        for (i, e) in self.program.iter().enumerate() {
+            println!("{} -> {:?}", i, e);
+        }
         while !self.is_halted {
             match self.execute_next_instr() {
                 Ok(_) => {}

@@ -28,6 +28,10 @@ pub enum Opcode {
     IdxGet,
     IdxSet,
     Len,
+
+    Bind,
+    PushBind,
+    Unbind,
     
     GetLabel,
     PushLabel,

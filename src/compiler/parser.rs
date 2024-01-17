@@ -508,6 +508,21 @@ impl Parser {
         let name = self.name_def()?;
         let mut ret = false;
         let pos = self.instrs.len();
+        let mut locals: HashMap<String, usize> = HashMap::new();
+        let mut locals_count: usize = 0;
+        self.expect(TokenKind::ParenOpen)?;
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::ParenClose => break,
+                TokenKind::Identifier => {
+                    locals.insert(tok.value, locals_count+1);
+                    locals_count+=1;
+                }
+                _ => generic_error!("{} is not accepted", tok)
+            }
+        }
+        self.instrs.push(Instr::new(Opcode::Bind, Some(locals_count)));
         self.proc_def.insert(name.value, pos+1);
         self.expect(TokenKind::CurlyOpen)?;
         loop {
@@ -515,6 +530,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::CurlyClose => {
                     if !ret {
+                        self.instrs.push(Instr::new(Opcode::Unbind, Some(locals_count)));
                         self.instrs.push(Instr::new(Opcode::GetLabel, None));
                         self.instrs.push(Instr::new(Opcode::Jmpr, None));
                     }
@@ -523,7 +539,14 @@ impl Parser {
                     break
                 },
                 TokenKind::Var => { generic_error!("TODO: Make the local variable.") }
+                TokenKind::Identifier => {
+                    match locals.get(&tok.value) {
+                        Some(v) => self.instrs.push(Instr::new(Opcode::PushBind, Some(*v))),
+                        None => self.parse_one(tok)?
+                    }
+                }
                 TokenKind::Ret => {
+                    self.instrs.push(Instr::new(Opcode::Unbind, Some(locals_count)));
                     self.instrs.push(Instr::new(Opcode::GetLabel, None));
                     self.instrs.push(Instr::new(Opcode::Jmpr, None));
                     ret = true;
