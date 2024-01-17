@@ -1,4 +1,4 @@
-var test int 0;
+var test 0;
 debug
 test
 debug
