@@ -46,7 +46,8 @@ impl List {
     }
     pub fn set_object(&mut self, pos: usize, obj: Rc<Value>) -> Option<String> {
         if pos >= self.elem.len() {
-            return Some(format!("Array index out of range for position {}", pos));
+            //return Some(format!("Array index out of range for position {}", pos));
+            self.elem.resize(pos+1, Rc::new(Value::Int64(0)))
         }
 
         self.elem[pos] = obj;

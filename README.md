@@ -33,18 +33,16 @@ chsc run <file.chs>
 - Variables
 
 ```pascal
-var <name> <type> <value>;
+var <name> <value>;
 set <name> <value>;
 ```
 
 ```pascal
-var interger int 10;
-var unsigned-interger uint 10;
-var text str "Some text";
-var mylist list[4] (1 2 3 4);
+var interger 10;
+var text "Some text";
+var mylist (1 2 3 4);
 
 set interger 20;
-set unsigned-interger 20 10 +;
 set text "Other text";
 set mylist[0] 2;
 ```

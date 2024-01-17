@@ -1,13 +1,13 @@
 # Is Palindrome
 %def Palindrome 101
 
-var x int Palindrome;
+var x Palindrome;
 
-var reverse int 0;
-var remainder int 0;
-var temp int Palindrome;
+var reverse 0;
+var remainder 0;
+var temp Palindrome;
 
-x 0 < if  { "False" println hlt }
+x 0 < if { "False" println hlt }
 
 while temp 0 != {
     set remainder temp 10 mod;
