@@ -65,7 +65,7 @@ impl CHSVM {
             }
             Opcode::Dup => {
 
-                let op_1 = self.pop_stack()?;
+                let op_1 = self.stack_pop()?;
                 self.push_stack(op_1.clone())?;
                 self.push_stack(op_1)?;
                 return Ok(());
@@ -73,8 +73,8 @@ impl CHSVM {
             }
             Opcode::Dup2 => { // a b -> a b a b
                
-                let op_2 = self.pop_stack()?; // b
-                let op_1 = self.pop_stack()?; // a
+                let op_2 = self.stack_pop()?; // b
+                let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_1.clone())?;
                 self.push_stack(op_2.clone())?;
                 self.push_stack(op_1)?;
@@ -83,15 +83,15 @@ impl CHSVM {
             }
             Opcode::Swap => { // a b -> b a
                
-                let op_2 = self.pop_stack()?; // b
-                let op_1 = self.pop_stack()?; // a
+                let op_2 = self.stack_pop()?; // b
+                let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_2)?; // b
                 self.push_stack(op_1)?; // a
                 return Ok(());
             }
             Opcode::Over => { // a b -> a b a
-                let op_2 = self.pop_stack()?; // b
-                let op_1 = self.pop_stack()?; // a
+                let op_2 = self.stack_pop()?; // b
+                let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_1.clone())?; // a
                 self.push_stack(op_2)?; // b
                 self.push_stack(op_1)?; // a
@@ -99,13 +99,13 @@ impl CHSVM {
 
             }
             Opcode::Pop => { // a -> _
-                let _ = self.pop_stack()?;
+                let _ = self.stack_pop()?;
                 return Ok(());
 
             }
             Opcode::Add => {
-                let op_2 = self.pop_stack()?;
-                let op_1 = self.pop_stack()?;
+                let op_2 = self.stack_pop()?;
+                let op_1 = self.stack_pop()?;
 
                 if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
 
@@ -113,7 +113,7 @@ impl CHSVM {
                     Value::Int64(v) => {
                         match *op_2 {
                             Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v + o)))? }
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v as u64 + o)))? }
+                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Int64(v + o as i64)))? }
                             _ => vm_error!("")
                         }
                     }
@@ -264,14 +264,14 @@ impl CHSVM {
                 Ok(())
             }
             Opcode::Eq => {
-                let op_2 = self.stack_pop_i64()?;
-                let op_1 = self.stack_pop_i64()?;
+                let op_2 = self.stack_pop()?;
+                let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 == op_2).into())?;
                 return Ok(());
             }
             Opcode::Neq => {
-                let op_2 = self.stack_pop_i64()?;
-                let op_1 = self.stack_pop_i64()?;
+                let op_2 = self.stack_pop()?;
+                let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 != op_2).into())?;
                 return Ok(());
             }
@@ -306,7 +306,7 @@ impl CHSVM {
                 };
                 if q <= self.stack.len() {
                     for _ in 0..q {
-                        let value = self.pop_stack()?;
+                        let value = self.stack_pop()?;
                         self.return_stack.push(value);
                     }
                     return Ok(());
@@ -339,12 +339,12 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::Println => {
-                let value = self.pop_stack()?;
+                let value = self.stack_pop()?;
                 println!("{}", value.to_string());
                 return Ok(());
             }
             Opcode::Print => {
-                let val = self.pop_stack()?;
+                let val = self.stack_pop()?;
                 print!("{}", val.to_string());
                 return Ok(());
 
@@ -371,15 +371,15 @@ impl CHSVM {
                 Ok(())
             }
             Opcode::Store => {
-                let value = self.pop_stack()?;
+                let value = self.stack_pop()?;
                 let addrs = self.stack_pop_ptr()?;
                 if addrs > self.memory.len() { vm_error!("") }
                 self.memory[addrs] = value;
                 Ok(())
             }
             Opcode::IdxGet => {
-                let idx = self.pop_stack()?;
-                let list = self.pop_stack()?;
+                let idx = self.stack_pop()?;
+                let list = self.stack_pop()?;
                 let val = match list.get_indexed(&idx) {
                     Ok(v) => v,
                     Err(e) => vm_error!("{}", e)
@@ -388,8 +388,8 @@ impl CHSVM {
                 Ok(())
             },
             Opcode::IdxSet => {
-                let new_val = self.pop_stack()?;
-                let idx = self.pop_stack()?;
+                let new_val = self.stack_pop()?;
+                let idx = self.stack_pop()?;
                 let addrs = self.stack_pop_ptr()?;
                 let mut val = match self.memory.get(addrs) {
                     Some(v) => v.as_ref().clone(),
@@ -404,7 +404,7 @@ impl CHSVM {
                 Ok(())
             },
             Opcode::Len => {
-                let val = self.pop_stack()?;
+                let val = self.stack_pop()?;
                 match val.len() {
                     Ok(v) => self.push_stack(v)?,
                     Err(e) => vm_error!("{}", e)
@@ -434,7 +434,7 @@ impl CHSVM {
         }
     }
 
-    fn pop_stack(&mut self) -> Result<Rc<Value>, VMError> {
+    fn stack_pop(&mut self) -> Result<Rc<Value>, VMError> {
         if !(self.sp == 0) {
             self.sp -= 1
         }

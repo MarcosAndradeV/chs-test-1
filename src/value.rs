@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{cell::RefCell, rc::Rc};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int64(i64),
     Uint64(u64),
@@ -28,7 +28,7 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct List {
     pub elem: Vec<Rc<Value>>,
 }
@@ -118,7 +118,7 @@ impl Value {
                     return Err(format!("String \"{}\" index out of bounds for {}", st, i));
                 }
 
-                return Ok(Rc::new(Value::Char(ch.unwrap())));
+                return Ok(Rc::new(Value::Str(ch.unwrap().to_string())));
             }
             (Value::Str(st), Value::Uint64(i)) => {
                 let ch = st.chars().nth(*i as usize);
