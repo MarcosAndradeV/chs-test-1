@@ -1,7 +1,7 @@
 #![allow(unused)]
 use std::{collections::HashMap, rc::Rc, cell::RefCell};
 
-use crate::{exeptions::GenericError, generic_error, value::{Value, List}, instructions::{Instr, Opcode}};
+use crate::{exeptions::GenericError, generic_error, value::{Value, List}, instructions::{Instr, Opcode, Bytecode}};
 
 use super::lexer::{Lexer, Token, TokenKind};
 
@@ -41,12 +41,12 @@ impl Parser {
             locals_count: 1,
         }
     }
-    pub fn parse(&mut self) -> Result<(Vec<Instr>, Vec<Value>, usize), GenericError> {
+    pub fn parse(&mut self) -> Result<Bytecode, GenericError> {
         loop {
             let token = self.next();
 
             if token.kind == TokenKind::Null {
-                return Ok((self.instrs.clone(), self.consts.clone(), self.entry_point));
+                return Ok(Bytecode::new(self.instrs.clone(), self.consts.clone()));
             }
             self.parse_all(token, 0)?;
         }

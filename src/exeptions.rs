@@ -26,16 +26,31 @@ macro_rules! vm_error {
     }
 }
 
-pub const DIV_BY_ZERO: &str = "DivByZero";
-pub const NOT_IMPLEMETED: &str ="NotImplemeted";
-pub const STACK_OVERFLOW: &str = "StackOverflow";
-pub const STACK_UNDERFLOW: &str ="StackUnderflow";
-pub const ADDERS_OUT_OF_BOUNDS: &str ="AddersOutOfBounds";
-pub const OPERAND_NOT_PROVIDED: &str = "OperandNotProvided";
-pub const PROGRAM_END_WITHOUT_HALT: &str ="ProgramEndWithoutHalt";
-pub const TYPE_INCORRECT: &str = "TypeIncorrect";
+#[derive(Debug)]
+pub struct TypeError {
+    pub msg: String
+}
 
+impl fmt::Display for TypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
+    }
+}
 
+#[macro_export]
+macro_rules! type_error {
+    ($message: expr, $($field: expr),*) => {
+        return Err(TypeError {
+            msg: format!($message, $($field),*),
+        })
+    };
+
+    ($message: expr) => {
+        return Err(TypeError {
+            msg: $message.to_string(),
+        })
+    }
+}
 
 #[derive(Debug)]
 pub struct GenericError {

@@ -1,3 +1,5 @@
+use crate::value::Value;
+
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -68,4 +70,13 @@ impl Instr {
     pub fn new(kind: Opcode, operands: Option<usize>) -> Self {
         Self { kind, operands }
     }
+}
+#[derive(Debug, Clone)]
+pub struct Bytecode {
+    pub program: Vec<Instr>,
+    pub consts: Vec<Value>,
+}
+
+impl Bytecode {
+    pub fn new(program: Vec<Instr>, consts: Vec<Value>) -> Self { Self { program, consts } }
 }

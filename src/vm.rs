@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
-use crate::exeptions::{VMError, OPERAND_NOT_PROVIDED};
+use crate::exeptions::VMError;
 use crate::config::{STACK_CAPACITY, MEM_CAPACITY};
 use crate::value::Value;
-use crate::instructions::{Instr, Opcode};
+use crate::instructions::{Instr, Opcode, Bytecode};
 use crate::vm_error;
 
 
@@ -20,18 +20,18 @@ pub struct CHSVM {
 }
 
 impl CHSVM {
-    pub fn new(program: Vec<Instr>, consts: Vec<Value> ) -> Self {
+    pub fn new(program: Bytecode) -> Self {
         let mut memory = Vec::with_capacity(MEM_CAPACITY);
         memory.resize(MEM_CAPACITY, Rc::new(Value::Null));
         Self {
             stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
-            consts: consts.into(),
+            consts: program.consts.into(),
             memory,
             sp: 0,
             ip: 0,
             is_halted: false,
-            program,
+            program: program.program,
         }
     }
     pub fn execute_next_instr(&mut self) -> Result<(), VMError> {
@@ -46,7 +46,7 @@ impl CHSVM {
             Opcode::PushPtr => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{}", OPERAND_NOT_PROVIDED),
+                    None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
                 self.push_stack(Value::Ptr(addrs).into())?;
                 return Ok(());
@@ -54,7 +54,7 @@ impl CHSVM {
             Opcode::Const => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{}", OPERAND_NOT_PROVIDED),
+                    None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
                 let val = match self.consts.get(addrs) {
                     Some(v) => v,
