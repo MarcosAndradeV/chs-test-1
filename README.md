@@ -47,6 +47,26 @@ set text "Other text";
 set mylist[0] 2;
 ```
 
+- Procedures
+```pascal
+proc <name> (<args>) {
+  <block>
+}
+```
+
+```pascal
+proc sayhi() {
+  "Hi" println
+}
+
+proc add(a b) {
+  a b +
+}
+
+sayhi
+1 1 add
+```
+
 - if-statmets
 
 ```pascal
