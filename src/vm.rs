@@ -322,7 +322,6 @@ impl CHSVM {
                     Some(v) => v,
                     None => vm_error!("PushBind 2"),
                 };
-                println!("{}", local);
                 self.push_stack(local.clone())?;
                 return Ok(());
             }
@@ -420,10 +419,10 @@ impl CHSVM {
     }
 
     pub fn run(&mut self) {
-        println!("{}", self.ip);
-        for (i, e) in self.program.iter().enumerate() {
-            println!("{} -> {:?}", i, e);
-        }
+        // println!("{}", self.ip);
+        // for (i, e) in self.program.iter().enumerate() {
+        //     println!("{} -> {:?}", i, e);
+        // }
         while !self.is_halted {
             match self.execute_next_instr() {
                 Ok(_) => {}
