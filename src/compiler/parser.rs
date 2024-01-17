@@ -17,7 +17,9 @@ pub struct Parser {
     macro_def: HashMap<String, Vec<Token>>,
     var_def: HashMap<String, usize>,
     var_count: usize,
-    proc_def: HashMap<String, usize>, 
+    proc_def: HashMap<String, usize>,
+    locals: HashMap<String, usize>,
+    locals_count: usize,
 }
 
 impl Parser {
@@ -35,6 +37,8 @@ impl Parser {
             var_def: HashMap::new(),
             var_count: 0,
             proc_def: HashMap::new(),
+            locals: HashMap::new(),
+            locals_count: 1,
         }
     }
     pub fn parse(&mut self) -> Result<(Vec<Instr>, Vec<Value>, usize), GenericError> {
@@ -276,13 +280,22 @@ impl Parser {
                     }
                     None => {}
                 }
-                match self.var_def.get(&token.value) {
+                match self.locals.get(&token.value) {
                     Some(v) => {
                         self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
                         self.instrs.push(Instr::new(Opcode::Load, None));
                         return Ok(());
                     }
-                    None => {}
+                    None => {
+                        match self.var_def.get(&token.value) {
+                            Some(v) => {
+                                self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                                self.instrs.push(Instr::new(Opcode::Load, None));
+                                return Ok(());
+                            }
+                            None => {}
+                        }
+                    }
                 }
 
                 match self.proc_def.get(&token.value) {
@@ -358,12 +371,41 @@ impl Parser {
         Ok(())
     }
 
+    fn local_var_stmt(&mut self) -> Result<(), GenericError> {
+        let name = self.require()?;
+        let loacl_var_count = match self.locals.get(&name.value) {
+            Some(v) => {*v}
+            None => {
+                self.locals.insert(name.value, self.locals_count);
+                self.locals_count += 1;
+                self.locals_count - 1
+            }
+        } ;
+
+        self.instrs.push(Instr::new(Opcode::PushPtr, Some(loacl_var_count)));
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::SemiColon => break,
+                TokenKind::ParenOpen => self.list()?,
+                _ => self.parse_one(tok)?
+            }
+        }
+        self.instrs.push(Instr::new(Opcode::Store, None));
+        Ok(())
+    }
+
     fn set_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.require()?;
         let mut is_idx = false;
-        match self.var_def.get(&name.value) {
-            Some(v) => self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v))),
-            None => return generic_error!("{} is not defined yet", name.value),
+        match self.locals.get(&name.value) {
+            Some(v) => {self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)))}
+            None => {
+                match self.var_def.get(&name.value) {
+                    Some(v) => self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v))),
+                    None => return generic_error!("{} is not defined yet", name.value),
+                }
+            }
         }
         if self.peek().kind == TokenKind::BracketOpen {
             self.next();
@@ -431,21 +473,21 @@ impl Parser {
         let name = self.name_def()?;
         let mut ret = false;
         let pos = self.instrs.len();
-        let mut locals: HashMap<String, usize> = HashMap::new();
-        let mut locals_count: usize = 0;
+        let mut args: HashMap<String, usize> = HashMap::new();
+        let mut args_count: usize = 0;
         self.expect(TokenKind::ParenOpen)?;
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::ParenClose => break,
                 TokenKind::Identifier => {
-                    locals.insert(tok.value, locals_count+1);
-                    locals_count+=1;
+                    args.insert(tok.value, args_count+1);
+                    args_count+=1;
                 }
                 _ => generic_error!("{} is not accepted", tok)
             }
         }
-        self.instrs.push(Instr::new(Opcode::Bind, Some(locals_count)));
+        self.instrs.push(Instr::new(Opcode::Bind, Some(args_count)));
         self.proc_def.insert(name.value, pos+1);
         self.expect(TokenKind::CurlyOpen)?;
         loop {
@@ -453,23 +495,35 @@ impl Parser {
             match tok.kind {
                 TokenKind::CurlyClose => {
                     if !ret {
-                        self.instrs.push(Instr::new(Opcode::Unbind, Some(locals_count)));
+                        self.instrs.push(Instr::new(Opcode::Unbind, Some(args_count)));
                         self.instrs.push(Instr::new(Opcode::GetLabel, None));
                         self.instrs.push(Instr::new(Opcode::Jmpr, None));
                     }
                     self.instrs.insert(pos, Instr::new(
                         Opcode::Jmp, Some(self.instrs.len()+1+d)));
+                    self.locals.clear();
+                    self.locals_count = self.var_count+1;
                     break
                 },
-                TokenKind::Var => { generic_error!("TODO: Make the local variable.") }
+                TokenKind::Var => { self.local_var_stmt()? }
                 TokenKind::Identifier => {
-                    match locals.get(&tok.value) {
-                        Some(v) => self.instrs.push(Instr::new(Opcode::PushBind, Some(*v))),
+                    match self.locals.get(&tok.value) {
+                        Some(v) => {
+                            self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                            self.instrs.push(Instr::new(Opcode::Load, None));
+                            continue;
+                        }
+                        None => {}
+                    }
+                    match args.get(&tok.value) {
+                        Some(v) => {
+                            self.instrs.push(Instr::new(Opcode::PushBind, Some(*v)));
+                        },
                         None => self.parse_one(tok)?
                     }
                 }
                 TokenKind::Ret => {
-                    self.instrs.push(Instr::new(Opcode::Unbind, Some(locals_count)));
+                    self.instrs.push(Instr::new(Opcode::Unbind, Some(args_count)));
                     self.instrs.push(Instr::new(Opcode::GetLabel, None));
                     self.instrs.push(Instr::new(Opcode::Jmpr, None));
                     ret = true;
