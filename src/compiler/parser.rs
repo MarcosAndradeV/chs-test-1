@@ -157,16 +157,17 @@ impl Parser {
                     self.instrs.push(Instr::new(Opcode::DropLabel, None));
                     break;
                 }
-                TokenKind::Proc | TokenKind::Directive => 
+                TokenKind::Func | TokenKind::Directive => 
                 {return generic_error!("You cannot declareate {} here!", tok.value);}
                 _ => self.parse_all(tok, d+1)?
             }
         }
         Ok(())
     }
-
-
+    
+    
     fn if_block(&mut self, d: usize) -> Result<(), GenericError> {
+        self.instrs.push(Instr::new(Opcode::PushLabel, None));
         self.expect(TokenKind::CurlyOpen);
         let offset = self.instrs.len();
         let mut offset2 = 0;
@@ -183,7 +184,7 @@ impl Parser {
                         Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 2+d)),
                     );
                 }
-                TokenKind::Proc | TokenKind::Directive => 
+                TokenKind::Func | TokenKind::Directive => 
                 {return generic_error!("You cannot declareate {} here!", tok.value);}
                 _ => self.parse_all(tok, d+1)?
             }
@@ -200,14 +201,15 @@ impl Parser {
                 Instr::new(Opcode::Jmp, Some(self.instrs.len()+1+d)),
             );
         }
+        self.instrs.push(Instr::new(Opcode::DropLabel, None));
         Ok(())
     }
-
+    
     fn parse_all(&mut self, token: Token, d: usize) -> Result<(), GenericError> {
-       match token.kind {
+        match token.kind {
             TokenKind::If => self.if_block(d)?,
             TokenKind::Whlie => self.while_block(d)?,
-            TokenKind::Proc => self.proc_block(d)?,
+            TokenKind::Func => self.func_block(d)?,
             TokenKind::Directive => self.directive()?,
             TokenKind::Var => self.var_stmt()?,
             TokenKind::Set => self.set_stmt()?,
@@ -469,7 +471,7 @@ impl Parser {
         return Ok(());
     }
 
-    fn proc_block(&mut self, d: usize) -> Result<(), GenericError> {
+    fn func_block(&mut self, d: usize) -> Result<(), GenericError> {
         let name = self.name_def()?;
         let mut ret = false;
         let pos = self.instrs.len();

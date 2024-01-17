@@ -48,18 +48,19 @@ set mylist[0] 2;
 ```
 
 - Procedures
+
 ```pascal
-proc <name> (<args>) {
+func <name> (<args>) {
   <block>
 }
 ```
 
 ```pascal
-proc sayhi() {
+func sayhi() {
   "Hi" println
 }
 
-proc add(a b) {
+func add(a b) {
   a b +
 }
 
@@ -112,7 +113,7 @@ swap # [a b] -> [b a]
 
 - logical operations
 
-```sh
+```c
 = # equal
 != # not equal
 < # less than
@@ -125,7 +126,7 @@ swap # [a b] -> [b a]
 
 - Bitwise operations
 
-```sh
+```c
 >> # right bit shift
 << # left bit shift
 | # bit or

@@ -7,7 +7,7 @@ pub enum TokenKind {
 
     Var,
     Set,
-    Proc,
+    Func,
     Len,
 
     Directive,
@@ -312,7 +312,7 @@ impl Lexer {
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
-                "proc" => TokenKind::Proc,
+                "func" => TokenKind::Func,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
