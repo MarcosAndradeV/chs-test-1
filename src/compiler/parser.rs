@@ -517,7 +517,7 @@ impl Parser {
                             self.instrs.push(Instr::new(Opcode::Load, None));
                             continue;
                         }
-                        None => {}
+                        None => self.parse_one(tok)?
                     }
                 }
                 TokenKind::Ret => {
