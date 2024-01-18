@@ -1,11 +1,11 @@
 use std::io;
 
 use chs::{lex_file, vm::CHSVM, compiler::parser::Parser};
-use clap::{Arg, Command};
+use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{
     // Basic CLI just for tests.
-    let cmd = Command::new("chsvm")
+    let cmd = Command::new("chsc")
         .about("...")
         .version("0.0.1")
         .subcommand_required(true)
@@ -14,7 +14,13 @@ fn main() -> io::Result<()>{
         .subcommand(
             Command::new("run")
                 .about("...")
-                .arg(Arg::new("filename").value_name("FILE").num_args(1)),
+                .arg(Arg::new("filename").value_name("FILE").num_args(1))
+                .arg(
+                    Arg::new("debug")
+                        .long("debug")
+                        .short('d')
+                        .action(ArgAction::SetTrue)
+                        .help("Runs with debug mode")),
 
         )
         .get_matches();
@@ -31,7 +37,11 @@ fn main() -> io::Result<()>{
                     Err(e) => {eprintln!("{}", e); return Ok(())}
                 };
                 let mut vm = CHSVM::new(code);
-                vm.run();
+                if file_matches.get_flag("debug") {
+                    vm.run(true);
+                    return Ok(());
+                }
+                vm.run(false);
                 return Ok(());
             }
             println!("File not provided.");
