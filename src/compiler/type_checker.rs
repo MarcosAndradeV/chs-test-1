@@ -4,6 +4,9 @@ use crate::{type_error, instructions::{Bytecode, Opcode}, exeptions::TypeError, 
 pub enum Types {
     Int,
     Str,
+    Ptr,
+    Bool,
+    List,
 }
 
 pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
@@ -13,6 +16,13 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
         let instr = code.program[ip];
 
         match instr.kind {
+            Opcode::PushPtr => {
+                match instr.operands {
+                    Some(_) => {},
+                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                }
+                type_stack.push(Types::Ptr);
+            }
             Opcode::Const => {
                 let addrs = match instr.operands {
                     Some(v) => v,
@@ -25,10 +35,11 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 match val {
                     Value::Int64(_) => type_stack.push(Types::Int),
                     Value::Str(_) => type_stack.push(Types::Str),
+                    Value::List(_) => type_stack.push(Types::List),
                     _ => type_error!("Unimplemented! {}", val)
                 }
             }
-            Opcode::Add => {
+            Opcode::Add | Opcode::Minus | Opcode::Mul | Opcode::Div => {
                 if type_stack.len() < 2 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
                 }
@@ -39,6 +50,25 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     (ta, tb) => type_error!("Cannot add {:?} {:?}", ta, tb),
                 }
                 
+            }
+            Opcode::Eq | Opcode::Neq => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                type_stack.pop().unwrap();
+                type_stack.pop().unwrap();
+                type_stack.push(Types::Bool); 
+            }
+            Opcode::Gt | Opcode::Gte | Opcode::Lte | Opcode::Lt => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                let b = type_stack.pop().unwrap();
+                match (a, b) {
+                    (Types::Int, Types::Int) => type_stack.push(Types::Bool),
+                    (ta, tb) => type_error!("Cannot compare {:?} {:?} with {:?}", ta, tb, instr.kind),
+                }
             }
             Opcode::Println | Opcode::Print => {
                 if type_stack.len() < 1 {
@@ -85,7 +115,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
         ip+=1;
     }
     if type_stack.len() != 0 {
-        type_error!("{} data left on the stack. {:?}", type_stack.len(), type_stack)
+        println!("NOTE: {} data left on the stack. {:?}", type_stack.len(), type_stack)
     }
     Ok(())
 }

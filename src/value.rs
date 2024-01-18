@@ -13,6 +13,28 @@ pub enum Value {
     Null,
 }
 
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self {
+            Value::Int64(v) => {
+                match other {
+                    Value::Int64(o) => {Some(v.cmp(o))}
+                    Value::Uint64(o) => {Some(v.cmp(&(*o as i64)))}
+                    _ => None
+                }
+            },
+            Value::Uint64(v) => {
+                match other {
+                    Value::Int64(o) => {Some(v.cmp(&(*o as u64)))}
+                    Value::Uint64(o) => {Some(v.cmp(o))}
+                    _ => None
+                }
+            },
+            _ => None
+        }
+    }
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
