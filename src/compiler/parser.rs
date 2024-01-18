@@ -375,7 +375,7 @@ impl Parser {
 
     fn local_var_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.require()?;
-        let loacl_var_count = match self.locals.get(&name.value) {
+        let local_var_stmt = match self.locals.get(&name.value) {
             Some(v) => {*v}
             None => {
                 self.locals.insert(name.value, self.locals_count);
@@ -384,7 +384,7 @@ impl Parser {
             }
         } ;
 
-        self.instrs.push(Instr::new(Opcode::PushPtr, Some(loacl_var_count)));
+        self.instrs.push(Instr::new(Opcode::PushPtr, Some(local_var_stmt)));
         loop {
             let tok = self.require()?;
             match tok.kind {
@@ -475,21 +475,24 @@ impl Parser {
         let name = self.name_def()?;
         let mut ret = false;
         let pos = self.instrs.len();
-        let mut args: HashMap<String, usize> = HashMap::new();
-        let mut args_count: usize = 0;
         self.expect(TokenKind::ParenOpen)?;
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::ParenClose => break,
                 TokenKind::Identifier => {
-                    args.insert(tok.value, args_count+1);
-                    args_count+=1;
+                    self.locals.insert(tok.value, self.locals_count);
+                    self.locals_count += 1;
+                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.locals_count - 1)));
+                    self.instrs.push(Instr::new(Opcode::Over, None));
+                    self.instrs.push(Instr::new(Opcode::Store, None));
+                    self.instrs.push(Instr::new(Opcode::Pop, None));
                 }
                 _ => generic_error!("{} is not accepted", tok)
             }
         }
-        self.instrs.push(Instr::new(Opcode::Bind, Some(args_count)));
+
+
         self.proc_def.insert(name.value, pos+1);
         self.expect(TokenKind::CurlyOpen)?;
         loop {
@@ -497,7 +500,6 @@ impl Parser {
             match tok.kind {
                 TokenKind::CurlyClose => {
                     if !ret {
-                        self.instrs.push(Instr::new(Opcode::Unbind, Some(args_count)));
                         self.instrs.push(Instr::new(Opcode::GetLabel, None));
                         self.instrs.push(Instr::new(Opcode::Jmpr, None));
                     }
@@ -517,15 +519,8 @@ impl Parser {
                         }
                         None => {}
                     }
-                    match args.get(&tok.value) {
-                        Some(v) => {
-                            self.instrs.push(Instr::new(Opcode::PushBind, Some(*v)));
-                        },
-                        None => self.parse_one(tok)?
-                    }
                 }
                 TokenKind::Ret => {
-                    self.instrs.push(Instr::new(Opcode::Unbind, Some(args_count)));
                     self.instrs.push(Instr::new(Opcode::GetLabel, None));
                     self.instrs.push(Instr::new(Opcode::Jmpr, None));
                     ret = true;
