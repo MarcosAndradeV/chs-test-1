@@ -1,16 +1,21 @@
+use std::collections::HashMap;
+
 use crate::{type_error, instructions::{Bytecode, Opcode}, exeptions::TypeError, value::Value};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Types {
-    Int,
+    Int = 0,
     Str,
     Ptr,
     Bool,
     List,
+    Label
 }
 
 pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
     let mut type_stack: Vec<Types> = Vec::new();
+    let mut sym_table: HashMap<usize, Types> = HashMap::new();
+    let mut snapshot_stack: Vec<Vec<Types>> = Vec::new();
     let mut ip: usize = 0;
     while ip < code.program.len() {
         let instr = code.program[ip];
@@ -39,7 +44,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     _ => type_error!("Unimplemented! {}", val)
                 }
             }
-            Opcode::Add | Opcode::Minus | Opcode::Mul | Opcode::Div => {
+            Opcode::Add | Opcode::Minus | Opcode::Mul | Opcode::Div | Opcode::Mod => {
                 if type_stack.len() < 2 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
                 }
@@ -48,10 +53,20 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 match (a, b) {
                     (Types::Int, Types::Int) => type_stack.push(Types::Int),
                     (ta, tb) => type_error!("Cannot add {:?} {:?}", ta, tb),
-                }
-                
+                }    
             }
-            Opcode::Eq | Opcode::Neq => {
+            Opcode::Shl | Opcode::Shr | Opcode::Bitand | Opcode::Bitor => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                let b = type_stack.pop().unwrap();
+                match (a, b) {
+                    (Types::Int, Types::Int) => type_stack.push(Types::Int),
+                    (ta, tb) => type_error!("Cannot add {:?} {:?}", ta, tb),
+                }    
+            }
+            Opcode::Eq | Opcode::Neq | Opcode::Land | Opcode::Lor => {
                 if type_stack.len() < 2 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
                 }
@@ -76,6 +91,16 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 }
                 type_stack.pop();
             }
+            Opcode::Len => {
+                if type_stack.len() < 1 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                if a != Types::List && a != Types::Str {
+                    type_error!("Cannot get the length of {:?}", a);
+                }
+                type_stack.push(Types::Int);
+            }
             Opcode::Pop => {
                 if type_stack.len() < 1 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
@@ -89,6 +114,17 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 let a = type_stack.pop().unwrap();
                 type_stack.push(a);
                 type_stack.push(a);
+            }
+            Opcode::Dup2 => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let b = type_stack.pop().unwrap();
+                let a = type_stack.pop().unwrap();
+                type_stack.push(a);
+                type_stack.push(b);
+                type_stack.push(a);
+                type_stack.push(b);
             }
             Opcode::Over => {
                 if type_stack.len() < 2 {
@@ -109,6 +145,128 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 type_stack.push(b);
                 type_stack.push(a);
             }
+            Opcode::PushLabel => {
+                match instr.operands {
+                    Some(o) => {
+                        match o {
+                            1 => {
+                                snapshot_stack.push(type_stack.clone())
+                            },
+                            2 => {
+                                let temp = snapshot_stack.pop().unwrap();
+                                snapshot_stack.push(type_stack.clone());
+                                type_stack = temp;
+                            }
+                            3 => {
+                                snapshot_stack.push(type_stack.clone())
+                            }
+                            _ => type_error!("PushLabel")
+                        }
+                    }
+                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                }
+            }
+            Opcode::DropLabel => {
+                match instr.operands {
+                    Some(o) => {
+                        match o {
+                            1 => {
+                                if !(snapshot_stack.pop().unwrap() == type_stack) {
+                                    type_error!("elseless-if is not allowed to mutate the stack.")
+                                }
+                            }
+                            2 => {
+                                if type_stack != snapshot_stack.pop().unwrap() {
+                                    type_error!("if-else branches must produce same type signature.")
+                                }
+                            }
+                            3 => {
+                                if !(snapshot_stack.pop().unwrap() == type_stack) {
+                                    type_error!("while is not allowed to mutate the stack.")
+                                }
+                            }
+                            _ => type_error!("DropLabel"),
+                        }
+                    }
+                    None => type_error!("DropLabel"),
+                }
+            }
+            Opcode::JmpIf => {
+                if type_stack.len() < 1 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                if a != Types::Bool {
+                    type_error!("JmpIf");
+                }
+            }
+            Opcode::Store => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let b = type_stack.pop().unwrap();
+                let pos = match instr.operands {
+                    Some(v) => v,
+                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                };
+                sym_table.insert(pos, b);
+                let a = type_stack.pop().unwrap();
+                if a != Types::Ptr {
+                    type_error!("Store");
+                }
+            }
+            Opcode::Load => {
+                if type_stack.len() < 1 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                if a != Types::Ptr {
+                    type_error!("Load");
+                }
+                let pos = match instr.operands {
+                    Some(v) => v,
+                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                };
+                type_stack.push(*sym_table.get(&pos).unwrap());
+
+            }
+            Opcode::IdxGet => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let b = type_stack.pop().unwrap();
+                let a = type_stack.pop().unwrap();
+                if b != Types::Int {
+                    type_error!("Index needs to be int type found {:?}", b);
+                }
+                match a {
+                    Types::List => type_stack.push(Types::Int),
+                    Types::Str => type_stack.push(Types::Str),
+                    _ => type_error!("Type {:?} cannot be indexed by {:?}", a, b)
+                }
+
+            }
+            Opcode::IdxSet => {
+                if type_stack.len() < 3 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let c = type_stack.pop().unwrap();
+                if c != Types::Int {
+                    type_error!("Lists only suport int found {:?}", c);
+                }
+                let b = type_stack.pop().unwrap();
+                if b != Types::Int {
+                    type_error!("Index needs to be int type found {:?}", b);
+                }
+                let a = type_stack.pop().unwrap();
+                if a != Types::Ptr {
+                    type_error!("IdxSet");
+                }
+                type_stack.push(Types::Ptr);
+                type_stack.push(Types::Int);
+
+            }
+            Opcode::Jmp | Opcode::Debug | Opcode::Halt => {}
             _ => type_error!("Unimplemented! {:?}", instr.kind)
         }
 

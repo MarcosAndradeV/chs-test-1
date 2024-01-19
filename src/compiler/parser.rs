@@ -131,7 +131,7 @@ impl Parser {
     }
 
     fn while_block(&mut self, d: usize) -> Result<(), GenericError> {
-        self.instrs.push(Instr::new(Opcode::PushLabel, None));
+        self.instrs.push(Instr::new(Opcode::PushLabel, Some(3)));
         let whileaddrs = self.instrs.len();
         let mut ifoffset = 0usize;
         loop {
@@ -154,7 +154,7 @@ impl Parser {
                         ifoffset,
                         Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 1+d)),
                     );
-                    self.instrs.push(Instr::new(Opcode::DropLabel, None));
+                    self.instrs.push(Instr::new(Opcode::DropLabel, Some(3)));
                     break;
                 }
                 TokenKind::Func | TokenKind::Directive => 
@@ -167,9 +167,9 @@ impl Parser {
     
     
     fn if_block(&mut self, d: usize) -> Result<(), GenericError> {
-        self.instrs.push(Instr::new(Opcode::PushLabel, None));
         self.expect(TokenKind::CurlyOpen);
         let offset = self.instrs.len();
+        self.instrs.push(Instr::new(Opcode::PushLabel, Some(1)));
         let mut offset2 = 0;
         let mut has_else = false;
         loop {
@@ -177,11 +177,12 @@ impl Parser {
             match tok.kind {
                 TokenKind::CurlyClose => break,
                 TokenKind::Else => {
+                    self.instrs.push(Instr::new(Opcode::PushLabel, Some(2)));
                     has_else = true;
                     offset2 = self.instrs.len() + 1;
                     self.instrs.insert(
                         offset,
-                        Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 2+d)),
+                        Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 2 + d)),
                     );
                 }
                 TokenKind::Func | TokenKind::Directive => 
@@ -194,6 +195,8 @@ impl Parser {
                 offset,
                 Instr::new(Opcode::JmpIf, Some(self.instrs.len() + 1 + d)),
             );
+            self.instrs.push(Instr::new(Opcode::DropLabel, Some(1)));
+            return Ok(());
         }
         if has_else {
             self.instrs.insert(
@@ -201,7 +204,7 @@ impl Parser {
                 Instr::new(Opcode::Jmp, Some(self.instrs.len()+1+d)),
             );
         }
-        self.instrs.push(Instr::new(Opcode::DropLabel, None));
+        self.instrs.push(Instr::new(Opcode::DropLabel, Some(2)));
         Ok(())
     }
     
@@ -285,14 +288,14 @@ impl Parser {
                 match self.locals.get(&token.value) {
                     Some(v) => {
                         self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                        self.instrs.push(Instr::new(Opcode::Load, None));
+                        self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
                         return Ok(());
                     }
                     None => {
                         match self.var_def.get(&token.value) {
                             Some(v) => {
                                 self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                                self.instrs.push(Instr::new(Opcode::Load, None));
+                                self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
                                 return Ok(());
                             }
                             None => {}
@@ -369,7 +372,7 @@ impl Parser {
                 _ => self.parse_one(tok)?
             }
         }
-        self.instrs.push(Instr::new(Opcode::Store, None));
+        self.instrs.push(Instr::new(Opcode::Store, Some(var_count)));
         Ok(())
     }
 
@@ -393,22 +396,23 @@ impl Parser {
                 _ => self.parse_one(tok)?
             }
         }
-        self.instrs.push(Instr::new(Opcode::Store, None));
+        self.instrs.push(Instr::new(Opcode::Store, Some(local_var_stmt)));
         Ok(())
     }
 
     fn set_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.require()?;
         let mut is_idx = false;
-        match self.locals.get(&name.value) {
-            Some(v) => {self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)))}
+        let v_ptr = match self.locals.get(&name.value) {
+            Some(v) => {*v}
             None => {
                 match self.var_def.get(&name.value) {
-                    Some(v) => self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v))),
+                    Some(v) => *v,
                     None => return generic_error!("{} is not defined yet", name.value),
                 }
             }
-        }
+        };
+        self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
         if self.peek().kind == TokenKind::BracketOpen {
             self.next();
             loop {
@@ -432,10 +436,10 @@ impl Parser {
         }
         if is_idx {
             self.instrs.push(Instr::new(Opcode::IdxSet, None));
-            self.instrs.push(Instr::new(Opcode::Store, None));
+            self.instrs.push(Instr::new(Opcode::Store, Some(v_ptr+1)));
             return Ok(());
         }
-        self.instrs.push(Instr::new(Opcode::Store, None));
+        self.instrs.push(Instr::new(Opcode::Store, Some(v_ptr)));
         Ok(())
     }
 
