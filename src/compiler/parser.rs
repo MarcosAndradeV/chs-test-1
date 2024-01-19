@@ -518,7 +518,7 @@ impl Parser {
                     match self.locals.get(&tok.value) {
                         Some(v) => {
                             self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                            self.instrs.push(Instr::new(Opcode::Load, None));
+                            self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
                             continue;
                         }
                         None => self.parse_one(tok)?
