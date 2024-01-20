@@ -27,7 +27,7 @@ chsc run <file.chs>
 - Hello world
 
 ```pascal
-"Hello, world!\n" pstr
+"Hello, world!" println
 ```
 
 - Variables
@@ -80,9 +80,9 @@ sayhi
 
 ```c
 1 1 = if {
-  "Everything is fine\n" pstr
+  "Everything is fine\n" print
   else
-  "Some thing is wrong\n" pstr
+  "Some thing is wrong\n" print
 }
 ```
 
@@ -96,7 +96,7 @@ while <condition> {
 
 ```pascal
 0 while dup 100 < {
-  dup print
+  dup println
   1 +
 }
 ```
