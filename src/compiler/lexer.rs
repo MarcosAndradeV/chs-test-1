@@ -19,6 +19,7 @@ pub enum TokenKind {
 
     Directive,
     Def,
+    Include,
     
     Invalid,
     Null,
@@ -109,7 +110,7 @@ pub struct Lexer {
 
     max_position: usize,
 
-    position: usize,
+    pub position: usize,
 }
 
 impl Lexer {
@@ -325,6 +326,7 @@ impl Lexer {
                 _ => TokenKind::Identifier
             }
             7 => match value.as_str() {
+                "include" => TokenKind::Include,
                 "println" => TokenKind::Println,  
                 _ => TokenKind::Identifier
             }

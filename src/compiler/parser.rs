@@ -282,6 +282,9 @@ impl Parser {
                 let val = self.expect_or(TokenKind::Int, TokenKind::Str)?;
                 self.consts_def.insert(name.value, val);
             }
+            TokenKind::Include => {
+                generic_error!("{:?} Not implemented", tok.kind)
+            }
             e => generic_error!("{:?} is not directive", e),
         }
         Ok(())

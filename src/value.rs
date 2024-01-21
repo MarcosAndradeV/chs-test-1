@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, io::{self, Read, Write}};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -60,13 +60,13 @@ impl List {
         let values: Vec<String> = (&self.elem).into_iter().map(|e| e.to_string()).collect();
         return format!("List([{}])", values.join(", "));
     }
-    pub fn get_object(&self, pos: usize) -> Result<Rc<Value>, String> {
+    pub fn get_value(&self, pos: usize) -> Result<Rc<Value>, String> {
         if pos >= self.elem.len() {
             return Err(format!("Array index out of range for position {}", pos));
         }
         return Ok(self.elem[pos].clone());
     }
-    pub fn set_object(&mut self, pos: usize, obj: Rc<Value>) -> Option<String> {
+    pub fn set_value(&mut self, pos: usize, obj: Rc<Value>) -> Option<String> {
         if pos >= self.elem.len() {
             //return Some(format!("Array index out of range for position {}", pos));
             self.elem.resize(pos+1, Rc::new(Value::Int64(0)))
@@ -115,7 +115,7 @@ impl Value {
                 if *i < 0 {
                     return Err(format!("Index {} must be greater than or equal to zero", i));
                 }
-                let result = arr.borrow().get_object(*i as usize);
+                let result = arr.borrow().get_value(*i as usize);
                 if result.is_err() {
                     return Err(result.unwrap_err());
                 }
@@ -123,7 +123,7 @@ impl Value {
                 return Ok(result.unwrap());
             }
             (Value::List(arr), Value::Uint64(i)) => {
-                let result = arr.borrow().get_object(*i as usize);
+                let result = arr.borrow().get_value(*i as usize);
                 if result.is_err() {
                     return Err(result.unwrap_err());
                 }
@@ -152,7 +152,7 @@ impl Value {
             }
             _ => {
                 return Err(format!(
-                    "Object of type {:?} does not support indexing of type {:?}", self, idx
+                    "Value of type {:?} does not support indexing of type {:?}", self, idx
                 ));
             }
         }
@@ -160,7 +160,7 @@ impl Value {
     pub fn set_indexed(&mut self, idx: &Rc<Value>, new_val: Rc<Value>) -> Option<String>{
         match (self, idx.as_ref()) {
             (Value::List(arr), Value::Int64(i)) => {
-                arr.borrow_mut().set_object(*i as usize, new_val)
+                arr.borrow_mut().set_value(*i as usize, new_val)
             }
             _ => None
         }
@@ -175,9 +175,50 @@ impl Value {
             }
             _ => {
                 return Err(format!(
-                    "Object of type {:?} does not support indexing", self
+                    "Value of type {:?} does not support indexing", self
                 ));
             }
         }
     }
+}
+
+// Read stdin input:
+pub fn stdin_read() -> Result<Vec<u8>, String> {
+    let mut buffer = vec![];
+    let result = io::stdin().read(&mut buffer);
+    if result.is_err() {
+        return Err(format!("IO Error"));
+    }
+
+    return Ok(buffer);
+}
+
+// Read a line as string:
+pub fn read_line() -> Result<String, String> {
+    let mut string_buffer = String::new();
+    let result = io::stdin().read_line(&mut string_buffer);
+    if result.is_err() {
+        return Err(format!("IO Error"));
+    }
+
+    string_buffer = string_buffer.replace("\n", "");
+    return Ok(string_buffer);
+}
+
+// Write stdout output:
+pub fn stdout_write(data: &Vec<u8>) -> Result<usize, String> {
+    let stdout = io::stdout();
+    let mut lock = stdout.lock();
+    let mut result = lock.write_all(&data);
+
+    if result.is_err() {
+        return Err(format!("IO Error"));
+    }
+
+    result = lock.flush();
+    if result.is_err() {
+        return Err(format!("IO Error"));
+    }
+
+    return Ok(data.len());
 }
