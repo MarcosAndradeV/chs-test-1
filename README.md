@@ -50,7 +50,7 @@ set mylist[0] 2;
 - if-statmets
 
 ```pascal
-<condition> if {
+if <condition> {
   <truly-block>
   else
   <false-block>
@@ -58,7 +58,7 @@ set mylist[0] 2;
 ```
 
 ```c
-1 1 = if {
+if 1 1 = {
   "Everything is fine\n" print
   else
   "Some thing is wrong\n" print
