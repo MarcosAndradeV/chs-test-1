@@ -41,6 +41,7 @@ impl Parser {
             locals_count: 1,
         }
     }
+    
     pub fn parse(&mut self) -> Result<Bytecode, GenericError> {
         loop {
             let token = self.next();
@@ -218,6 +219,7 @@ impl Parser {
             TokenKind::Set => self.set_stmt()?,
             TokenKind::ParenOpen => self.list()?,
             TokenKind::BracketOpen => self.index_get()?,
+            TokenKind::Identifier => self.identfier(token, d)?,
             _ => self.parse_one(token)?
         }
         
@@ -264,56 +266,6 @@ impl Parser {
             TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
             // ################################################################## //
-
-            TokenKind::Identifier => {
-                match self.consts_def.get(&token.value) {
-                    Some(v) => {
-                        if !matches!(v.kind, TokenKind::Int | TokenKind::Str) {
-                            return generic_error!("{:?} is not valid", token.value);
-                        }
-                        self.parse_one(v.clone())?;
-                        return Ok(());
-                    },
-                    None => {}
-                }
-                match self.macro_def.get(&token.value) {
-                    Some(v) => {
-                        for t in v.clone() {
-                            self.parse_one(t)?;
-                        }
-                        return Ok(());
-                    }
-                    None => {}
-                }
-                match self.locals.get(&token.value) {
-                    Some(v) => {
-                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                        self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
-                        return Ok(());
-                    }
-                    None => {
-                        match self.var_def.get(&token.value) {
-                            Some(v) => {
-                                self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                                self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
-                                return Ok(());
-                            }
-                            None => {}
-                        }
-                    }
-                }
-
-                match self.proc_def.get(&token.value) {
-                    Some(v) => {
-                        self.instrs.push(Instr::new(Opcode::PushLabel, None));
-                        self.instrs.push(Instr::new(Opcode::Jmp, Some(*v)));
-                        return Ok(());
-                    }
-                    None => return generic_error!("{} is not defined", token.value)
-                }
-
-                return Ok(());
-            }
             _ => generic_error!("{:?} is not implemented yet", token.value)
         };
         self.instrs.push(instr?);
@@ -332,20 +284,16 @@ impl Parser {
             TokenKind::Macro => {
                 let name = self.name_def()?;
                 let mut toks = vec![];
-                self.expect(TokenKind::CurlyOpen)?;
                 loop {
                     let tok = self.require()?;
                     match tok.kind {
-                        TokenKind::CurlyClose => {
+                        TokenKind::Directive => {
                             break;
                         }
                         _ => toks.push(tok),
                     }
                 }
                 self.macro_def.insert(name.value, toks);
-            }
-            TokenKind::Entry => {
-                self.entry_point = self.instrs.len();
             }
             e => return generic_error!("{:?} is not directive", e)
         }
@@ -479,24 +427,6 @@ impl Parser {
         let name = self.name_def()?;
         let mut ret = false;
         let pos = self.instrs.len();
-        self.expect(TokenKind::ParenOpen)?;
-        loop {
-            let tok = self.require()?;
-            match tok.kind {
-                TokenKind::ParenClose => break,
-                TokenKind::Identifier => {
-                    self.locals.insert(tok.value, self.locals_count);
-                    self.locals_count += 1;
-                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(self.locals_count - 1)));
-                    self.instrs.push(Instr::new(Opcode::Over, None));
-                    self.instrs.push(Instr::new(Opcode::Store, None));
-                    self.instrs.push(Instr::new(Opcode::Pop, None));
-                }
-                _ => generic_error!("{} is not accepted", tok)
-            }
-        }
-
-
         self.proc_def.insert(name.value, pos+1);
         self.expect(TokenKind::CurlyOpen)?;
         loop {
@@ -534,5 +464,56 @@ impl Parser {
         }
         Ok(())
     }
+
+    fn identfier(&mut self, token: Token, d: usize) -> Result<(), GenericError> {
+        match self.consts_def.get(&token.value) {
+            Some(v) => {
+                if !matches!(v.kind, TokenKind::Int | TokenKind::Str) {
+                    return generic_error!("{:?} is not valid", token.value);
+                }
+                self.parse_one(v.clone())?;
+                return Ok(());
+            },
+            None => {}
+        }
+        match self.macro_def.get(&token.value) {
+            Some(v) => {
+                for t in v.clone() {
+                    self.parse_one(t)?;
+                }
+                return Ok(());
+            }
+            None => {}
+        }
+        match self.locals.get(&token.value) {
+            Some(v) => {
+                self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
+                return Ok(());
+            }
+            None => {
+                match self.var_def.get(&token.value) {
+                    Some(v) => {
+                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                        self.instrs.push(Instr::new(Opcode::Load, Some(*v)));
+                        return Ok(());
+                    }
+                    None => {}
+                }
+            }
+        }
+
+        match self.proc_def.get(&token.value) {
+            Some(v) => {
+                self.instrs.push(Instr::new(Opcode::PushLabel, Some(4)));
+                self.instrs.push(Instr::new(Opcode::Jmp, Some(*v)));
+                return Ok(());
+            }
+            None => return generic_error!("{} is not defined", token.value)
+        }
+
+        return Ok(());
+    }
+    
 
 }

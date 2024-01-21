@@ -64,6 +64,7 @@ pub enum TokenKind {
     BracketClose,
 
     SemiColon,
+    Colon,
     
     Pop,
     Dup,
@@ -168,6 +169,7 @@ impl Lexer {
             b']' => self.make_token(TokenKind::BracketClose),
             b'%' => self.make_token(TokenKind::Directive),
             b';' => self.make_token(TokenKind::SemiColon),
+            b':' => self.make_token(TokenKind::Colon),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)

@@ -16,6 +16,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
     let mut type_stack: Vec<Types> = Vec::new();
     let mut sym_table: HashMap<usize, Types> = HashMap::new();
     let mut snapshot_stack: Vec<Vec<Types>> = Vec::new();
+    let mut lable_stack: Vec<usize> = Vec::new();
     let mut ip: usize = 0;
     while ip < code.program.len() {
         let instr = code.program[ip];
@@ -24,14 +25,14 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
             Opcode::PushPtr => {
                 match instr.operands {
                     Some(_) => {},
-                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
                 }
                 type_stack.push(Types::Ptr);
             }
             Opcode::Const => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
                 };
                 let val = match code.consts.get(addrs) {
                     Some(v) => v,
@@ -160,11 +161,15 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                             3 => {
                                 snapshot_stack.push(type_stack.clone())
                             }
-                            _ => type_error!("PushLabel")
+                            4 => {lable_stack.push(ip+1)}
+                            _ => type_error!("PushLabel {} is not implemented", o)
                         }
                     }
-                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
                 }
+            }
+            Opcode::GetLabel => {
+                type_stack.push(Types::Ptr);
             }
             Opcode::DropLabel => {
                 match instr.operands {
@@ -200,6 +205,23 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     type_error!("JmpIf");
                 }
             }
+            Opcode::Jmpr => {
+                if type_stack.len() < 1 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                if a != Types::Ptr {
+                    type_error!("Jmpr only works with Ptr");
+                }
+                if lable_stack.len() < 1 {
+                    type_error!("Jmpr")
+                }
+                let addrs = lable_stack.pop().unwrap();
+                if addrs > code.program.len() {
+                    type_error!("Addrs out of bounds")
+                }
+                ip = addrs;
+            }
             Opcode::Store => {
                 if type_stack.len() < 2 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
@@ -207,7 +229,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 let b = type_stack.pop().unwrap();
                 let pos = match instr.operands {
                     Some(v) => v,
-                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
                 };
                 sym_table.insert(pos, b);
                 let a = type_stack.pop().unwrap();
@@ -225,7 +247,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 }
                 let pos = match instr.operands {
                     Some(v) => v,
-                    None => type_error!("OPERAND_NOT_PROVIDED"),
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
                 };
                 type_stack.push(*sym_table.get(&pos).unwrap());
 
@@ -266,7 +288,17 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 type_stack.push(Types::Int);
 
             }
-            Opcode::Jmp | Opcode::Debug | Opcode::Halt => {}
+            Opcode::Jmp  => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
+                };
+                if addrs > code.program.len() {
+                    type_error!("Addrs out of bounds")
+                }
+                ip = addrs;
+            }
+            Opcode::Debug | Opcode::Halt => {}
             _ => type_error!("Unimplemented! {:?}", instr.kind)
         }
 
