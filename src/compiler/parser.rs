@@ -163,11 +163,21 @@ impl Parser {
     }
 
     fn if_block(&mut self, d: usize) -> Result<(), GenericError> {
-        self.expect(TokenKind::CurlyOpen)?;
-        let offset = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::PushLabel, Some(1)));
+        let offset;
         let mut offset2 = 0;
         let mut has_else = false;
+        loop {
+            // condition
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyOpen => {
+                    offset = self.instrs.len();
+                    break;
+                }
+                _ => self.parse_one(tok)?,
+            }
+        }
         loop {
             let tok = self.require()?;
             match tok.kind {
