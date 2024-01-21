@@ -47,27 +47,6 @@ set text "Other text";
 set mylist[0] 2;
 ```
 
-- Procedures
-
-```pascal
-func <name> (<args>) {
-  <block>
-}
-```
-
-```pascal
-func sayhi() {
-  "Hi" println
-}
-
-func add(a b) {
-  a b +
-}
-
-sayhi
-1 1 add
-```
-
 - if-statmets
 
 ```pascal
@@ -94,7 +73,7 @@ while <condition> {
 }
 ```
 
-```pascal
+```c
 0 while dup 100 < {
   dup println
   1 +
