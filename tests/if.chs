@@ -1,15 +1,15 @@
-1 1 = if {
+if 1 1 = {
     1 println
     else
     0 println
 }
 
-0 1 = if {
+if 0 1 = {
     1 println
     else
     0 println
 }
 
-1 1 = if {
+if 1 1 = {
     10 println
 }

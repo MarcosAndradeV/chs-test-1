@@ -6,8 +6,8 @@ var i 0;
 while i nums len < {
     var j 0;
 	while j nums len < {
-        i j != if {
-            nums[i] nums[j] + TARGET = if {
+        if i j != {
+            if nums[i] nums[j] + TARGET = {
                 i print ", " print j println
                 hlt
             }

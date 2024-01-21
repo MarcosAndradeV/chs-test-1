@@ -139,6 +139,8 @@ impl Parser {
                     ifoffset = self.instrs.len();
                     break;
                 }
+                TokenKind::Identifier => self.identfier(tok, d+1)?,
+                TokenKind::BracketOpen => self.index_get()?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -175,6 +177,8 @@ impl Parser {
                     offset = self.instrs.len();
                     break;
                 }
+                TokenKind::Identifier => self.identfier(tok, d+1)?,
+                TokenKind::BracketOpen => self.index_get()?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -280,7 +284,6 @@ impl Parser {
         match tok.kind {
             TokenKind::Def => {
                 let name = self.name_def()?;
-
                 let val = self.expect_or(TokenKind::Int, TokenKind::Str)?;
                 self.consts_def.insert(name.value, val);
             }
@@ -321,6 +324,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::SemiColon => break,
                 TokenKind::ParenOpen => self.list()?,
+                TokenKind::Identifier => self.identfier(tok, 0)?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -342,6 +346,7 @@ impl Parser {
                 let idx_tok = self.require()?;
                 match idx_tok.kind {
                     TokenKind::BracketClose => break,
+                    TokenKind::Identifier => self.identfier(idx_tok, 0)?,
                     _ => self.parse_one(idx_tok)?,
                 }
             }
@@ -354,6 +359,7 @@ impl Parser {
                     break;
                 }
                 TokenKind::BracketOpen => self.index_get()?,
+                TokenKind::Identifier => self.identfier(tok, 0)?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -396,6 +402,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::BracketClose => break,
                 TokenKind::BracketOpen => self.index_get()?,
+                TokenKind::Identifier => self.identfier(tok, 0)?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -432,6 +439,6 @@ impl Parser {
             None => {}
         }
 
-        return Ok(());
+        generic_error!("{} is not defined", token)
     }
 }
