@@ -16,7 +16,6 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
     let mut type_stack: Vec<Types> = Vec::new();
     let mut sym_table: HashMap<usize, Types> = HashMap::new();
     let mut snapshot_stack: Vec<Vec<Types>> = Vec::new();
-    let mut lable_stack: Vec<usize> = Vec::new();
     let mut ip: usize = 0;
     while ip < code.program.len() {
         let instr = code.program[ip];
@@ -161,15 +160,11 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                             3 => {
                                 snapshot_stack.push(type_stack.clone())
                             }
-                            4 => {lable_stack.push(ip+1)}
                             _ => type_error!("PushLabel {} is not implemented", o)
                         }
                     }
                     None => type_error!("Operand not provided for {:?}", instr.kind)
                 }
-            }
-            Opcode::GetLabel => {
-                type_stack.push(Types::Ptr);
             }
             Opcode::DropLabel => {
                 match instr.operands {
@@ -204,23 +199,6 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 if a != Types::Bool {
                     type_error!("JmpIf");
                 }
-            }
-            Opcode::Jmpr => {
-                if type_stack.len() < 1 {
-                    type_error!("Not enugth operands for {:?}.", instr.kind)
-                }
-                let a = type_stack.pop().unwrap();
-                if a != Types::Ptr {
-                    type_error!("Jmpr only works with Ptr");
-                }
-                if lable_stack.len() < 1 {
-                    type_error!("Jmpr")
-                }
-                let addrs = lable_stack.pop().unwrap();
-                if addrs > code.program.len() {
-                    type_error!("Addrs out of bounds")
-                }
-                ip = addrs;
             }
             Opcode::Store => {
                 if type_stack.len() < 2 {
@@ -288,17 +266,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 type_stack.push(Types::Int);
 
             }
-            Opcode::Jmp  => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => type_error!("Operand not provided for {:?}", instr.kind)
-                };
-                if addrs > code.program.len() {
-                    type_error!("Addrs out of bounds")
-                }
-                ip = addrs;
-            }
-            Opcode::Debug | Opcode::Halt => {}
+            Opcode::Jmp | Opcode::Debug | Opcode::Halt => {}
             _ => type_error!("Unimplemented! {:?}", instr.kind)
         }
 

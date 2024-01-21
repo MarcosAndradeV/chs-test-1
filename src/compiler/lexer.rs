@@ -7,13 +7,11 @@ pub enum TokenKind {
 
     Var,
     Set,
-    Func,
     Len,
 
     Directive,
     Def,
     Macro,
-    Entry,
     
     Invalid,
     Null,
@@ -314,11 +312,9 @@ impl Lexer {
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
-                "func" => TokenKind::Func,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
-                "entry" => TokenKind::Entry,  
                 "print" => TokenKind::Print,
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
