@@ -1,6 +1,6 @@
 use std::{io, process};
 
-use chs::{lex_file, vm::CHSVM, compiler::{parser::Parser, type_checker::type_check_program}};
+use chs::{vm::CHSVM, compiler::{parser::Parser, type_checker::type_check_program, lexer::lex_file}};
 use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{

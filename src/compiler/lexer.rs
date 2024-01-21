@@ -1,4 +1,12 @@
+use std::{path::PathBuf, fs::File, io::{self, Read}};
 use core::fmt;
+
+pub fn lex_file(filepath: PathBuf) -> io::Result<Vec<u8>> {
+    let mut file = File::open(filepath)?;
+    let mut data = vec![];
+    file.read_to_end(&mut data)?;
+    Ok(data)
+}
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum TokenKind {
