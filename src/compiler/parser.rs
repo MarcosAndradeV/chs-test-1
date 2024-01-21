@@ -18,7 +18,6 @@ pub struct Parser {
     pos: usize,
     peeked: Option<Token>,
     consts_def: HashMap<String, Token>,
-    macro_def: HashMap<String, Vec<Token>>,
     var_def: HashMap<String, usize>,
     var_count: usize,
 }
@@ -34,7 +33,6 @@ impl Parser {
             pos: 0,
             peeked: None,
             consts_def: HashMap::new(),
-            macro_def: HashMap::new(),
             var_def: HashMap::new(),
             var_count: 0,
         }
@@ -75,9 +73,6 @@ impl Parser {
         let token = self.expect(TokenKind::Identifier)?;
         if self.consts_def.get(&token.value).is_some() {
             generic_error!("{} is already defined as const", token.value);
-        }
-        if self.macro_def.get(&token.value).is_some() {
-            generic_error!("{} is already defined as macro", token.value);
         }
         if self.var_def.get(&token.value).is_some() {
             generic_error!("{} is already defined as variable", token.value);
@@ -122,7 +117,7 @@ impl Parser {
     fn require(&mut self) -> ResTok {
         let tok = self.next();
         if matches!(tok.kind, TokenKind::Invalid | TokenKind::Null) {
-            generic_error!("require {:?}", tok);
+            generic_error!("require {:?}[{}] {}", tok.kind, tok.value, self.pos);
         }
         Ok(tok)
     }
@@ -139,7 +134,7 @@ impl Parser {
                     ifoffset = self.instrs.len();
                     break;
                 }
-                TokenKind::Identifier => self.identfier(tok, d+1)?,
+                TokenKind::Identifier => self.identfier(tok)?,
                 TokenKind::BracketOpen => self.index_get()?,
                 _ => self.parse_one(tok)?,
             }
@@ -177,7 +172,7 @@ impl Parser {
                     offset = self.instrs.len();
                     break;
                 }
-                TokenKind::Identifier => self.identfier(tok, d+1)?,
+                TokenKind::Identifier => self.identfier(tok)?,
                 TokenKind::BracketOpen => self.index_get()?,
                 _ => self.parse_one(tok)?,
             }
@@ -226,7 +221,7 @@ impl Parser {
             TokenKind::Set => self.set_stmt()?,
             TokenKind::ParenOpen => self.list()?,
             TokenKind::BracketOpen => self.index_get()?,
-            TokenKind::Identifier => self.identfier(token, d)?,
+            TokenKind::Identifier => self.identfier(token)?,
             _ => self.parse_one(token)?,
         }
 
@@ -287,20 +282,6 @@ impl Parser {
                 let val = self.expect_or(TokenKind::Int, TokenKind::Str)?;
                 self.consts_def.insert(name.value, val);
             }
-            TokenKind::Macro => {
-                let name = self.name_def()?;
-                let mut toks = vec![];
-                loop {
-                    let tok = self.require()?;
-                    match tok.kind {
-                        TokenKind::Directive => {
-                            break;
-                        }
-                        _ => toks.push(tok),
-                    }
-                }
-                self.macro_def.insert(name.value, toks);
-            }
             e => generic_error!("{:?} is not directive", e),
         }
         Ok(())
@@ -324,7 +305,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::SemiColon => break,
                 TokenKind::ParenOpen => self.list()?,
-                TokenKind::Identifier => self.identfier(tok, 0)?,
+                TokenKind::Identifier => self.identfier(tok)?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -346,7 +327,7 @@ impl Parser {
                 let idx_tok = self.require()?;
                 match idx_tok.kind {
                     TokenKind::BracketClose => break,
-                    TokenKind::Identifier => self.identfier(idx_tok, 0)?,
+                    TokenKind::Identifier => self.identfier(idx_tok)?,
                     _ => self.parse_one(idx_tok)?,
                 }
             }
@@ -359,7 +340,7 @@ impl Parser {
                     break;
                 }
                 TokenKind::BracketOpen => self.index_get()?,
-                TokenKind::Identifier => self.identfier(tok, 0)?,
+                TokenKind::Identifier => self.identfier(tok)?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -402,7 +383,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::BracketClose => break,
                 TokenKind::BracketOpen => self.index_get()?,
-                TokenKind::Identifier => self.identfier(tok, 0)?,
+                TokenKind::Identifier => self.identfier(tok)?,
                 _ => self.parse_one(tok)?,
             }
         }
@@ -410,22 +391,13 @@ impl Parser {
         return Ok(());
     }
 
-    fn identfier(&mut self, token: Token, d: usize) -> Result<(), GenericError> {
+    fn identfier(&mut self, token: Token) -> Result<(), GenericError> {
         match self.consts_def.get(&token.value) {
             Some(v) => {
                 if !matches!(v.kind, TokenKind::Int | TokenKind::Str) {
                     generic_error!("{:?} is not valid", token.value);
                 }
                 self.parse_one(v.clone())?;
-                return Ok(());
-            }
-            None => {}
-        }
-        match self.macro_def.get(&token.value) {
-            Some(v) => {
-                for t in v.clone() {
-                    self.parse_all(t, d + 1)?;
-                }
                 return Ok(());
             }
             None => {}

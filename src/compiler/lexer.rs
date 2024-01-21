@@ -11,7 +11,6 @@ pub enum TokenKind {
 
     Directive,
     Def,
-    Macro,
     
     Invalid,
     Null,
@@ -31,8 +30,6 @@ pub enum TokenKind {
     Else,
     Whlie,
 
-    Ret,
-    
     Add,
     Minus,
     Mul,
@@ -299,7 +296,6 @@ impl Lexer {
                 "pop" => TokenKind::Pop,
                 "dup" => TokenKind::Dup,
                 "hlt" => TokenKind::Hlt,
-                "ret" => TokenKind::Ret,
                 "mod" => TokenKind::Mod,
                 "def" => TokenKind::Def,
                 "var" => TokenKind::Var,
@@ -318,7 +314,6 @@ impl Lexer {
                 "print" => TokenKind::Print,
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
-                "macro" => TokenKind::Macro,
                 _ => TokenKind::Identifier
             }
             7 => match value.as_str() {
