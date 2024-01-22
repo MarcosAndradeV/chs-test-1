@@ -22,7 +22,7 @@ pub struct CHSVM {
 impl CHSVM {
     pub fn new(program: Bytecode) -> Self {
         let mut memory = Vec::with_capacity(MEM_CAPACITY);
-        memory.resize(MEM_CAPACITY, Rc::new(Value::Null));
+        memory.resize(MEM_CAPACITY, Rc::new(Value::Nil));
         Self {
             stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
@@ -35,13 +35,12 @@ impl CHSVM {
         }
     }
     pub fn execute_next_instr(&mut self) -> Result<(), VMError> {
-        self.ip += 1;
-        if self.ip > self.program.len() {
+        if self.ip >= self.program.len() {
             // return Err(VMError::ProgramEndWithoutHalt);
             self.is_halted = true;
             return Ok(());
         }
-        let instr = self.program[self.ip - 1];
+        let instr = self.program[self.ip];
         match instr.kind {
             Opcode::PushPtr => {
                 let addrs = match instr.operands {
@@ -49,6 +48,7 @@ impl CHSVM {
                     None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
                 self.push_stack(Value::Ptr(addrs).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Const => {
@@ -58,35 +58,35 @@ impl CHSVM {
                 };
                 let val = match self.consts.get(addrs) {
                     Some(v) => v,
-                    None => vm_error!(""),
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 self.push_stack(Rc::new(val.clone()))?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Dup => {
-
                 let op_1 = self.stack_pop()?;
                 self.push_stack(op_1.clone())?;
                 self.push_stack(op_1)?;
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Dup2 => { // a b -> a b a b
-               
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_1.clone())?;
                 self.push_stack(op_2.clone())?;
                 self.push_stack(op_1)?;
                 self.push_stack(op_2)?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Swap => { // a b -> b a
-               
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_2)?; // b
                 self.push_stack(op_1)?; // a
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Over => { // a b -> a b a
@@ -95,13 +95,13 @@ impl CHSVM {
                 self.push_stack(op_1.clone())?; // a
                 self.push_stack(op_2)?; // b
                 self.push_stack(op_1)?; // a
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Pop => { // a -> _
                 let _ = self.stack_pop()?;
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Add => {
                 let op_2 = self.stack_pop()?;
@@ -126,9 +126,8 @@ impl CHSVM {
                     }
                     _ => vm_error!("")
                 }
-
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Minus => {
                 let op_2 = self.stack_pop()?;
@@ -153,9 +152,8 @@ impl CHSVM {
                     }
                     _ => vm_error!("")
                 }
-
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Mul => {
                 let op_2 = self.stack_pop()?;
@@ -180,9 +178,8 @@ impl CHSVM {
                     }
                     _ => vm_error!("")
                 }
-
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Div => {
                 let op_2 = self.stack_pop()?;
@@ -207,10 +204,8 @@ impl CHSVM {
                     }
                     _ => vm_error!("")
                 }
-
+                self.ip += 1;
                 return Ok(());
-
-            
             }
             Opcode::Mod => {
                 let op_2 = self.stack_pop()?;
@@ -235,154 +230,160 @@ impl CHSVM {
                     }
                     _ => vm_error!("")
                 }
-
+                self.ip += 1;
                 return Ok(());
-
-            
             }
             Opcode::Shr => {
                 let op_2 = self.stack_pop_u64()?;
                 let op_1 = self.stack_pop_u64()?;
                 self.push_stack(Value::Uint64(op_1 >> op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Shl => {
                 let op_2 = self.stack_pop_u64()?;
                 let op_1 = self.stack_pop_u64()?;
                 self.push_stack(Value::Uint64(op_1 << op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Lor => {
                 let op_2 = self.stack_pop_bool()?;
                 let op_1 = self.stack_pop_bool()?;
                 self.push_stack(Value::Bool(op_1 || op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Land => {
                 let op_2 = self.stack_pop_bool()?;
                 let op_1 = self.stack_pop_bool()?;
                 self.push_stack(Value::Bool(op_1 && op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Bitor => {
                 let op_2 = self.stack_pop_u64()?;
                 let op_1 = self.stack_pop_u64()?;
                 self.push_stack(Value::Uint64(op_1 | op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Bitand => {
                 let op_2 = self.stack_pop_u64()?;
                 let op_1 = self.stack_pop_u64()?;
                 self.push_stack(Value::Uint64(op_1 & op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::PushLabel => {
                 self.return_stack.push(Rc::new(Value::Ptr(self.ip)));
-                return Ok(());
-            }
-            Opcode::GetLabel => {
-                let label = match self.return_stack.pop() {
-                    Some(v) => {
-                        match v.as_ref() {
-                            Value::Ptr(v) => *v + 1,
-                            _ => vm_error!("")
-                        }
-                    },
-                    None => vm_error!(""),
-                };
-                self.push_stack(Value::Ptr(label).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::DropLabel => {
                 self.return_stack.pop();
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Jmp => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("")
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
                 };
                 if addrs > self.program.len() {
-                    vm_error!("")
+                    vm_error!("Address out of bounds.")
                 }
                 self.ip = addrs;
                 Ok(())
             }
-            Opcode::Jmpr => {
-                let addrs = self.stack_pop_ptr()?;
-                if addrs > self.stack.capacity() { vm_error!("") }
+            Opcode::Call => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                };
+                if addrs > self.program.len() {
+                    vm_error!("Address out of bounds.")
+                }
+                self.return_stack.push(Value::Ptr(self.ip+1).into());
                 self.ip = addrs;
+                Ok(())
+            }
+            Opcode::Ret => {
+                if self.return_stack.len() < 1 {
+                    vm_error!("Not address for Ret.")
+                }
+                if let Some(v) = self.return_stack.pop() {
+                    match v.as_ref() {
+                        Value::Ptr(p) => { self.ip = *p }
+                        _ => vm_error!("")
+                    }
+                }
                 Ok(())
             }
             Opcode::JmpIf => {
                 let op_1 = self.stack_pop_bool()?;
                 if op_1 {
+                    self.ip += 1;
                     return Ok(());
                 }
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("")
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
                 };
                 if addrs > self.program.len() {
-                    vm_error!("")
+                    vm_error!("Address out of bounds.")
                 }
 
                 self.ip = addrs;
 
-                Ok(())
-            }
-            Opcode::JmpIfr => {
-                let addrs = self.stack_pop_ptr()?;
-                let op_1 = self.stack_pop_bool()?;
-                if op_1 {
-                    return Ok(());
-                }
-                if addrs > self.program.len() {
-                    vm_error!("")
-                }
-                self.ip = addrs;
                 Ok(())
             }
             Opcode::Eq => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 == op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Neq => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 != op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Gt => { // a b > -> a > b 
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(Value::Bool(op_1 > op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Gte => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 >= op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Lt => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 < op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Lte => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 <= op_2).into())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Bind => {
                 let q: usize = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("")
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
                 };
                 if q <= self.stack.len() {
                     for _ in 0..q {
@@ -403,12 +404,13 @@ impl CHSVM {
                     None => vm_error!("PushBind 2"),
                 };
                 self.push_stack(local.clone())?;
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Unbind => {
                 let q: usize = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("")
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
                 };
                 if q > self.return_stack.len() {
                     vm_error!("")
@@ -416,18 +418,20 @@ impl CHSVM {
                 for _ in 0..q {
                     self.return_stack.pop();
                 }
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Println => {
                 let value = self.stack_pop()?;
                 println!("{}", value.to_string());
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Print => {
                 let val = self.stack_pop()?;
                 print!("{}", val.to_string());
+                self.ip += 1;
                 return Ok(());
-
             }
             Opcode::Debug => {
                 println!(
@@ -436,18 +440,21 @@ impl CHSVM {
                     self.sp,
                     self.stack.len()
                 );
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Nop => {
+                self.ip += 1;
                 return Ok(());
             }
             Opcode::Load => {
                 let addrs = self.stack_pop_ptr()?;
                 let val = match self.memory.get(addrs) {
                     Some(v) => v,
-                    None => vm_error!("")
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
                 };
                 self.push_stack(Rc::clone(val))?;
+                self.ip += 1;
                 Ok(())
             }
             Opcode::Store => {
@@ -455,6 +462,7 @@ impl CHSVM {
                 let addrs = self.stack_pop_ptr()?;
                 if addrs > self.memory.len() { vm_error!("") }
                 self.memory[addrs] = value;
+                self.ip += 1;
                 Ok(())
             }
             Opcode::IdxGet => {
@@ -465,6 +473,7 @@ impl CHSVM {
                     Err(e) => vm_error!("{}", e)
                 };
                 self.push_stack(val)?;
+                self.ip += 1;
                 Ok(())
             },
             Opcode::IdxSet => {
@@ -473,7 +482,7 @@ impl CHSVM {
                 let addrs = self.stack_pop_ptr()?;
                 let mut val = match self.memory.get(addrs) {
                     Some(v) => v.as_ref().clone(),
-                    None => vm_error!("") 
+                    None => vm_error!("{:?} operand is not provided.", instr.kind) 
                 };
                 match val.set_indexed(&idx, new_val) {
                     Some(e) => vm_error!("{}", e),
@@ -481,6 +490,7 @@ impl CHSVM {
                 }
                 self.push_stack(Rc::new(Value::Ptr(addrs)))?;
                 self.push_stack(Rc::new(val))?;
+                self.ip += 1;
                 Ok(())
             },
             Opcode::Len => {
@@ -489,12 +499,13 @@ impl CHSVM {
                     Ok(v) => self.push_stack(v)?,
                     Err(e) => vm_error!("{}", e)
                 }
+                self.ip += 1;
                 Ok(())
             }
             Opcode::Halt => {
                 self.is_halted = true;
                 return Ok(());
-            } //_ => Ok(())
+            }
         }
     }
 
@@ -509,7 +520,7 @@ impl CHSVM {
             match self.execute_next_instr() {
                 Ok(_) => {}
                 Err(e) => {
-                    eprintln!("It's a trap: {} at {} {:?}", e, self.ip-1, self.program[self.ip-1]);
+                    eprintln!("It's a trap: {} at {} {:?}", e, self.ip, self.program[self.ip]);
                     break;
                 }
             }
@@ -563,12 +574,12 @@ impl CHSVM {
         }
         match self.stack.pop() {
             Some(v) => {
-                match *v {
-                    Value::Bool(v) => Ok(v),
-                    _ => vm_error!("")
+                match v.as_ref() {
+                    Value::Bool(v) => Ok(*v),
+                    e => vm_error!("Expected BOOL found {}", e)
                 }
             },
-            None => vm_error!(""),
+            None => vm_error!("Stack underflow"),
         }
     }
 

@@ -8,6 +8,8 @@ pub enum Opcode {
 
     Const,
     PushPtr,
+    Call,
+    Ret,
 
     Pop,
     Dup,
@@ -35,14 +37,11 @@ pub enum Opcode {
     PushBind,
     Unbind,
     
-    GetLabel,
     PushLabel,
     DropLabel,
     
     Jmp,
-    Jmpr,
     JmpIf,
-    JmpIfr,
     
     Eq,
     Neq,
