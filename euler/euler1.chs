@@ -1,12 +1,12 @@
 var acc 0;
 
-var i 0;
+0 := i
 while i 1000 < {
     if i 3 mod 0 = 
     i 5 mod 0 = || {
-        set acc i acc +;
+        i acc + := acc
     }
-    set i i 1 +;
+    i 1 + := i
 }
 
 acc println

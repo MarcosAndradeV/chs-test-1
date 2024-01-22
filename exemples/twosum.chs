@@ -2,9 +2,9 @@
 
 var nums (2 7 11 15);
 
-var i 0;
+0 := i 
 while i nums len < {
-    var j 0;
+    0 := j
 	while j nums len < {
         if i j != {
             if nums[i] nums[j] + TARGET = {
@@ -12,7 +12,7 @@ while i nums len < {
                 hlt
             }
         }
-		set j j 1 +;
+		j 1 + := j
 	}
-	set i i 1 +;
+	i 1 + := i
 }

@@ -10,9 +10,9 @@ var temp Palindrome;
 if x 0 < { "False" println hlt }
 
 while temp 0 != {
-    set remainder temp 10 mod;
-    set reverse reverse 10 * remainder + ;
-    set temp temp 10 /;
+    temp 10 mod := remainder
+    reverse 10 * remainder + := reverse
+    temp 10 / := temp
 }
 
 if reverse x = {

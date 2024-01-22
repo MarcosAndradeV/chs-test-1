@@ -4,22 +4,22 @@
 var board ();
 set board[BOARD_SIZE 1 -] 1;
 
-var i 0;
 var pattern 0;
 
+0 := i
 while i BOARD_SIZE 2 - < {
-    var j 0;
+    0 := j
     while j BOARD_SIZE < {
         " *"[board[j]] print
-        set j j 1 +;
+        j 1 + := j
     }
     "\n" print
-    set pattern board[0] 1 << board[1] |;
-    var j 0;
+    board[0] 1 << board[1] | := pattern
+    0 := j
     while j BOARD_SIZE 1 - < {
-        set pattern pattern 1 << 7 & board[j 1 +] |;
+        pattern 1 << 7 & board[j 1 +] | := pattern
         set board[j] 110 pattern >> 1 &;
-        set j j 1 +;
+        j 1 + := j
     }
-    set i i 1 +;
+    i 1 + := i
 }
