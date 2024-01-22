@@ -18,6 +18,7 @@ pub struct Parser {
     pos: usize,
     peeked: Option<Token>,
     consts_def: HashMap<String, Token>,
+    func_def: HashMap<String, usize>,
     var_def: HashMap<String, usize>,
     var_count: usize,
 }
@@ -33,6 +34,7 @@ impl Parser {
             pos: 0,
             peeked: None,
             consts_def: HashMap::new(),
+            func_def: HashMap::new(),
             var_def: HashMap::new(),
             var_count: 0,
         }
@@ -76,6 +78,9 @@ impl Parser {
         }
         if self.var_def.get(&token.value).is_some() {
             generic_error!("{} is already defined as variable", token.value);
+        }
+        if self.func_def.get(&token.value).is_some() {
+            generic_error!("{} is already defined as function", token.value);
         }
         Ok(token)
     }
@@ -216,6 +221,7 @@ impl Parser {
         match token.kind {
             TokenKind::If => self.if_block(d)?,
             TokenKind::Whlie => self.while_block(d)?,
+            TokenKind::Func => self.func_block(d)?,
             TokenKind::Directive => self.directive()?,
             TokenKind::Var => self.var_stmt()?,
             TokenKind::Set => self.set_stmt()?,
@@ -413,7 +419,37 @@ impl Parser {
             }
             None => {}
         }
+        match self.func_def.get(&token.value) {
+            Some(v) => {
+                self.instrs.push(Instr::new(Opcode::Call, Some(*v)));
+                return Ok(());
+            }
+            None => {}
+        }
 
         generic_error!("{} is not defined", token)
+    }
+
+    fn func_block(&mut self, d: usize) -> Result<(), GenericError> {
+        let funcinit = self.instrs.len();
+        self.instrs.push(Instr::new(Opcode::PushLabel, Some(4)));
+        let func_body_init = self.instrs.len();
+        let name = self.name_def()?;
+        self.func_def.insert(name.value, func_body_init);
+        self.expect(TokenKind::CurlyOpen)?;
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => {
+                    self.instrs.push(Instr::new(Opcode::DropLabel, Some(4)));
+                    self.instrs.push(Instr::new(Opcode::Ret, None));
+                    self.instrs.insert(funcinit, Instr::new(Opcode::Jmp, Some(self.instrs.len()+1)));
+                    break;
+                },
+                TokenKind::Directive => generic_error!("You cannot declareate {} here!", tok.value),
+                _ => self.parse_all(tok, d + 1)?,
+            }
+        }
+        Ok(()) //generic_error!("Not implemented yet!")
     }
 }

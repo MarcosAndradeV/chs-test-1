@@ -160,6 +160,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                             3 => {
                                 snapshot_stack.push(type_stack.clone())
                             }
+                            4 => {}
                             _ => type_error!("PushLabel {} is not implemented", o)
                         }
                     }
@@ -185,6 +186,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                                     type_error!("while is not allowed to mutate the stack.")
                                 }
                             }
+                            4 => {}
                             _ => type_error!("DropLabel"),
                         }
                     }
@@ -266,7 +268,16 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 type_stack.push(Types::Int);
 
             }
-            Opcode::Jmp | Opcode::Debug | Opcode::Halt => {}
+            Opcode::Call => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => type_error!("{:?} operand is not provided.", instr.kind)
+                };
+                if addrs > code.program.len() {
+                    type_error!("Address out of bounds.")
+                }
+            }
+            Opcode::Ret | Opcode::Jmp | Opcode::Debug | Opcode::Halt => {}
             _ => type_error!("Unimplemented! {:?}", instr.kind)
         }
 

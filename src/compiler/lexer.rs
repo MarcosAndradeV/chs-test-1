@@ -34,6 +34,7 @@ pub enum TokenKind {
     Print,
     Println,
     Debug,
+    Func,
     
     If,
     Else,
@@ -317,6 +318,7 @@ impl Lexer {
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
+                "func" => TokenKind::Func,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
