@@ -244,7 +244,11 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     Some(v) => v,
                     None => type_error!("Operand not provided for {:?}", instr.kind)
                 };
-                type_stack.push(*sym_table.get(&pos).unwrap());
+                let value = match sym_table.get(&pos) {
+                    Some(ok) => *ok,
+                    None => type_error!("nothig in sym table at {}", pos),
+                };
+                type_stack.push(value);
 
             }
             Opcode::IdxGet => {

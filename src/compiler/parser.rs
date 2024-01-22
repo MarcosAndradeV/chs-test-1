@@ -75,13 +75,24 @@ impl Parser {
         generic_error!("Expect {:?} or {:?} at {}", kind, kind_2, self.pos)
     }
 
-    fn name_def(&mut self) -> ResTok {
-        let token = self.expect(TokenKind::Identifier)?;
+    fn name_is_defined(&mut self) -> ResTok {
+        let token: Token = self.expect(TokenKind::Identifier)?;
         if self.consts_def.get(&token.value).is_some() {
             generic_error!("{} is already defined as const", token.value);
         }
         if self.var_def.get(&token.value).is_some() {
             generic_error!("{} is already defined as variable", token.value);
+        }
+        if self.func_def.get(&token.value).is_some() {
+            generic_error!("{} is already defined as function", token.value);
+        }
+        Ok(token)
+    }
+
+    fn name_is_valid_variable(&mut self) -> ResTok {
+        let token: Token = self.expect(TokenKind::Identifier)?;
+        if self.consts_def.get(&token.value).is_some() {
+            generic_error!("{} is already defined as const", token.value);
         }
         if self.func_def.get(&token.value).is_some() {
             generic_error!("{} is already defined as function", token.value);
@@ -289,7 +300,7 @@ impl Parser {
         let tok = self.next();
         match tok.kind {
             TokenKind::Def => {
-                let name = self.name_def()?;
+                let name = self.name_is_defined()?;
                 let val = self.expect_or(TokenKind::Int, TokenKind::Str)?;
                 self.consts_def.insert(name.value, val);
             }
@@ -302,13 +313,13 @@ impl Parser {
     }
 
     fn var_stmt(&mut self, is_local: bool) -> Result<(), GenericError> {
-        let name = self.require()?;
+        let name = self.name_is_valid_variable()?;
         let v_ptr = match is_local {
             true => {
                 match self.locals_def.get(&name.value) {
                     Some(v) => *v,
                     None => {  
-                        self.locals_def.insert(name.value, self.var_count);
+                        self.locals_def.insert(name.value, self.locals_count);
                         self.locals_count += 1;
                         self.locals_count - 1
                     }
@@ -342,13 +353,13 @@ impl Parser {
     }
 
     fn inline_var_stmt(&mut self, is_local: bool) -> Result<(), GenericError> {
-        let name = self.require()?;
+        let name = self.name_is_valid_variable()?;
         let v_ptr = match is_local {
             true => {
                 match self.locals_def.get(&name.value) {
                     Some(v) => *v,
                     None => {  
-                        self.locals_def.insert(name.value, self.var_count);
+                        self.locals_def.insert(name.value, self.locals_count);
                         self.locals_count += 1;
                         self.locals_count - 1
                     }
@@ -373,14 +384,14 @@ impl Parser {
     }
 
     fn set_stmt(&mut self, is_local: bool) -> Result<(), GenericError> {
-        let name = self.require()?;
+        let name = self.name_is_valid_variable()?;
         let mut is_idx = false;
         let v_ptr = match is_local {
             true => {
                 match self.locals_def.get(&name.value) {
                     Some(v) => *v,
                     None => {  
-                        self.locals_def.insert(name.value, self.var_count);
+                        self.locals_def.insert(name.value, self.locals_count);
                         self.locals_count += 1;
                         self.locals_count - 1
                     }
@@ -511,7 +522,7 @@ impl Parser {
         let funcinit = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::PushLabel, Some(4)));
         let func_body_init = self.instrs.len();
-        let name = self.name_def()?;
+        let name = self.name_is_defined()?;
         self.func_def.insert(name.value, func_body_init);
         self.expect(TokenKind::CurlyOpen)?;
         loop {
