@@ -10,7 +10,7 @@ pub enum Value {
     Bool(bool),
     Char(char),
     Str(String),
-    Null,
+    Nil,
 }
 
 impl PartialOrd for Value {
@@ -40,12 +40,12 @@ impl fmt::Display for Value {
         match self {
             Value::Int64(v) => write!(f, "{}", v),
             Value::Uint64(v) => write!(f, "{}", v),
-            Value::Ptr(v) => write!(f, "{}", v),
+            Value::Ptr(_) => write!(f, "Ptr"),
             Value::Bool(v) => write!(f, "{}", v),
             Value::Str(v) => write!(f, "{}", v),
             Value::Char(v) => write!(f, "{}", v),
             Value::List(v) => write!(f, "{}", v.borrow().describe()),
-            Value::Null => write!(f, "\0"),
+            Value::Nil => write!(f, "\0"),
         }
     }
 }
