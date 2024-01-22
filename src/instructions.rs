@@ -55,8 +55,9 @@ pub enum Opcode {
     Debug,
     Nop,
     
-    Store,
-    Load,
+    GlobalStore,
+    InlineStore,
+    GlobalLoad,
 }
 
 #[derive(Debug, Clone, Copy)]

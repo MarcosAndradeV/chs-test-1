@@ -10,7 +10,7 @@ use crate::vm_error;
 #[derive(Debug)]
 pub struct CHSVM {
     pub stack: Vec<Rc<Value>>,
-    pub return_stack: Vec<Rc<Value>>,
+    pub return_stack: Vec<usize>,
     pub consts: Rc<[Value]>,
     pub memory: Vec<Rc<Value>>,
     pub is_halted: bool,
@@ -276,7 +276,7 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::PushLabel => {
-                self.return_stack.push(Rc::new(Value::Ptr(self.ip)));
+                self.return_stack.push(self.ip);
                 self.ip += 1;
                 return Ok(());
             }
@@ -304,7 +304,7 @@ impl CHSVM {
                 if addrs > self.program.len() {
                     vm_error!("Address out of bounds.")
                 }
-                self.return_stack.push(Value::Ptr(self.ip+1).into());
+                self.return_stack.push(self.ip+1);
                 self.ip = addrs;
                 Ok(())
             }
@@ -313,12 +313,11 @@ impl CHSVM {
                     vm_error!("Not address for Ret.")
                 }
                 if let Some(v) = self.return_stack.pop() {
-                    match v.as_ref() {
-                        Value::Ptr(p) => { self.ip = *p }
-                        _ => vm_error!("")
-                    }
+                    self.ip = v;
+                    Ok(())
+                } else {
+                    vm_error!("Cannot return!")
                 }
-                Ok(())
             }
             Opcode::JmpIf => {
                 let op_1 = self.stack_pop_bool()?;
@@ -387,7 +386,7 @@ impl CHSVM {
                 };
                 if q <= self.stack.len() {
                     for _ in 0..q {
-                        let value = self.stack_pop()?;
+                        let value = self.stack_pop_ptr()?;
                         self.return_stack.push(value);
                     }
                     return Ok(());
@@ -400,10 +399,10 @@ impl CHSVM {
                     None => vm_error!("PushBind 1")
                 };
                 let local = match self.return_stack.iter().rev().nth(q-1) {
-                    Some(v) => v,
+                    Some(v) => *v,
                     None => vm_error!("PushBind 2"),
                 };
-                self.push_stack(local.clone())?;
+                self.push_stack(Value::Ptr(local).into())?;
                 self.ip += 1;
                 return Ok(());
             }
@@ -447,7 +446,7 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Load => {
+            Opcode::GlobalLoad => {
                 let addrs = self.stack_pop_ptr()?;
                 let val = match self.memory.get(addrs) {
                     Some(v) => v,
@@ -457,9 +456,17 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Store => {
+            Opcode::GlobalStore => {
                 let value = self.stack_pop()?;
                 let addrs = self.stack_pop_ptr()?;
+                if addrs > self.memory.len() { vm_error!("") }
+                self.memory[addrs] = value;
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::InlineStore => {
+                let addrs = self.stack_pop_ptr()?;
+                let value = self.stack_pop()?;
                 if addrs > self.memory.len() { vm_error!("") }
                 self.memory[addrs] = value;
                 self.ip += 1;

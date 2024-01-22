@@ -15,6 +15,7 @@ pub enum TokenKind {
 
     Var,
     Set,
+    InlineVar,
     Len,
 
     Directive,
@@ -165,7 +166,8 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' => self.operator(),
+            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' | b':'
+            => self.operator(),
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             b'(' => self.make_token(TokenKind::ParenOpen),
@@ -174,7 +176,6 @@ impl Lexer {
             b']' => self.make_token(TokenKind::BracketClose),
             b'%' => self.make_token(TokenKind::Directive),
             b';' => self.make_token(TokenKind::SemiColon),
-            b':' => self.make_token(TokenKind::Colon),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -232,6 +233,12 @@ impl Lexer {
                     _ => self.make_token(TokenKind::Bitand)
                 }
             },
+            b':' => {
+                match self.next_byte() {
+                    b'=' => {self.position+=2; self.token(TokenKind::InlineVar, self.position-2)},
+                    _ => self.make_token(TokenKind::Colon),
+                }
+            }
             _ => self.make_token(TokenKind::Invalid)
         }
     }

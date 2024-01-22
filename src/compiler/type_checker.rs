@@ -202,7 +202,7 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     type_error!("JmpIf");
                 }
             }
-            Opcode::Store => {
+            Opcode::GlobalStore => {
                 if type_stack.len() < 2 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
                 }
@@ -217,7 +217,22 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     type_error!("Store");
                 }
             }
-            Opcode::Load => {
+            Opcode::InlineStore => {
+                if type_stack.len() < 2 {
+                    type_error!("Not enugth operands for {:?}.", instr.kind)
+                }
+                let a = type_stack.pop().unwrap();
+                if a != Types::Ptr {
+                    type_error!("Store");
+                }
+                let b = type_stack.pop().unwrap();
+                let pos = match instr.operands {
+                    Some(v) => v,
+                    None => type_error!("Operand not provided for {:?}", instr.kind)
+                };
+                sym_table.insert(pos, b);
+            }
+            Opcode::GlobalLoad => {
                 if type_stack.len() < 1 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
                 }
