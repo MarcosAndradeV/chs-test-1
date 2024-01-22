@@ -39,10 +39,13 @@ set <name> <value>;
 
 ```pascal
 var interger 10;
+20 := another_interger
+
 var text "Some text";
 var mylist (1 2 3 4);
 
 set interger 20;
+10 := another_interger
 set text "Other text";
 set mylist[0] 2;
 ```
