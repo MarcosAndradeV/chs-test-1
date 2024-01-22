@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{type_error, instructions::{Bytecode, Opcode}, exeptions::TypeError, value::Value};
+use crate::{type_error, instructions::{Builtin, Bytecode, Opcode}, exeptions::TypeError, value::Value};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Types {
@@ -85,22 +85,8 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     (ta, tb) => type_error!("Cannot compare {:?} {:?} with {:?}", ta, tb, instr.kind),
                 }
             }
-            Opcode::Println | Opcode::Print => {
-                if type_stack.len() < 1 {
-                    type_error!("Not enugth operands for {:?}.", instr.kind)
-                }
-                type_stack.pop();
-            }
-            Opcode::Len => {
-                if type_stack.len() < 1 {
-                    type_error!("Not enugth operands for {:?}.", instr.kind)
-                }
-                let a = type_stack.pop().unwrap();
-                if a != Types::List && a != Types::Str {
-                    type_error!("Cannot get the length of {:?}", a);
-                }
-                type_stack.push(Types::Int);
-            }
+
+
             Opcode::Pop => {
                 if type_stack.len() < 1 {
                     type_error!("Not enugth operands for {:?}.", instr.kind)
@@ -251,42 +237,8 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                 type_stack.push(value);
 
             }
-            Opcode::IdxGet => {
-                if type_stack.len() < 2 {
-                    type_error!("Not enugth operands for {:?}.", instr.kind)
-                }
-                let b = type_stack.pop().unwrap();
-                let a = type_stack.pop().unwrap();
-                if b != Types::Int {
-                    type_error!("Index needs to be int type found {:?}", b);
-                }
-                match a {
-                    Types::List => type_stack.push(Types::Int),
-                    Types::Str => type_stack.push(Types::Str),
-                    _ => type_error!("Type {:?} cannot be indexed by {:?}", a, b)
-                }
 
-            }
-            Opcode::IdxSet => {
-                if type_stack.len() < 3 {
-                    type_error!("Not enugth operands for {:?}.", instr.kind)
-                }
-                let c = type_stack.pop().unwrap();
-                if c != Types::Int {
-                    type_error!("Lists only suport int found {:?}", c);
-                }
-                let b = type_stack.pop().unwrap();
-                if b != Types::Int {
-                    type_error!("Index needs to be int type found {:?}", b);
-                }
-                let a = type_stack.pop().unwrap();
-                if a != Types::Ptr {
-                    type_error!("IdxSet");
-                }
-                type_stack.push(Types::Ptr);
-                type_stack.push(Types::Int);
 
-            }
             Opcode::Call => {
                 let addrs = match instr.operands {
                     Some(v) => v,
@@ -296,7 +248,87 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                     type_error!("Address out of bounds.")
                 }
             }
-            Opcode::Ret | Opcode::Jmp | Opcode::Debug | Opcode::Halt => {}
+            Opcode::Buildin => {
+                let typ: usize = match instr.operands {
+                    Some(v) => v,
+                    None => type_error!("{:?} operand is not provided.", instr.kind)
+                };
+                let buildin = Builtin::from(typ);
+                if buildin.is_invalid() { type_error!("") }
+                match buildin {
+                    Builtin::IdxGet => {
+                        if type_stack.len() < 2 {
+                            type_error!("Not enugth operands for {:?}.", instr.kind)
+                        }
+                        let b = type_stack.pop().unwrap();
+                        let a = type_stack.pop().unwrap();
+                        if b != Types::Int {
+                            type_error!("Index needs to be int type found {:?}", b);
+                        }
+                        match a {
+                            Types::List => type_stack.push(Types::Int),
+                            Types::Str => type_stack.push(Types::Str),
+                            _ => type_error!("Type {:?} cannot be indexed by {:?}", a, b)
+                        }
+        
+                    }
+                    Builtin::IdxSet => {
+                        if type_stack.len() < 3 {
+                            type_error!("Not enugth operands for {:?}.", instr.kind)
+                        }
+                        let c = type_stack.pop().unwrap();
+                        if c != Types::Int {
+                            type_error!("Lists only suport int found {:?}", c);
+                        }
+                        let b = type_stack.pop().unwrap();
+                        if b != Types::Int {
+                            type_error!("Index needs to be int type found {:?}", b);
+                        }
+                        let a = type_stack.pop().unwrap();
+                        if a != Types::Ptr {
+                            type_error!("IdxSet");
+                        }
+                        type_stack.push(Types::Ptr);
+                        type_stack.push(Types::Int);
+        
+                    }
+                    Builtin::Len => {
+                        if type_stack.len() < 1 {
+                            type_error!("Not enugth operands for {:?}.", instr.kind)
+                        }
+                        let a = type_stack.pop().unwrap();
+                        if a != Types::List && a != Types::Str {
+                            type_error!("Cannot get the length of {:?}", a);
+                        }
+                        type_stack.push(Types::Int);
+                    }
+                    Builtin::Println | Builtin::Print => {
+                        if type_stack.len() < 1 {
+                            type_error!("Not enugth operands for {:?}.", instr.kind)
+                        }
+                        type_stack.pop();
+                    }
+                    Builtin::Debug => {}
+                    Builtin::Length => todo!(),
+                    Builtin::Builtins => todo!(),
+                    Builtin::TimeUnix => todo!(),
+                    Builtin::Args => todo!(),
+                    Builtin::Exit => todo!(),
+                    Builtin::TypeOf => todo!(),
+                    Builtin::CallFunc => todo!(),
+                    Builtin::FStat => todo!(),
+                    Builtin::FWrite => todo!(),
+                    Builtin::FAppend => todo!(),
+                    Builtin::FRead => todo!(),
+                    Builtin::ReadLine => todo!(),
+                    Builtin::SWrite => todo!(),
+                    Builtin::SRead => todo!(),
+                    Builtin::GetSyscalls => todo!(),
+                    Builtin::Syscall => todo!(),
+                    Builtin::Invalid => todo!(),
+                }
+            }
+            Opcode::Ret | Opcode::Jmp | Opcode::Halt => {}
             _ => type_error!("Unimplemented! {:?}", instr.kind)
         }
 

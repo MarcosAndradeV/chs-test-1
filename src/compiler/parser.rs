@@ -284,11 +284,12 @@ impl Parser {
             TokenKind::Bitor => Ok(Instr::new(Opcode::Bitor, None)),
             TokenKind::Lor => Ok(Instr::new(Opcode::Lor, None)),
             TokenKind::Land => Ok(Instr::new(Opcode::Land, None)),
-            TokenKind::Println => Ok(Instr::new(Opcode::Println, None)),
-            TokenKind::Len => Ok(Instr::new(Opcode::Len, None)),
-            TokenKind::Debug => Ok(Instr::new(Opcode::Debug, None)),
-            TokenKind::Print => Ok(Instr::new(Opcode::Print, None)),
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
+
+            TokenKind::Len => Ok(Instr::new(Opcode::Buildin, Some(2))),
+            TokenKind::Println => Ok(Instr::new(Opcode::Buildin, Some(3))),
+            TokenKind::Print => Ok(Instr::new(Opcode::Buildin, Some(4))),
+            TokenKind::Debug => Ok(Instr::new(Opcode::Buildin, Some(5))),
             // ################################################################## //
             _ => generic_error!("{:?} is not implemented yet", token.value),
         };
@@ -433,7 +434,7 @@ impl Parser {
             }
         }
         if is_idx {
-            self.instrs.push(Instr::new(Opcode::IdxSet, None));
+            self.instrs.push(Instr::new(Opcode::Buildin, Some(1)));
             self.instrs.push(Instr::new(Opcode::GlobalStore, Some(v_ptr + 1)));
             return Ok(());
         }
@@ -475,7 +476,7 @@ impl Parser {
                 _ => self.parse_one(tok)?,
             }
         }
-        self.instrs.push(Instr::new(Opcode::IdxGet, None));
+        self.instrs.push(Instr::new(Opcode::Buildin, Some(0)));
         return Ok(());
     }
 

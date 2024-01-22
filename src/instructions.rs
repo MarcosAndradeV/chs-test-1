@@ -28,11 +28,8 @@ pub enum Opcode {
     Bitand,
     Lor,
     Land,
-
-    IdxGet,
-    IdxSet,
-    Len,
-
+    
+    
     Bind,
     PushBind,
     Unbind,
@@ -50,14 +47,76 @@ pub enum Opcode {
     Gte,
     Lte,
     
-    Println,
-    Print,
-    Debug,
     Nop,
     
     GlobalStore,
     InlineStore,
     GlobalLoad,
+
+    Buildin
+}
+
+#[derive(PartialEq, Clone, Debug, Eq, Copy, PartialOrd)]
+pub enum Builtin {
+    IdxGet,
+    IdxSet,
+    Len,
+    Println,
+    Print,
+    Debug,
+    Length,
+    Builtins,
+    TimeUnix,
+    Args,
+    Exit,
+    TypeOf,
+    CallFunc,
+    FStat,
+    FWrite,
+    FAppend,
+    FRead,
+    ReadLine,
+    SWrite,
+    SRead,
+    GetSyscalls,
+    Syscall,
+    Invalid,
+}
+
+impl Builtin {
+    pub fn is_invalid(&self) -> bool {
+        *self == Builtin::Invalid
+    }
+}
+
+impl From<usize> for Builtin {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Self::IdxGet,
+            1 => Self::IdxSet,
+            2 => Self::Len,
+            3 => Self::Println,
+            4 => Self::Print,
+            5 => Self::Debug,
+            6 => Self::Length,
+            7 => Self::Builtins,
+            8 => Self::TimeUnix,
+            9 => Self::Args,
+            10 => Self::Exit,
+            11 => Self::TypeOf,
+            12 => Self::CallFunc,
+            13 => Self::FStat,
+            14 => Self::FWrite,
+            15 => Self::FAppend,
+            16 => Self::FRead,
+            17 => Self::ReadLine,
+            18 => Self::SWrite,
+            19 => Self::SRead,
+            20 => Self::GetSyscalls,
+            21 => Self::Syscall,
+            _  => Self::Invalid
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

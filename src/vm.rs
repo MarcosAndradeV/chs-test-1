@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::exeptions::VMError;
 use crate::config::{STACK_CAPACITY, MEM_CAPACITY};
 use crate::value::Value;
-use crate::instructions::{Instr, Opcode, Bytecode};
+use crate::instructions::{Builtin, Bytecode, Instr, Opcode};
 use crate::vm_error;
 
 
@@ -420,28 +420,6 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Println => {
-                let value = self.stack_pop()?;
-                println!("{}", value.to_string());
-                self.ip += 1;
-                return Ok(());
-            }
-            Opcode::Print => {
-                let val = self.stack_pop()?;
-                print!("{}", val.to_string());
-                self.ip += 1;
-                return Ok(());
-            }
-            Opcode::Debug => {
-                println!(
-                    "CHSVM: {:?}, SP: {}, STACK_LEN: {}",
-                    self.stack,
-                    self.sp,
-                    self.stack.len()
-                );
-                self.ip += 1;
-                return Ok(());
-            }
             Opcode::Nop => {
                 self.ip += 1;
                 return Ok(());
@@ -472,42 +450,91 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::IdxGet => {
-                let idx = self.stack_pop()?;
-                let list = self.stack_pop()?;
-                let val = match list.get_indexed(&idx) {
-                    Ok(v) => v,
-                    Err(e) => vm_error!("{}", e)
+            Opcode::Buildin => {
+                let typ: usize = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
                 };
-                self.push_stack(val)?;
-                self.ip += 1;
-                Ok(())
-            },
-            Opcode::IdxSet => {
-                let new_val = self.stack_pop()?;
-                let idx = self.stack_pop()?;
-                let addrs = self.stack_pop_ptr()?;
-                let mut val = match self.memory.get(addrs) {
-                    Some(v) => v.as_ref().clone(),
-                    None => vm_error!("{:?} operand is not provided.", instr.kind) 
-                };
-                match val.set_indexed(&idx, new_val) {
-                    Some(e) => vm_error!("{}", e),
-                    _ => {}
+                let buildin = Builtin::from(typ);
+                if buildin.is_invalid() { vm_error!("") }
+                match buildin {
+                    Builtin::IdxGet => {
+                        let idx = self.stack_pop()?;
+                        let list = self.stack_pop()?;
+                        let val = match list.get_indexed(&idx) {
+                            Ok(v) => v,
+                            Err(e) => vm_error!("{}", e)
+                        };
+                        self.push_stack(val)?;
+                        self.ip += 1;
+                        return Ok(())
+                    },
+                    Builtin::IdxSet => {
+                        let new_val = self.stack_pop()?;
+                        let idx = self.stack_pop()?;
+                        let addrs = self.stack_pop_ptr()?;
+                        let mut val = match self.memory.get(addrs) {
+                            Some(v) => v.as_ref().clone(),
+                            None => vm_error!("{:?} operand is not provided.", instr.kind) 
+                        };
+                        match val.set_indexed(&idx, new_val) {
+                            Some(e) => vm_error!("{}", e),
+                            _ => {}
+                        }
+                        self.push_stack(Rc::new(Value::Ptr(addrs)))?;
+                        self.push_stack(Rc::new(val))?;
+                        self.ip += 1;
+                        return Ok(())
+                    },
+                    Builtin::Len => {
+                        let val = self.stack_pop()?;
+                        match val.len() {
+                            Ok(v) => self.push_stack(v)?,
+                            Err(e) => vm_error!("{}", e)
+                        }
+                        self.ip += 1;
+                        return Ok(())
+                    }
+                    Builtin::Println => {
+                        let value = self.stack_pop()?;
+                        println!("{}", value.to_string());
+                        self.ip += 1;
+                        return Ok(());
+                    }
+                    Builtin::Print => {
+                        let val = self.stack_pop()?;
+                        print!("{}", val.to_string());
+                        self.ip += 1;
+                        return Ok(());
+                    }
+                    Builtin::Debug => {
+                        println!(
+                            "CHSVM: {:?}, SP: {}, STACK_LEN: {}",
+                            self.stack,
+                            self.sp,
+                            self.stack.len()
+                        );
+                        self.ip += 1;
+                        return Ok(());
+                    }
+                    Builtin::Length => todo!(),
+                    Builtin::Builtins => todo!(),
+                    Builtin::TimeUnix => todo!(),
+                    Builtin::Args => todo!(),
+                    Builtin::Exit => todo!(),
+                    Builtin::TypeOf => todo!(),
+                    Builtin::CallFunc => todo!(),
+                    Builtin::FStat => todo!(),
+                    Builtin::FWrite => todo!(),
+                    Builtin::FAppend => todo!(),
+                    Builtin::FRead => todo!(),
+                    Builtin::ReadLine => todo!(),
+                    Builtin::SWrite => todo!(),
+                    Builtin::SRead => todo!(),
+                    Builtin::GetSyscalls => todo!(),
+                    Builtin::Syscall => todo!(),
+                    Builtin::Invalid => todo!(),
                 }
-                self.push_stack(Rc::new(Value::Ptr(addrs)))?;
-                self.push_stack(Rc::new(val))?;
-                self.ip += 1;
-                Ok(())
-            },
-            Opcode::Len => {
-                let val = self.stack_pop()?;
-                match val.len() {
-                    Ok(v) => self.push_stack(v)?,
-                    Err(e) => vm_error!("{}", e)
-                }
-                self.ip += 1;
-                Ok(())
             }
             Opcode::Halt => {
                 self.is_halted = true;
