@@ -21,8 +21,6 @@ pub struct Parser {
     func_def: HashMap<String, usize>,
     var_def: HashMap<String, usize>,
     var_count: usize,
-    locals_def: HashMap<String, usize>,
-    locals_count: usize,
 }
 
 impl Parser {
@@ -39,8 +37,6 @@ impl Parser {
             func_def: HashMap::new(),
             var_def: HashMap::new(),
             var_count: 0,
-            locals_def: HashMap::new(),
-            locals_count: 1,
         }
     }
 
@@ -238,9 +234,9 @@ impl Parser {
             TokenKind::Whlie => self.while_block(d)?,
             TokenKind::Func => self.func_block(d)?,
             TokenKind::Directive => self.directive()?,
-            TokenKind::Var => self.var_stmt(false)?,
-            TokenKind::Set => self.set_stmt(false)?,
-            TokenKind::InlineVar => self.inline_var_stmt(false)?,
+            TokenKind::Var => self.var_stmt()?,
+            TokenKind::Set => self.set_stmt()?,
+            TokenKind::InlineVar => self.inline_var_stmt()?,
             TokenKind::ParenOpen => self.list()?,
             TokenKind::BracketOpen => self.index_get()?,
             TokenKind::Identifier => self.identfier(token)?,
@@ -313,33 +309,18 @@ impl Parser {
         Ok(())
     }
 
-    fn var_stmt(&mut self, is_local: bool) -> Result<(), GenericError> {
+    fn var_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.name_is_valid_variable()?;
-        let v_ptr = match is_local {
-            true => {
-                match self.locals_def.get(&name.value) {
-                    Some(v) => *v,
-                    None => {  
-                        self.locals_def.insert(name.value, self.locals_count);
-                        self.locals_count += 1;
-                        self.locals_count - 1
-                    }
-                }
-            },
-            false => {
-                match self.var_def.get(&name.value) {
-                    Some(v) => *v,
-                    None => {  
-                        self.var_def.insert(name.value, self.var_count);
-                        self.var_count += 1;
-                        self.var_count - 1
-                    }
-                }
+        let v_ptr = match self.var_def.get(&name.value) {
+            Some(v) => *v,
+            None => {
+                self.var_def.insert(name.value, self.var_count);
+                self.var_count += 1;
+                self.var_count - 1
             }
         };
 
-        self.instrs
-            .push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
+        self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
         loop {
             let tok = self.require()?;
             match tok.kind {
@@ -349,64 +330,37 @@ impl Parser {
                 _ => self.parse_one(tok)?,
             }
         }
-        self.instrs.push(Instr::new(Opcode::GlobalStore, Some(v_ptr)));
+        self.instrs
+            .push(Instr::new(Opcode::GlobalStore, Some(v_ptr)));
         Ok(())
     }
 
-    fn inline_var_stmt(&mut self, is_local: bool) -> Result<(), GenericError> {
+    fn inline_var_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.name_is_valid_variable()?;
-        let v_ptr = match is_local {
-            true => {
-                match self.locals_def.get(&name.value) {
-                    Some(v) => *v,
-                    None => {  
-                        self.locals_def.insert(name.value, self.locals_count);
-                        self.locals_count += 1;
-                        self.locals_count - 1
-                    }
-                }
-            },
-            false => {
-                match self.var_def.get(&name.value) {
-                    Some(v) => *v,
-                    None => {  
-                        self.var_def.insert(name.value, self.var_count);
-                        self.var_count += 1;
-                        self.var_count - 1
-                    }
-                }
+        let v_ptr = match self.var_def.get(&name.value) {
+            Some(v) => *v,
+            None => {
+                self.var_def.insert(name.value, self.var_count);
+                self.var_count += 1;
+                self.var_count - 1
             }
         };
-        
 
         self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
-        self.instrs.push(Instr::new(Opcode::InlineStore, Some(v_ptr)));
+        self.instrs
+            .push(Instr::new(Opcode::InlineStore, Some(v_ptr)));
         Ok(())
     }
 
-    fn set_stmt(&mut self, is_local: bool) -> Result<(), GenericError> {
+    fn set_stmt(&mut self) -> Result<(), GenericError> {
         let name = self.name_is_valid_variable()?;
         let mut is_idx = false;
-        let v_ptr = match is_local {
-            true => {
-                match self.locals_def.get(&name.value) {
-                    Some(v) => *v,
-                    None => {  
-                        self.locals_def.insert(name.value, self.locals_count);
-                        self.locals_count += 1;
-                        self.locals_count - 1
-                    }
-                }
-            },
-            false => {
-                match self.var_def.get(&name.value) {
-                    Some(v) => *v,
-                    None => {  
-                        self.var_def.insert(name.value, self.var_count);
-                        self.var_count += 1;
-                        self.var_count - 1
-                    }
-                }
+        let v_ptr = match self.var_def.get(&name.value) {
+            Some(v) => *v,
+            None => {
+                self.var_def.insert(name.value, self.var_count);
+                self.var_count += 1;
+                self.var_count - 1
             }
         };
         self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
@@ -435,10 +389,12 @@ impl Parser {
         }
         if is_idx {
             self.instrs.push(Instr::new(Opcode::Buildin, Some(1)));
-            self.instrs.push(Instr::new(Opcode::GlobalStore, Some(v_ptr + 1)));
+            self.instrs
+                .push(Instr::new(Opcode::GlobalStore, Some(v_ptr + 1)));
             return Ok(());
         }
-        self.instrs.push(Instr::new(Opcode::GlobalStore, Some(v_ptr)));
+        self.instrs
+            .push(Instr::new(Opcode::GlobalStore, Some(v_ptr)));
         Ok(())
     }
 
@@ -491,22 +447,13 @@ impl Parser {
             }
             None => {}
         }
-        match self.locals_def.get(&token.value) {
+        match self.var_def.get(&token.value) {
             Some(v) => {
                 self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
                 self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 return Ok(());
             }
-            None => {
-                match self.var_def.get(&token.value) {
-                    Some(v) => {
-                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                        self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
-                        return Ok(());
-                    }
-                    None => {}
-                }
-            }
+            None => {}
         }
         match self.func_def.get(&token.value) {
             Some(v) => {
@@ -532,20 +479,16 @@ impl Parser {
                 TokenKind::CurlyClose => {
                     self.instrs.push(Instr::new(Opcode::DropLabel, Some(4)));
                     self.instrs.push(Instr::new(Opcode::Ret, None));
-                    self.instrs.insert(funcinit, Instr::new(Opcode::Jmp, Some(self.instrs.len()+1)));
-                    self.locals_def.clear();
-                    self.locals_count = self.var_count+1;
+                    self.instrs.insert(
+                        funcinit,
+                        Instr::new(Opcode::Jmp, Some(self.instrs.len() + 1)),
+                    );
                     break;
-                },
-                TokenKind::Var => { self.var_stmt(true)?; }
-                TokenKind::InlineVar => { self.inline_var_stmt(true)?; }
-                TokenKind::Set => { self.set_stmt(true)?; }
-                TokenKind::Directive => generic_error!("You cannot declareate {} here!", tok.value),
+                }
+                TokenKind::Func | TokenKind::Directive => generic_error!("You cannot declareate {} here!", tok.value),
                 _ => self.parse_all(tok, d + 1)?,
             }
         }
         Ok(())
     }
-
-
 }
