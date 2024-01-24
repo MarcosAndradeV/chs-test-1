@@ -15,7 +15,7 @@ pub enum TokenKind {
 
     Var,
     Set,
-    InlineVar,
+    Assing,
     Len,
 
     Directive,
@@ -235,7 +235,7 @@ impl Lexer {
             },
             b':' => {
                 match self.next_byte() {
-                    b'=' => {self.position+=2; self.token(TokenKind::InlineVar, self.position-2)},
+                    b'=' => {self.position+=2; self.token(TokenKind::Assing, self.position-2)},
                     _ => self.make_token(TokenKind::Colon),
                 }
             }

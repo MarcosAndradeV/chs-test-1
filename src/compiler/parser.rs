@@ -1,13 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    exeptions::GenericError,
-    generic_error,
-    instructions::{Bytecode, Instr, Opcode},
-    value::{List, Value},
+    compiler::ir::IfExpr, exeptions::GenericError, generic_error, instructions::{Bytecode, Instr, Opcode}, value::{List, Value}
 };
 
-use super::lexer::{Lexer, Token, TokenKind};
+use super::{ir::{BuildinOp, Expr, ListLiteral, Operation, Program, VarExpr, WhileExpr}, lexer::{Lexer, Token, TokenKind}};
 
 type ResTok = Result<Token, GenericError>;
 
@@ -49,6 +46,184 @@ impl Parser {
             }
             self.parse_all(token, 0)?;
         }
+    }
+
+    pub fn parse_to_ir(&mut self) -> Result<Program, GenericError> {
+        let mut exprs: Vec<Expr> = Vec::new();
+        loop {
+            let token = self.next();
+
+            if token.kind == TokenKind::Null {
+                let program = Program { exprs };
+                return Ok(program);
+            }
+            exprs.push(self.expression(token)?);
+        }
+    }
+
+    fn expression(&mut self, token: Token) -> Result<Expr, GenericError> {
+        let expr = match token.kind {
+            TokenKind::Pop  => Expr::Op(Box::new(Operation::Pop)),
+            TokenKind::Dup  => Expr::Op(Box::new(Operation::Dup)),
+            TokenKind::Dup2 => Expr::Op(Box::new(Operation::Dup2)),
+            TokenKind::Over => Expr::Op(Box::new(Operation::Over)),
+            TokenKind::Swap => Expr::Op(Box::new(Operation::Swap)),
+
+            TokenKind::Add => Expr::Op(Box::new(Operation::Add)),
+            TokenKind::Minus => Expr::Op(Box::new(Operation::Minus)),
+            TokenKind::Mul => Expr::Op(Box::new(Operation::Mul)),
+            TokenKind::Div => Expr::Op(Box::new(Operation::Div)),
+            TokenKind::Mod => Expr::Op(Box::new(Operation::Mod)),
+
+            TokenKind::Eq => Expr::Op(Box::new(Operation::Eq)),
+            TokenKind::Neq => Expr::Op(Box::new(Operation::Neq)),
+            TokenKind::Gte => Expr::Op(Box::new(Operation::Gte)),
+            TokenKind::Gt => Expr::Op(Box::new(Operation::Gt)),
+            TokenKind::Lte => Expr::Op(Box::new(Operation::Lte)),
+            TokenKind::Lt => Expr::Op(Box::new(Operation::Lt)),
+
+            TokenKind::Print => Expr::Buildin(Box::new(BuildinOp::Print)),
+            TokenKind::Println => Expr::Buildin(Box::new(BuildinOp::Println)),
+            TokenKind::Debug => Expr::Buildin(Box::new(BuildinOp::Debug)),
+            TokenKind::Len => Expr::Buildin(Box::new(BuildinOp::Len)),
+
+            TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
+            TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
+            TokenKind::Identifier => Expr::IdentExpr(Box::new(token.value)),
+
+            TokenKind::If => self.if_expr()?,
+            TokenKind::Whlie => self.while_expr()?,
+            TokenKind::Var => self.var_expr()?,
+            TokenKind::Assing => self.assigin_expr()?,
+            TokenKind::ParenOpen => self.list_expr()?,
+
+            _ => generic_error!("{} is not implemeted", token),
+        };
+        Ok(expr)
+    }
+
+    fn assigin_expr(&mut self) -> Result<Expr, GenericError> {
+        let name = self.expect(TokenKind::Identifier)?.value;
+        Ok(Expr::Assigin(Box::new(
+            name
+        )))
+    }
+
+    fn list_expr(&mut self) -> Result<Expr, GenericError> {
+        let mut list = vec![];
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::ParenClose => break,
+                TokenKind::Int => {
+                    list.push(Rc::new(Value::Int64(tok.value.parse().unwrap())));
+                }
+                _ => generic_error!(
+                    "{:?}({}) is not suported in List literals",
+                    tok.kind,
+                    tok.value
+                ),
+            }
+        }
+        Ok(Expr::ListExpr(Box::new(
+            ListLiteral {
+                value: List { elem: list }
+            }
+        )))
+    }
+
+    fn var_expr(&mut self) -> Result<Expr, GenericError> {
+        let name = self.expect(TokenKind::Identifier)?.value;
+        let mut value: Vec<Expr> = Vec::new();
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::SemiColon => break,
+                _ => value.push(self.expression(tok)?),
+            }
+        }
+        Ok(Expr::Var(Box::new(
+            VarExpr {
+                name,
+                value,
+            }
+        )))
+    }
+
+    fn if_expr(&mut self) -> Result<Expr, GenericError> {
+        let mut cond: Vec<Expr> = Vec::new();
+        loop {
+            // condition
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyOpen => {
+                    break;
+                }
+                _ => cond.push(self.expression(tok)?),
+            }
+        }
+        let mut if_branch: Vec<Expr> = Vec::new();
+        let mut else_branch: Vec<Expr> = Vec::new();
+        let mut has_else: bool = false;
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => break,
+                TokenKind::Else => {
+                    has_else = true;
+                }
+                TokenKind::Func | TokenKind::Directive => generic_error!("You cannot declareate {} here!", tok.value),
+                _ => {
+                    if has_else {
+                        else_branch.push(self.expression(tok)?)
+                    } else {
+                        if_branch.push(self.expression(tok)?)
+                    }
+                },
+            }
+        }
+        if has_else {
+            Ok(Expr::If(Box::new(
+                IfExpr {
+                    cond,
+                    if_branch,
+                    else_branch: Some(else_branch)
+                }
+            )))
+        } else {
+            Ok(Expr::If(Box::new(
+                IfExpr {
+                    cond,
+                    if_branch,
+                    else_branch: None
+                }
+            )))
+        }
+    }
+
+    fn while_expr(&mut self) -> Result<Expr, GenericError> {
+        let mut cond: Vec<Expr> = Vec::new();
+        loop {
+            // condition
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyOpen => {
+                    break;
+                }
+                _ => cond.push(self.expression(tok)?),
+            }
+        }
+        let mut while_block: Vec<Expr> = Vec::new();
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => break,
+                _ => while_block.push(self.expression(tok)?),
+            }
+        }
+        Ok(Expr::Whlie(Box::new(
+            WhileExpr { cond, while_block }
+        )))
     }
 
     fn expect(&mut self, kind: TokenKind) -> ResTok {
@@ -236,7 +411,7 @@ impl Parser {
             TokenKind::Directive => self.directive()?,
             TokenKind::Var => self.var_stmt()?,
             TokenKind::Set => self.set_stmt()?,
-            TokenKind::InlineVar => self.inline_var_stmt()?,
+            TokenKind::Assing => self.inline_var_stmt()?,
             TokenKind::ParenOpen => self.list()?,
             TokenKind::BracketOpen => self.index_get()?,
             TokenKind::Identifier => self.identfier(token)?,
@@ -263,23 +438,28 @@ impl Parser {
             TokenKind::Mul => Ok(Instr::new(Opcode::Mul, None)),
             TokenKind::Div => Ok(Instr::new(Opcode::Div, None)),
             TokenKind::Mod => Ok(Instr::new(Opcode::Mod, None)),
+
             TokenKind::Pop => Ok(Instr::new(Opcode::Pop, None)),
             TokenKind::Dup => Ok(Instr::new(Opcode::Dup, None)),
             TokenKind::Dup2 => Ok(Instr::new(Opcode::Dup2, None)),
             TokenKind::Swap => Ok(Instr::new(Opcode::Swap, None)),
             TokenKind::Over => Ok(Instr::new(Opcode::Over, None)),
+
             TokenKind::Eq => Ok(Instr::new(Opcode::Eq, None)),
             TokenKind::Neq => Ok(Instr::new(Opcode::Neq, None)),
             TokenKind::Gt => Ok(Instr::new(Opcode::Gt, None)),
             TokenKind::Gte => Ok(Instr::new(Opcode::Gte, None)),
             TokenKind::Lte => Ok(Instr::new(Opcode::Lte, None)),
             TokenKind::Lt => Ok(Instr::new(Opcode::Lt, None)),
+
             TokenKind::Shl => Ok(Instr::new(Opcode::Shl, None)),
             TokenKind::Shr => Ok(Instr::new(Opcode::Shr, None)),
             TokenKind::Bitand => Ok(Instr::new(Opcode::Bitand, None)),
             TokenKind::Bitor => Ok(Instr::new(Opcode::Bitor, None)),
+
             TokenKind::Lor => Ok(Instr::new(Opcode::Lor, None)),
             TokenKind::Land => Ok(Instr::new(Opcode::Land, None)),
+
             TokenKind::Hlt => Ok(Instr::new(Opcode::Halt, None)),
 
             TokenKind::Len => Ok(Instr::new(Opcode::Buildin, Some(2))),
