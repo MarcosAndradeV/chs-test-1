@@ -1,4 +1,4 @@
-%def LIMIT 4000000
+var LIMIT 4000000;
 
 var acc 0;
 
