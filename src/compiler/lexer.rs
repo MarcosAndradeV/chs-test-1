@@ -18,6 +18,9 @@ pub enum TokenKind {
     Assing,
     Len,
 
+    IdxGet,
+    IdxSet,
+
     Directive,
     Def,
     Include,
@@ -334,9 +337,14 @@ impl Lexer {
                 "debug" => TokenKind::Debug,
                 _ => TokenKind::Identifier
             }
+            6 => match value.as_str() {
+                "idxget" => TokenKind::IdxGet,
+                "idxset" => TokenKind::IdxSet,
+                _ => TokenKind::Identifier
+            }
             7 => match value.as_str() {
                 "include" => TokenKind::Include,
-                "println" => TokenKind::Println,  
+                "println" => TokenKind::Println,
                 _ => TokenKind::Identifier
             }
             _ => TokenKind::Identifier,

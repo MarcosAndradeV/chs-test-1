@@ -285,12 +285,10 @@ pub fn type_check_program(code: &Bytecode) -> Result<(), TypeError> {
                             type_error!("Index needs to be int type found {:?}", b);
                         }
                         let a = type_stack.pop().unwrap();
-                        if a != Types::Ptr {
+                        if a != Types::List {
                             type_error!("IdxSet");
                         }
-                        type_stack.push(Types::Ptr);
-                        type_stack.push(Types::Int);
-        
+                        type_stack.push(Types::List);
                     }
                     Builtin::Len => {
                         if type_stack.len() < 1 {

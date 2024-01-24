@@ -82,10 +82,19 @@ impl Parser {
             TokenKind::Lte => Expr::Op(Box::new(Operation::Lte)),
             TokenKind::Lt => Expr::Op(Box::new(Operation::Lt)),
 
+            TokenKind::Shl => Expr::Op(Box::new(Operation::Shl)),
+            TokenKind::Shr => Expr::Op(Box::new(Operation::Shr)),
+            TokenKind::Bitand => Expr::Op(Box::new(Operation::Bitand)),
+            TokenKind::Bitor => Expr::Op(Box::new(Operation::Bitor)),
+            TokenKind::Land => Expr::Op(Box::new(Operation::Land)),
+            TokenKind::Lor => Expr::Op(Box::new(Operation::Lor)),
+
             TokenKind::Print => Expr::Buildin(Box::new(BuildinOp::Print)),
             TokenKind::Println => Expr::Buildin(Box::new(BuildinOp::Println)),
             TokenKind::Debug => Expr::Buildin(Box::new(BuildinOp::Debug)),
             TokenKind::Len => Expr::Buildin(Box::new(BuildinOp::Len)),
+            TokenKind::IdxGet => Expr::Buildin(Box::new(BuildinOp::IdxGet)),
+            TokenKind::IdxSet => Expr::Buildin(Box::new(BuildinOp::IdxSet)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt, vec::IntoIter};
+use std::{cell::RefCell, collections::HashMap, fmt, vec::IntoIter};
 
 use crate::{
     exeptions::GenericError,
@@ -146,6 +146,8 @@ pub struct IrParser {
     program: IntoIter<Expr>,
     instrs: Vec<Instr>,
     consts: Vec<Value>,
+    var_def: HashMap<String, usize>,
+    var_count: usize,
 }
 
 impl IrParser {
@@ -154,6 +156,8 @@ impl IrParser {
             program: program.into_iter(),
             instrs: Vec::new(),
             consts: Vec::new(),
+            var_def: HashMap::new(),
+            var_count: 0
         }
     }
 
@@ -177,6 +181,12 @@ impl IrParser {
         &mut self,
         expr: &VarExpr,
     ) -> Result<(), GenericError> {
+        let var_ptr = self.var_count;
+        self.var_count+=1;
+        self.var_def.insert(expr.name.clone(), var_ptr);
+        for e in expr.value.iter() { self.simple_expr(e)?; }
+        self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
+        self.instrs.push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
         Ok(())
     }
 
@@ -234,6 +244,7 @@ impl IrParser {
             for e in expr.else_branch.as_ref().unwrap().iter() {
                 match e {
                     Expr::If(v) => self.if_expr(v)?,
+                    Expr::Whlie(v) => self.while_expr(v)?,
                     _ => self.simple_expr(e)?,
                 }
             }
@@ -273,6 +284,30 @@ impl IrParser {
             }
             Expr::Buildin(v) => {
                 self.instrs.push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
+            }
+            Expr::IdentExpr(val) => {
+                match self.var_def.get(val.as_ref()) {
+                    Some(v) => {
+                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                        self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
+                    }
+                    None => generic_error!("{} is not defined", val)
+                }
+            }
+            Expr::Assigin(val) => {
+                match self.var_def.get(val.as_ref()) {
+                    Some(v) => {
+                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                        self.instrs.push(Instr::new(Opcode::InlineStore, Some(*v)));
+                    }
+                    None => {
+                        let var_ptr = self.var_count;
+                        self.var_count+=1;
+                        self.var_def.insert(val.to_string(), var_ptr);
+                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
+                        self.instrs.push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
+                    }
+                }
             }
             e => generic_error!("{} is not simple expression", e),
         }

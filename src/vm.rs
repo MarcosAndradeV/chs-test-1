@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::exeptions::VMError;
@@ -472,17 +473,9 @@ impl CHSVM {
                     Builtin::IdxSet => {
                         let new_val = self.stack_pop()?;
                         let idx = self.stack_pop()?;
-                        let addrs = self.stack_pop_ptr()?;
-                        let mut val = match self.memory.get(addrs) {
-                            Some(v) => v.as_ref().clone(),
-                            None => vm_error!("{:?} operand is not provided.", instr.kind) 
-                        };
-                        match val.set_indexed(&idx, new_val) {
-                            Some(e) => vm_error!("{}", e),
-                            _ => {}
-                        }
-                        self.push_stack(Rc::new(Value::Ptr(addrs)))?;
-                        self.push_stack(Rc::new(val))?;
+                        let mut list = self.stack_pop()?.deref().to_owned();
+                        list.set_indexed(&idx, new_val);
+                        self.push_stack(Rc::new(list))?;
                         self.ip += 1;
                         return Ok(())
                     },
