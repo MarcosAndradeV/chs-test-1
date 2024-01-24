@@ -1,6 +1,6 @@
 use std::{io, process};
 
-use chs::{vm::CHSVM, compiler::{parser::Parser, type_checker::type_check_program, lexer::lex_file}};
+use chs::{compiler::{ir::{IrParser, Program}, lexer::lex_file, parser::Parser, type_checker::type_check_program}, instructions::Bytecode, vm::CHSVM};
 use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{
@@ -40,12 +40,24 @@ fn main() -> io::Result<()>{
                     .get_one::<String>("filename")
                     .expect("contains_id");
                 let bytes = lex_file(filename.into())?;
-                let code = match Parser::new(bytes).parse() {
-                    Ok(o) => o,
-                    Err(e) => {eprintln!("{}", e); return Ok(())}
+                let mut fist_parser = Parser::new(bytes);
+                let program: Program = match fist_parser.parse_to_ir() {
+                    Ok(prog) => prog,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        process::exit(1);
+                    },
+                };
+                let mut second_parser = IrParser::new(program);
+                let bytecode: Bytecode = match second_parser.parse() {
+                    Ok(code) => code,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        process::exit(1);
+                    },
                 };
                 if file_matches.get_flag("check") {
-                    match type_check_program(&code) {
+                    match type_check_program(&bytecode) {
                         Ok(_) => {}
                         Err(e) => {
                             eprintln!("{}", e);
@@ -53,7 +65,7 @@ fn main() -> io::Result<()>{
                         }
                     }
                 }
-                let mut vm = CHSVM::new(code);
+                let mut vm = CHSVM::new(bytecode);
                 vm.run(file_matches.get_flag("debug"));
                 return Ok(());
             }

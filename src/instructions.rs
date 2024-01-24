@@ -1,4 +1,4 @@
-use crate::value::Value;
+use crate::{compiler::ir::Operation, value::Value};
 
 
 
@@ -56,9 +56,38 @@ pub enum Opcode {
     Buildin
 }
 
+impl From<&Operation> for Opcode {
+    fn from(item: &Operation) -> Self {
+        match item {
+            Operation::Pop => Self::Pop,
+            Operation::Dup => Self::Dup,
+            Operation::Dup2 => Self::Dup2,
+            Operation::Swap => Self::Swap,
+            Operation::Over => Self::Over,
+            Operation::Add => Self::Add,
+            Operation::Minus => Self::Minus,
+            Operation::Mul => Self::Mul,
+            Operation::Div => Self::Div,
+            Operation::Mod => Self::Mod,
+            Operation::Eq => Self::Eq,
+            Operation::Neq => Self::Neq,
+            Operation::Gt => Self::Gt,
+            Operation::Gte => Self::Gte,
+            Operation::Lte => Self::Lte,
+            Operation::Lt => Self::Lt,
+            Operation::Land => Self::Land,
+            Operation::Lor => Self::Lor,
+            Operation::Shl => Self::Shl,
+            Operation::Shr => Self::Shr,
+            Operation::Bitand => Self::Bitand,
+            Operation::Bitor => Self::Bitor,
+        }
+    }
+}
+
 #[derive(PartialEq, Clone, Debug, Eq, Copy, PartialOrd)]
 pub enum Builtin {
-    IdxGet,
+    IdxGet = 0,
     IdxSet,
     Len,
     Println,

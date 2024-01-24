@@ -544,15 +544,15 @@ impl CHSVM {
     }
 
     pub fn run(&mut self, debug: bool) {
-        // println!("{}", self.ip);
         if debug {
             for (i, e) in self.program.iter().enumerate() {
                 println!("{} -> {:?}", i, e);
             }
         }
         while !self.is_halted {
+            
             match self.execute_next_instr() {
-                Ok(_) => {}
+                Ok(_) => {} //{println!("{:?} at {} {:?}", self.stack, self.ip, self.program.get(self.ip));}
                 Err(e) => {
                     eprintln!("It's a trap: {} at {} {:?}", e, self.ip, self.program[self.ip]);
                     break;
