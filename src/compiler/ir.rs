@@ -148,6 +148,8 @@ pub struct IrParser {
     consts: Vec<Value>,
     var_def: HashMap<String, usize>,
     var_count: usize,
+    func_def: HashMap<String, usize>,
+    curr_func: String,
 }
 
 impl IrParser {
@@ -157,6 +159,8 @@ impl IrParser {
             instrs: Vec::new(),
             consts: Vec::new(),
             var_def: HashMap::new(),
+            func_def: HashMap::new(),
+            curr_func: String::new(),
             var_count: 0
         }
     }
@@ -167,16 +171,46 @@ impl IrParser {
                 Expr::If(v) => self.if_expr(v.as_ref())?,
                 Expr::Whlie(v) => self.while_expr(v.as_ref())?,
                 Expr::Var(v) => self.var_expr(v.as_ref())?,
+                Expr::Func(v) => self.func_expr(v.as_ref())?,
                 _ => self.simple_expr(&expr)?
             }
         }
         
+        if let Some(main) = self.func_def.get("main") {
+            self.instrs.push(Instr::new(Opcode::Call, Some(*main)));
+        }
+
         Ok(
             Bytecode { program: self.instrs.clone(), consts: self.consts.clone() }
         )
     }
 
-    #[allow(unused_variables)]
+    fn func_expr(
+        &mut self,
+        expr: &FuncExpr,
+    ) -> Result<(), GenericError> {
+        let funcinit = self.instrs.len();
+        self.instrs.push(Instr::new(Opcode::Jmp, None));
+        let func_body_init = self.instrs.len();
+        self.instrs.push(Instr::new(Opcode::PushLabel, Some(4)));
+        self.func_def.insert(expr.name.clone(), func_body_init);
+        self.curr_func = expr.name.clone();
+        for e in expr.func_block.iter() {
+            match e {
+                Expr::If(v) => self.if_expr(v)?,
+                Expr::Whlie(v) => self.while_expr(v)?,
+                Expr::Var(v) => self.var_expr(v)?,
+                _ => self.simple_expr(e)?,
+            }
+        }
+        self.instrs.push(Instr::new(Opcode::DropLabel, Some(4)));
+        self.instrs.push(Instr::new(Opcode::Ret, None));
+        let curr_len = self.instrs.len();
+        let elem = unsafe { self.instrs.get_unchecked_mut(funcinit) };
+        *elem = Instr::new(Opcode::Jmp, Some(curr_len));
+        Ok(())
+    }
+
     fn var_expr(
         &mut self,
         expr: &VarExpr,
@@ -290,8 +324,16 @@ impl IrParser {
                     Some(v) => {
                         self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
                         self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
+                        return Ok(());
                     }
-                    None => generic_error!("{} is not defined", val)
+                    None => {}
+                }
+                match self.func_def.get(val.as_ref()) {
+                    Some(v) => {
+                        self.instrs.push(Instr::new(Opcode::Call, Some(*v)));
+                        return Ok(());
+                    }
+                    None => generic_error!("{} is not defined", val.to_string())
                 }
             }
             Expr::Assigin(val) => {

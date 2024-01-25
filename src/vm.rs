@@ -545,7 +545,7 @@ impl CHSVM {
         while !self.is_halted {
             
             match self.execute_next_instr() {
-                Ok(_) => {} //{println!("{:?} at {} {:?}", self.stack, self.ip, self.program.get(self.ip));}
+                Ok(_) => {} // {println!("{:?} at {} {:?}", self.return_stack, self.ip, self.program.get(self.ip));}
                 Err(e) => {
                     eprintln!("It's a trap: {} at {} {:?}", e, self.ip, self.program[self.ip]);
                     break;

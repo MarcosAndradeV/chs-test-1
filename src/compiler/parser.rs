@@ -4,7 +4,7 @@ use crate::{
     compiler::ir::IfExpr, exeptions::GenericError, generic_error, instructions::{Bytecode, Instr, Opcode}, value::{List, Value}
 };
 
-use super::{ir::{BuildinOp, Expr, ListLiteral, Operation, Program, VarExpr, WhileExpr}, lexer::{Lexer, Token, TokenKind}};
+use super::{ir::{BuildinOp, Expr, FuncExpr, ListLiteral, Operation, Program, VarExpr, WhileExpr}, lexer::{Lexer, Token, TokenKind}};
 
 type ResTok = Result<Token, GenericError>;
 
@@ -105,10 +105,30 @@ impl Parser {
             TokenKind::Var => self.var_expr()?,
             TokenKind::Assing => self.assigin_expr()?,
             TokenKind::ParenOpen => self.list_expr()?,
+            TokenKind::Func => self.func()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
+    }
+
+    fn func(&mut self) -> Result<Expr, GenericError> {
+        let name = self.expect(TokenKind::Identifier)?.value;
+        let mut func_block = Vec::new();
+        self.expect(TokenKind::CurlyOpen)?;
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => break,
+                _ => func_block.push(self.expression(tok)?),
+            }
+        }
+        Ok(Expr::Func(Box::new(
+            FuncExpr {
+                name,
+                func_block
+            }
+        )))
     }
 
     fn assigin_expr(&mut self) -> Result<Expr, GenericError> {
