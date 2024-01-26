@@ -161,7 +161,7 @@ impl IrParser {
             var_def: HashMap::new(),
             func_def: HashMap::new(),
             curr_func: String::new(),
-            var_count: 0
+            var_count: 0,
         }
     }
 
@@ -172,23 +172,21 @@ impl IrParser {
                 Expr::Whlie(v) => self.while_expr(v.as_ref())?,
                 Expr::Var(v) => self.var_expr(v.as_ref())?,
                 Expr::Func(v) => self.func_expr(v.as_ref())?,
-                _ => self.simple_expr(&expr)?
+                _ => self.simple_expr(&expr)?,
             }
         }
-        
+
         if let Some(main) = self.func_def.get("main") {
             self.instrs.push(Instr::new(Opcode::Call, Some(*main)));
         }
 
-        Ok(
-            Bytecode { program: self.instrs.clone(), consts: self.consts.clone() }
-        )
+        Ok(Bytecode {
+            program: self.instrs.clone(),
+            consts: self.consts.clone(),
+        })
     }
 
-    fn func_expr(
-        &mut self,
-        expr: &FuncExpr,
-    ) -> Result<(), GenericError> {
+    fn func_expr(&mut self, expr: &FuncExpr) -> Result<(), GenericError> {
         let funcinit = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::Jmp, None));
         let func_body_init = self.instrs.len();
@@ -211,23 +209,20 @@ impl IrParser {
         Ok(())
     }
 
-    fn var_expr(
-        &mut self,
-        expr: &VarExpr,
-    ) -> Result<(), GenericError> {
+    fn var_expr(&mut self, expr: &VarExpr) -> Result<(), GenericError> {
         let var_ptr = self.var_count;
-        self.var_count+=1;
+        self.var_count += 1;
         self.var_def.insert(expr.name.clone(), var_ptr);
-        for e in expr.value.iter() { self.simple_expr(e)?; }
+        for e in expr.value.iter() {
+            self.simple_expr(e)?;
+        }
         self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
-        self.instrs.push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
+        self.instrs
+            .push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
         Ok(())
     }
 
-    fn while_expr(
-        &mut self,
-        expr: &WhileExpr,
-    ) -> Result<(), GenericError> {
+    fn while_expr(&mut self, expr: &WhileExpr) -> Result<(), GenericError> {
         self.instrs.push(Instr::new(Opcode::PushLabel, Some(3)));
         let whileaddrs = self.instrs.len();
         for e in expr.cond.iter() {
@@ -251,10 +246,7 @@ impl IrParser {
         Ok(())
     }
 
-    fn if_expr(
-        &mut self,
-        expr: &IfExpr,
-    ) -> Result<(), GenericError> {
+    fn if_expr(&mut self, expr: &IfExpr) -> Result<(), GenericError> {
         self.instrs.push(Instr::new(Opcode::PushLabel, Some(1)));
         for e in expr.cond.iter() {
             self.simple_expr(e)?;
@@ -269,13 +261,13 @@ impl IrParser {
                 _ => self.simple_expr(e)?,
             }
         }
-        if expr.else_branch.is_some() {
+        if let Some(vec) = &expr.else_branch {
             self.instrs.push(Instr::new(Opcode::PushLabel, Some(2)));
             offset2 = self.instrs.len();
             self.instrs.push(Instr::new(Opcode::Jmp, None));
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
             *elem = Instr::new(Opcode::JmpIf, Some(offset2 + 1));
-            for e in expr.else_branch.as_ref().unwrap().iter() {
+            for e in vec.iter() {
                 match e {
                     Expr::If(v) => self.if_expr(v)?,
                     Expr::Whlie(v) => self.while_expr(v)?,
@@ -288,67 +280,59 @@ impl IrParser {
             let elem = unsafe { self.instrs.get_unchecked_mut(offset2) };
             *elem = Instr::new(Opcode::Jmp, Some(curr_len));
             self.instrs.push(Instr::new(Opcode::DropLabel, Some(2)));
-            return Ok(());
+        } else {
+            let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
+            *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
+            self.instrs.push(Instr::new(Opcode::DropLabel, Some(1)));
         }
-        let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
-        *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
-        self.instrs.push(Instr::new(Opcode::DropLabel, Some(1)));
         Ok(())
     }
 
-    fn simple_expr(
-        &mut self,
-        expr: &Expr,
-    ) -> Result<(), GenericError> {
+    fn simple_expr(&mut self, expr: &Expr) -> Result<(), GenericError> {
         match expr {
             Expr::IntExpr(v) => {
                 self.consts.push(Value::Int64(v.parse().unwrap()));
-                self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                self.instrs
+                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::StrExpr(v) => {
                 self.consts.push(Value::Str(v.to_string()));
-                self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                self.instrs
+                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::ListExpr(v) => {
                 self.consts.push(Value::List(RefCell::new(v.value.clone())));
-                self.instrs.push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                self.instrs
+                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::Op(v) => {
                 self.instrs.push(Instr::new(Opcode::from(v.as_ref()), None));
             }
             Expr::Buildin(v) => {
-                self.instrs.push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
+                self.instrs
+                    .push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
             }
             Expr::IdentExpr(val) => {
-                match self.var_def.get(val.as_ref()) {
-                    Some(v) => {
-                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                        self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
-                        return Ok(());
-                    }
-                    None => {}
-                }
-                match self.func_def.get(val.as_ref()) {
-                    Some(v) => {
-                        self.instrs.push(Instr::new(Opcode::Call, Some(*v)));
-                        return Ok(());
-                    }
-                    None => generic_error!("{} is not defined", val.to_string())
+                if let Some(v) = self.var_def.get(val.as_ref()) {
+                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                    self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
+                } else if let Some(v) = self.func_def.get(val.as_ref()) {
+                    self.instrs.push(Instr::new(Opcode::Call, Some(*v)));
+                } else {
+                    generic_error!("{} is not defined", val.to_string())
                 }
             }
             Expr::Assigin(val) => {
-                match self.var_def.get(val.as_ref()) {
-                    Some(v) => {
-                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                        self.instrs.push(Instr::new(Opcode::InlineStore, Some(*v)));
-                    }
-                    None => {
-                        let var_ptr = self.var_count;
-                        self.var_count+=1;
-                        self.var_def.insert(val.to_string(), var_ptr);
-                        self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
-                        self.instrs.push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
-                    }
+                if let Some(v) = self.var_def.get(val.as_ref()) {
+                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
+                    self.instrs.push(Instr::new(Opcode::InlineStore, Some(*v)));
+                } else {
+                    let var_ptr = self.var_count;
+                    self.var_count += 1;
+                    self.var_def.insert(val.to_string(), var_ptr);
+                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
+                    self.instrs
+                        .push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
                 }
             }
             e => generic_error!("{} is not simple expression", e),
