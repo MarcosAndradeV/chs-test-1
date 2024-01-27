@@ -79,6 +79,7 @@ pub struct WhileExpr {
 pub struct FuncExpr {
     pub name: String,
     pub func_block: Expressions,
+    pub local_vars: Vec<VarExpr>,
 }
 
 #[derive(Debug)]
@@ -149,7 +150,7 @@ pub struct IrParser {
     var_def: HashMap<String, usize>,
     var_count: usize,
     func_def: HashMap<String, usize>,
-    curr_func: String,
+    curr_func: Option<String>,
 }
 
 impl IrParser {
@@ -160,7 +161,7 @@ impl IrParser {
             consts: Vec::new(),
             var_def: HashMap::new(),
             func_def: HashMap::new(),
-            curr_func: String::new(),
+            curr_func: None,
             var_count: 0,
         }
     }
@@ -188,16 +189,28 @@ impl IrParser {
 
     fn func_expr(&mut self, expr: &FuncExpr) -> Result<(), GenericError> {
         let funcinit = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::Jmp, None));
+        self.instrs.push(Instr::new(Opcode::SkipFunc, None));
         let func_body_init = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::PushLabel, Some(4)));
         self.func_def.insert(expr.name.clone(), func_body_init);
-        self.curr_func = expr.name.clone();
+        self.curr_func = Some(expr.name.clone());
+        
+        for e in expr.local_vars.iter() {
+            {
+                let this = &mut *self;
+                for e in e.value.iter() {
+                    this.simple_expr(e)?;
+                }
+                this.instrs
+                    .push(Instr::new(Opcode::Bind, Some(1)));
+                Ok(())
+            }?
+        }
+
         for e in expr.func_block.iter() {
             match e {
                 Expr::If(v) => self.if_expr(v)?,
                 Expr::Whlie(v) => self.while_expr(v)?,
-                Expr::Var(v) => self.var_expr(v)?,
                 _ => self.simple_expr(e)?,
             }
         }
@@ -205,7 +218,7 @@ impl IrParser {
         self.instrs.push(Instr::new(Opcode::Ret, None));
         let curr_len = self.instrs.len();
         let elem = unsafe { self.instrs.get_unchecked_mut(funcinit) };
-        *elem = Instr::new(Opcode::Jmp, Some(curr_len));
+        *elem = Instr::new(Opcode::SkipFunc, Some(curr_len));
         Ok(())
     }
 
@@ -216,9 +229,8 @@ impl IrParser {
         for e in expr.value.iter() {
             self.simple_expr(e)?;
         }
-        self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
         self.instrs
-            .push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
+            .push(Instr::new(Opcode::GlobalStore, Some(var_ptr)));
         Ok(())
     }
 
@@ -314,7 +326,6 @@ impl IrParser {
             }
             Expr::IdentExpr(val) => {
                 if let Some(v) = self.var_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 } else if let Some(v) = self.func_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::Call, Some(*v)));
@@ -324,15 +335,13 @@ impl IrParser {
             }
             Expr::Assigin(val) => {
                 if let Some(v) = self.var_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
-                    self.instrs.push(Instr::new(Opcode::InlineStore, Some(*v)));
+                    self.instrs.push(Instr::new(Opcode::GlobalStore, Some(*v)));
                 } else {
                     let var_ptr = self.var_count;
                     self.var_count += 1;
                     self.var_def.insert(val.to_string(), var_ptr);
-                    self.instrs.push(Instr::new(Opcode::PushPtr, Some(var_ptr)));
                     self.instrs
-                        .push(Instr::new(Opcode::InlineStore, Some(var_ptr)));
+                        .push(Instr::new(Opcode::GlobalStore, Some(var_ptr)));
                 }
             }
             e => generic_error!("{} is not simple expression", e),

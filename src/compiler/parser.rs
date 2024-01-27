@@ -1,10 +1,17 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    compiler::ir::IfExpr, exeptions::GenericError, generic_error, instructions::{Bytecode, Instr, Opcode}, value::{List, Value}
+    compiler::ir::IfExpr,
+    exeptions::GenericError,
+    generic_error,
+    instructions::{Bytecode, Instr, Opcode},
+    value::{List, Value},
 };
 
-use super::{ir::{BuildinOp, Expr, FuncExpr, ListLiteral, Operation, Program, VarExpr, WhileExpr}, lexer::{Lexer, Token, TokenKind}};
+use super::{
+    ir::{BuildinOp, Expr, FuncExpr, ListLiteral, Operation, Program, VarExpr, WhileExpr},
+    lexer::{Lexer, Token, TokenKind},
+};
 
 type ResTok = Result<Token, GenericError>;
 
@@ -63,8 +70,8 @@ impl Parser {
 
     fn expression(&mut self, token: Token) -> Result<Expr, GenericError> {
         let expr = match token.kind {
-            TokenKind::Pop  => Expr::Op(Box::new(Operation::Pop)),
-            TokenKind::Dup  => Expr::Op(Box::new(Operation::Dup)),
+            TokenKind::Pop => Expr::Op(Box::new(Operation::Pop)),
+            TokenKind::Dup => Expr::Op(Box::new(Operation::Dup)),
             TokenKind::Dup2 => Expr::Op(Box::new(Operation::Dup2)),
             TokenKind::Over => Expr::Op(Box::new(Operation::Over)),
             TokenKind::Swap => Expr::Op(Box::new(Operation::Swap)),
@@ -115,27 +122,38 @@ impl Parser {
     fn func(&mut self) -> Result<Expr, GenericError> {
         let name = self.expect(TokenKind::Identifier)?.value;
         let mut func_block = Vec::new();
+        let mut local_vars = Vec::new();
         self.expect(TokenKind::CurlyOpen)?;
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
+                TokenKind::Var => {
+                    let this = &mut *self;
+                    let name = this.expect(TokenKind::Identifier)?.value;
+                    let mut value: Vec<Expr> = Vec::new();
+                    loop {
+                        let tok = this.require()?;
+                        match tok.kind {
+                            TokenKind::SemiColon => break,
+                            _ => value.push(this.expression(tok)?),
+                        }
+                    }
+                    local_vars.push(VarExpr { name, value })
+                }
                 _ => func_block.push(self.expression(tok)?),
             }
         }
-        Ok(Expr::Func(Box::new(
-            FuncExpr {
-                name,
-                func_block
-            }
-        )))
+        Ok(Expr::Func(Box::new(FuncExpr {
+            name,
+            func_block,
+            local_vars,
+        })))
     }
 
     fn assigin_expr(&mut self) -> Result<Expr, GenericError> {
         let name = self.expect(TokenKind::Identifier)?.value;
-        Ok(Expr::Assigin(Box::new(
-            name
-        )))
+        Ok(Expr::Assigin(Box::new(name)))
     }
 
     fn list_expr(&mut self) -> Result<Expr, GenericError> {
@@ -154,11 +172,9 @@ impl Parser {
                 ),
             }
         }
-        Ok(Expr::ListExpr(Box::new(
-            ListLiteral {
-                value: List { elem: list }
-            }
-        )))
+        Ok(Expr::ListExpr(Box::new(ListLiteral {
+            value: List { elem: list },
+        })))
     }
 
     fn var_expr(&mut self) -> Result<Expr, GenericError> {
@@ -171,12 +187,7 @@ impl Parser {
                 _ => value.push(self.expression(tok)?),
             }
         }
-        Ok(Expr::Var(Box::new(
-            VarExpr {
-                name,
-                value,
-            }
-        )))
+        Ok(Expr::Var(Box::new(VarExpr { name, value })))
     }
 
     fn if_expr(&mut self) -> Result<Expr, GenericError> {
@@ -201,32 +212,30 @@ impl Parser {
                 TokenKind::Else => {
                     has_else = true;
                 }
-                TokenKind::Func | TokenKind::Directive => generic_error!("You cannot declareate {} here!", tok.value),
+                TokenKind::Func | TokenKind::Directive => {
+                    generic_error!("You cannot declareate {} here!", tok.value)
+                }
                 _ => {
                     if has_else {
                         else_branch.push(self.expression(tok)?)
                     } else {
                         if_branch.push(self.expression(tok)?)
                     }
-                },
+                }
             }
         }
         if has_else {
-            Ok(Expr::If(Box::new(
-                IfExpr {
-                    cond,
-                    if_branch,
-                    else_branch: Some(else_branch)
-                }
-            )))
+            Ok(Expr::If(Box::new(IfExpr {
+                cond,
+                if_branch,
+                else_branch: Some(else_branch),
+            })))
         } else {
-            Ok(Expr::If(Box::new(
-                IfExpr {
-                    cond,
-                    if_branch,
-                    else_branch: None
-                }
-            )))
+            Ok(Expr::If(Box::new(IfExpr {
+                cond,
+                if_branch,
+                else_branch: None,
+            })))
         }
     }
 
@@ -250,9 +259,7 @@ impl Parser {
                 _ => while_block.push(self.expression(tok)?),
             }
         }
-        Ok(Expr::Whlie(Box::new(
-            WhileExpr { cond, while_block }
-        )))
+        Ok(Expr::Whlie(Box::new(WhileExpr { cond, while_block })))
     }
 
     fn expect(&mut self, kind: TokenKind) -> ResTok {
@@ -528,8 +535,6 @@ impl Parser {
                 self.var_count - 1
             }
         };
-
-        self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
         loop {
             let tok = self.require()?;
             match tok.kind {
@@ -554,10 +559,8 @@ impl Parser {
                 self.var_count - 1
             }
         };
-
-        self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
         self.instrs
-            .push(Instr::new(Opcode::InlineStore, Some(v_ptr)));
+            .push(Instr::new(Opcode::GlobalStore, Some(v_ptr)));
         Ok(())
     }
 
@@ -572,7 +575,6 @@ impl Parser {
                 self.var_count - 1
             }
         };
-        self.instrs.push(Instr::new(Opcode::PushPtr, Some(v_ptr)));
         if self.peek().kind == TokenKind::BracketOpen {
             self.next();
             loop {
@@ -658,7 +660,6 @@ impl Parser {
         }
         match self.var_def.get(&token.value) {
             Some(v) => {
-                self.instrs.push(Instr::new(Opcode::PushPtr, Some(*v)));
                 self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 return Ok(());
             }
@@ -694,7 +695,9 @@ impl Parser {
                     );
                     break;
                 }
-                TokenKind::Func | TokenKind::Directive => generic_error!("You cannot declareate {} here!", tok.value),
+                TokenKind::Func | TokenKind::Directive => {
+                    generic_error!("You cannot declareate {} here!", tok.value)
+                }
                 _ => self.parse_all(tok, d + 1)?,
             }
         }
