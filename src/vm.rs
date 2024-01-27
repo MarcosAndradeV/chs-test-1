@@ -43,15 +43,6 @@ impl CHSVM {
         }
         let instr = self.program[self.ip];
         match instr.kind {
-            Opcode::PushPtr => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("OPERAND_NOT_PROVIDED"),
-                };
-                self.push_stack(Value::Ptr(addrs).into())?;
-                self.ip += 1;
-                return Ok(());
-            }
             Opcode::Const => {
                 let addrs = match instr.operands {
                     Some(v) => v,
@@ -277,16 +268,25 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::PushLabel => {
-                self.return_stack.push(self.ip);
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::DropLabel => {
-                self.return_stack.pop();
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::Jmp => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                };
+                if addrs > self.program.len() {
+                    vm_error!("Address out of bounds.")
+                }
+                self.ip = addrs;
+                Ok(())
+            }
+            Opcode::SkipFunc => {
                 let addrs = match instr.operands {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind)
@@ -426,7 +426,10 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::GlobalLoad => {
-                let addrs = self.stack_pop_ptr()?;
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("OPERAND_NOT_PROVIDED"),
+                };
                 let val = match self.memory.get(addrs) {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind)
@@ -436,17 +439,15 @@ impl CHSVM {
                 Ok(())
             }
             Opcode::GlobalStore => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("OPERAND_NOT_PROVIDED"),
+                };
                 let value = self.stack_pop()?;
-                let addrs = self.stack_pop_ptr()?;
-                if addrs > self.memory.len() { vm_error!("") }
-                self.memory[addrs] = value;
-                self.ip += 1;
-                Ok(())
-            }
-            Opcode::InlineStore => {
-                let addrs = self.stack_pop_ptr()?;
-                let value = self.stack_pop()?;
-                if addrs > self.memory.len() { vm_error!("") }
+                if addrs > self.memory.len() {
+                    let mem = self.memory.len();
+                    self.memory.resize(mem+MEM_CAPACITY, Rc::new(Value::Nil));
+                }
                 self.memory[addrs] = value;
                 self.ip += 1;
                 Ok(())
