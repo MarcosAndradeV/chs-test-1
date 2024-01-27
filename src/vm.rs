@@ -267,14 +267,6 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::PushLabel => {
-                self.ip += 1;
-                return Ok(());
-            }
-            Opcode::DropLabel => {
-                self.ip += 1;
-                return Ok(());
-            }
             Opcode::Jmp => {
                 let addrs = match instr.operands {
                     Some(v) => v,

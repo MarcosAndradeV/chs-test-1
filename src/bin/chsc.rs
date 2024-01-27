@@ -1,6 +1,6 @@
 use std::{io, process};
 
-use chs::{compiler::{ir::{IrParser, Program}, lexer::lex_file, parser::Parser, type_checker::type_check_program}, instructions::Bytecode, vm::CHSVM};
+use chs::{compiler::{ir::{IrParser, Program}, lexer::lex_file, parser::Parser}, instructions::Bytecode, vm::CHSVM};
 use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{
@@ -22,14 +22,6 @@ fn main() -> io::Result<()>{
                         .short('d')
                         .action(ArgAction::SetTrue)
                         .help("Runs with debug mode"))
-                .arg(
-                    Arg::new("check")
-                        .long("check")
-                        .short('c')
-                        .action(ArgAction::SetTrue)
-                        .help("Runs with type check mode")),
-                
-
         )
         .get_matches();
 
@@ -56,15 +48,6 @@ fn main() -> io::Result<()>{
                         process::exit(1);
                     },
                 };
-                if file_matches.get_flag("check") {
-                    match type_check_program(&bytecode) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            eprintln!("{}", e);
-                            process::exit(1);
-                        }
-                    }
-                }
                 let mut vm = CHSVM::new(bytecode);
                 vm.run(file_matches.get_flag("debug"));
                 return Ok(());

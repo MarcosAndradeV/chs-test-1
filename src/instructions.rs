@@ -34,9 +34,6 @@ pub enum Opcode {
     PushBind,
     Unbind,
     
-    PushLabel,
-    DropLabel,
-    
     Jmp,
     JmpIf,
     

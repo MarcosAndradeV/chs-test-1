@@ -191,7 +191,6 @@ impl IrParser {
         let funcinit = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::SkipFunc, None));
         let func_body_init = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::PushLabel, Some(4)));
         self.func_def.insert(expr.name.clone(), func_body_init);
         self.curr_func = Some(expr.name.clone());
         
@@ -214,7 +213,6 @@ impl IrParser {
                 _ => self.simple_expr(e)?,
             }
         }
-        self.instrs.push(Instr::new(Opcode::DropLabel, Some(4)));
         self.instrs.push(Instr::new(Opcode::Ret, None));
         let curr_len = self.instrs.len();
         let elem = unsafe { self.instrs.get_unchecked_mut(funcinit) };
@@ -235,7 +233,6 @@ impl IrParser {
     }
 
     fn while_expr(&mut self, expr: &WhileExpr) -> Result<(), GenericError> {
-        self.instrs.push(Instr::new(Opcode::PushLabel, Some(3)));
         let whileaddrs = self.instrs.len();
         for e in expr.cond.iter() {
             self.simple_expr(e)?;
@@ -254,12 +251,10 @@ impl IrParser {
         let curr_len = self.instrs.len();
         let elem = unsafe { self.instrs.get_unchecked_mut(ifaddrs) };
         *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
-        self.instrs.push(Instr::new(Opcode::DropLabel, Some(3)));
         Ok(())
     }
 
     fn if_expr(&mut self, expr: &IfExpr) -> Result<(), GenericError> {
-        self.instrs.push(Instr::new(Opcode::PushLabel, Some(1)));
         for e in expr.cond.iter() {
             self.simple_expr(e)?;
         }
@@ -274,7 +269,6 @@ impl IrParser {
             }
         }
         if let Some(vec) = &expr.else_branch {
-            self.instrs.push(Instr::new(Opcode::PushLabel, Some(2)));
             offset2 = self.instrs.len();
             self.instrs.push(Instr::new(Opcode::Jmp, None));
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
@@ -291,11 +285,9 @@ impl IrParser {
         if expr.else_branch.is_some() {
             let elem = unsafe { self.instrs.get_unchecked_mut(offset2) };
             *elem = Instr::new(Opcode::Jmp, Some(curr_len));
-            self.instrs.push(Instr::new(Opcode::DropLabel, Some(2)));
         } else {
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
             *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
-            self.instrs.push(Instr::new(Opcode::DropLabel, Some(1)));
         }
         Ok(())
     }
