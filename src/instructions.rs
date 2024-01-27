@@ -7,9 +7,9 @@ pub enum Opcode {
     Halt = 0,
 
     Const,
-    PushPtr,
     Call,
     Ret,
+    SkipFunc,
 
     Pop,
     Dup,
@@ -50,7 +50,6 @@ pub enum Opcode {
     Nop,
     
     GlobalStore,
-    InlineStore,
     GlobalLoad,
 
     Buildin
