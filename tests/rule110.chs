@@ -1,6 +1,6 @@
 # Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
 
-var BOARD_SIZE 100;
+var BOARD_SIZE 30;
 var board ();
 board BOARD_SIZE 1 - 1 idxset := board
 
