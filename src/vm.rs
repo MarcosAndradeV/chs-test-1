@@ -10,14 +10,12 @@ use crate::vm_error;
 
 #[derive(Debug)]
 pub struct CHSVM {
-    pub stack: Vec<Rc<Value>>,
-    pub return_stack: Vec<usize>,
-    pub consts: Rc<[Value]>,
-    pub memory: Vec<Rc<Value>>,
-    pub is_halted: bool,
-    pub ip: usize,
+    stack: Vec<Rc<Value>>,
+    return_stack: Vec<usize>,
+    memory: Vec<Rc<Value>>,
+    ip: usize,
     sp: usize,
-    program: Vec<Instr>,
+    program: Bytecode
 }
 
 impl CHSVM {
@@ -27,28 +25,21 @@ impl CHSVM {
         Self {
             stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
-            consts: program.consts.into(),
             memory,
             sp: 0,
             ip: 0,
-            is_halted: false,
-            program: program.program,
+            program
         }
     }
-    pub fn execute_next_instr(&mut self) -> Result<(), VMError> {
-        if self.ip >= self.program.len() {
-            // return Err(VMError::ProgramEndWithoutHalt);
-            self.is_halted = true;
-            return Ok(());
-        }
-        let instr = self.program[self.ip];
+    pub fn execute_instr(&mut self, instr: Instr) -> Result<(), VMError> {
+
         match instr.kind {
             Opcode::Const => {
                 let addrs = match instr.operands {
                     Some(v) => v,
                     None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
-                let val = match self.consts.get(addrs) {
+                let val = match self.program.consts.get(addrs) {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
@@ -278,40 +269,6 @@ impl CHSVM {
                 self.ip = addrs;
                 Ok(())
             }
-            Opcode::SkipFunc => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
-                };
-                if addrs > self.program.len() {
-                    vm_error!("Address out of bounds.")
-                }
-                self.ip = addrs;
-                Ok(())
-            }
-            Opcode::Call => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
-                };
-                if addrs > self.program.len() {
-                    vm_error!("Address out of bounds.")
-                }
-                self.return_stack.push(self.ip+1);
-                self.ip = addrs;
-                Ok(())
-            }
-            Opcode::Ret => {
-                if self.return_stack.len() < 1 {
-                    vm_error!("Not address for Ret.")
-                }
-                if let Some(v) = self.return_stack.pop() {
-                    self.ip = v;
-                    Ok(())
-                } else {
-                    vm_error!("Cannot return!")
-                }
-            }
             Opcode::JmpIf => {
                 let op_1 = self.stack_pop_bool()?;
                 if op_1 {
@@ -523,7 +480,6 @@ impl CHSVM {
                 }
             }
             Opcode::Halt => {
-                self.is_halted = true;
                 return Ok(());
             }
         }
@@ -531,16 +487,19 @@ impl CHSVM {
 
     pub fn run(&mut self, debug: bool) {
         if debug {
-            for (i, e) in self.program.iter().enumerate() {
+            for (i, e) in self.program.program.iter().enumerate() {
                 println!("{} -> {:?}", i, e);
             }
         }
-        while !self.is_halted {
-            
-            match self.execute_next_instr() {
+        loop {
+            if self.ip >= self.program.len() {
+                break;
+            }
+            let instr = self.program.program[self.ip];
+            match self.execute_instr(instr) {
                 Ok(_) => {} // {println!("{:?} at {} {:?}", self.return_stack, self.ip, self.program.get(self.ip));}
                 Err(e) => {
-                    eprintln!("It's a trap: {} at {} {:?}", e, self.ip, self.program[self.ip]);
+                    eprintln!("It's a trap: {} at {} {:?}", e, self.ip, self.program.program[self.ip]);
                     break;
                 }
             }

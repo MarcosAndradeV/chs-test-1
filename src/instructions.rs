@@ -7,9 +7,6 @@ pub enum Opcode {
     Halt = 0,
 
     Const,
-    Call,
-    Ret,
-    SkipFunc,
 
     Pop,
     Dup,
@@ -28,7 +25,6 @@ pub enum Opcode {
     Bitand,
     Lor,
     Land,
-    
     
     Bind,
     PushBind,
@@ -163,4 +159,5 @@ pub struct Bytecode {
 
 impl Bytecode {
     pub fn new(program: Vec<Instr>, consts: Vec<Value>) -> Self { Self { program, consts } }
+    pub fn len(&self) -> usize { self.program.len() }
 }

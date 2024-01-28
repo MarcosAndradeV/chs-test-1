@@ -20,10 +20,6 @@ pub enum TokenKind {
 
     IdxGet,
     IdxSet,
-
-    Directive,
-    Def,
-    Include,
     
     Invalid,
     Null,
@@ -38,7 +34,6 @@ pub enum TokenKind {
     Print,
     Println,
     Debug,
-    Func,
     
     If,
     Else,
@@ -177,7 +172,6 @@ impl Lexer {
             b')' => self.make_token(TokenKind::ParenClose),
             b'[' => self.make_token(TokenKind::BracketOpen),
             b']' => self.make_token(TokenKind::BracketClose),
-            b'%' => self.make_token(TokenKind::Directive),
             b';' => self.make_token(TokenKind::SemiColon),
             _ => {
                 if self.has_next() {
@@ -317,7 +311,6 @@ impl Lexer {
                 "dup" => TokenKind::Dup,
                 "hlt" => TokenKind::Hlt,
                 "mod" => TokenKind::Mod,
-                "def" => TokenKind::Def,
                 "var" => TokenKind::Var,
                 "set" => TokenKind::Set,
                 "len" => TokenKind::Len,
@@ -328,7 +321,6 @@ impl Lexer {
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
-                "func" => TokenKind::Func,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
@@ -343,7 +335,6 @@ impl Lexer {
                 _ => TokenKind::Identifier
             }
             7 => match value.as_str() {
-                "include" => TokenKind::Include,
                 "println" => TokenKind::Println,
                 _ => TokenKind::Identifier
             }

@@ -76,13 +76,6 @@ pub struct WhileExpr {
 }
 
 #[derive(Debug)]
-pub struct FuncExpr {
-    pub name: String,
-    pub func_block: Expressions,
-    pub local_vars: Vec<VarExpr>,
-}
-
-#[derive(Debug)]
 pub struct VarExpr {
     pub name: String,
     pub value: Expressions,
@@ -103,7 +96,6 @@ pub enum Expr {
     IdentExpr(Box<String>),
     If(Box<IfExpr>),
     Whlie(Box<WhileExpr>),
-    Func(Box<FuncExpr>),
     Var(Box<VarExpr>),
     Assigin(Box<String>),
     Set,
@@ -119,7 +111,6 @@ impl fmt::Display for Expr {
             Expr::StrExpr(_) => write!(f, "StrExpr"),
             Expr::If(_) => write!(f, "If"),
             Expr::Whlie(_) => write!(f, "Whlie"),
-            Expr::Func(_) => write!(f, "Func"),
             Expr::Var(_) => write!(f, "Var"),
             Expr::ListExpr(_) => write!(f, "ListExpr"),
             Expr::IdentExpr(_) => write!(f, "Identifier"),
@@ -149,8 +140,6 @@ pub struct IrParser {
     consts: Vec<Value>,
     var_def: HashMap<String, usize>,
     var_count: usize,
-    func_def: HashMap<String, usize>,
-    curr_func: Option<String>,
 }
 
 impl IrParser {
@@ -160,8 +149,6 @@ impl IrParser {
             instrs: Vec::new(),
             consts: Vec::new(),
             var_def: HashMap::new(),
-            func_def: HashMap::new(),
-            curr_func: None,
             var_count: 0,
         }
     }
@@ -169,16 +156,11 @@ impl IrParser {
     pub fn parse(&mut self) -> Result<Bytecode, GenericError> {
         while let Some(expr) = self.program.next() {
             match expr {
-                Expr::If(v) => self.if_expr(v.as_ref())?,
-                Expr::Whlie(v) => self.while_expr(v.as_ref())?,
-                Expr::Var(v) => self.var_expr(v.as_ref())?,
-                Expr::Func(v) => self.func_expr(v.as_ref())?,
-                _ => self.simple_expr(&expr)?,
+                Expr::If(v) => self.if_expr(*v)?,
+                Expr::Whlie(v) => self.while_expr(*v)?,
+                Expr::Var(v) => self.var_expr(*v)?,
+                _ => self.simple_expr(expr)?,
             }
-        }
-
-        if let Some(main) = self.func_def.get("main") {
-            self.instrs.push(Instr::new(Opcode::Call, Some(*main)));
         }
 
         Ok(Bytecode {
@@ -187,44 +169,11 @@ impl IrParser {
         })
     }
 
-    fn func_expr(&mut self, expr: &FuncExpr) -> Result<(), GenericError> {
-        let funcinit = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::SkipFunc, None));
-        let func_body_init = self.instrs.len();
-        self.func_def.insert(expr.name.clone(), func_body_init);
-        self.curr_func = Some(expr.name.clone());
-        
-        for e in expr.local_vars.iter() {
-            {
-                let this = &mut *self;
-                for e in e.value.iter() {
-                    this.simple_expr(e)?;
-                }
-                this.instrs
-                    .push(Instr::new(Opcode::Bind, Some(1)));
-                Ok(())
-            }?
-        }
-
-        for e in expr.func_block.iter() {
-            match e {
-                Expr::If(v) => self.if_expr(v)?,
-                Expr::Whlie(v) => self.while_expr(v)?,
-                _ => self.simple_expr(e)?,
-            }
-        }
-        self.instrs.push(Instr::new(Opcode::Ret, None));
-        let curr_len = self.instrs.len();
-        let elem = unsafe { self.instrs.get_unchecked_mut(funcinit) };
-        *elem = Instr::new(Opcode::SkipFunc, Some(curr_len));
-        Ok(())
-    }
-
-    fn var_expr(&mut self, expr: &VarExpr) -> Result<(), GenericError> {
+    fn var_expr(&mut self, expr: VarExpr) -> Result<(), GenericError> {
         let var_ptr = self.var_count;
         self.var_count += 1;
         self.var_def.insert(expr.name.clone(), var_ptr);
-        for e in expr.value.iter() {
+        for e in expr.value.into_iter() {
             self.simple_expr(e)?;
         }
         self.instrs
@@ -232,18 +181,18 @@ impl IrParser {
         Ok(())
     }
 
-    fn while_expr(&mut self, expr: &WhileExpr) -> Result<(), GenericError> {
+    fn while_expr(&mut self, expr: WhileExpr) -> Result<(), GenericError> {
         let whileaddrs = self.instrs.len();
-        for e in expr.cond.iter() {
+        for e in expr.cond.into_iter() {
             self.simple_expr(e)?;
         }
         let ifaddrs = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::JmpIf, None));
-        for e in expr.while_block.iter() {
+        for e in expr.while_block.into_iter() {
             match e {
-                Expr::If(v) => self.if_expr(v)?,
-                Expr::Whlie(v) => self.while_expr(v)?,
-                Expr::Var(v) => self.var_expr(v)?,
+                Expr::If(v) => self.if_expr(*v)?,
+                Expr::Whlie(v) => self.while_expr(*v)?,
+                Expr::Var(v) => self.var_expr(*v)?,
                 _ => self.simple_expr(e)?,
             }
         }
@@ -254,45 +203,43 @@ impl IrParser {
         Ok(())
     }
 
-    fn if_expr(&mut self, expr: &IfExpr) -> Result<(), GenericError> {
-        for e in expr.cond.iter() {
+    fn if_expr(&mut self, expr: IfExpr) -> Result<(), GenericError> {
+        for e in expr.cond.into_iter() {
             self.simple_expr(e)?;
         }
         let offset = self.instrs.len();
-        let mut offset2 = 0;
         self.instrs.push(Instr::new(Opcode::JmpIf, None));
-        for e in expr.if_branch.iter() {
+        for e in expr.if_branch.into_iter() {
             match e {
-                Expr::If(v) => self.if_expr(v)?,
-                Expr::Whlie(v) => self.while_expr(v)?,
+                Expr::If(v) => self.if_expr(*v)?,
+                Expr::Whlie(v) => self.while_expr(*v)?,
                 _ => self.simple_expr(e)?,
             }
         }
-        if let Some(vec) = &expr.else_branch {
-            offset2 = self.instrs.len();
+        if let Some(vec) = expr.else_branch {
+            let offset2 = self.instrs.len();
             self.instrs.push(Instr::new(Opcode::Jmp, None));
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
             *elem = Instr::new(Opcode::JmpIf, Some(offset2 + 1));
-            for e in vec.iter() {
+            for e in vec.into_iter() {
                 match e {
-                    Expr::If(v) => self.if_expr(v)?,
-                    Expr::Whlie(v) => self.while_expr(v)?,
+                    Expr::If(v) => self.if_expr(*v)?,
+                    Expr::Whlie(v) => self.while_expr(*v)?,
                     _ => self.simple_expr(e)?,
                 }
             }
-        }
-        let curr_len = self.instrs.len();
-        if expr.else_branch.is_some() {
+            let curr_len = self.instrs.len();
             let elem = unsafe { self.instrs.get_unchecked_mut(offset2) };
             *elem = Instr::new(Opcode::Jmp, Some(curr_len));
         } else {
+            let curr_len = self.instrs.len();
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
             *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
         }
         Ok(())
     }
 
-    fn simple_expr(&mut self, expr: &Expr) -> Result<(), GenericError> {
+    fn simple_expr(&mut self, expr: Expr) -> Result<(), GenericError> {
         match expr {
             Expr::IntExpr(v) => {
                 self.consts.push(Value::Int64(v.parse().unwrap()));
@@ -319,8 +266,6 @@ impl IrParser {
             Expr::IdentExpr(val) => {
                 if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
-                } else if let Some(v) = self.func_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::Call, Some(*v)));
                 } else {
                     generic_error!("{} is not defined", val.to_string())
                 }

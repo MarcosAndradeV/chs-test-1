@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    ir::{BuildinOp, Expr, FuncExpr, ListLiteral, Operation, Program, VarExpr, WhileExpr},
+    ir::{BuildinOp, Expr, ListLiteral, Operation, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
@@ -87,43 +87,10 @@ impl Parser {
             TokenKind::Var => self.var_expr()?,
             TokenKind::Assing => self.assigin_expr()?,
             TokenKind::ParenOpen => self.list_expr()?,
-            TokenKind::Func => self.func()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
-    }
-
-    fn func(&mut self) -> Result<Expr, GenericError> {
-        let name = self.expect(TokenKind::Identifier)?.value;
-        let mut func_block = Vec::new();
-        let mut local_vars = Vec::new();
-        self.expect(TokenKind::CurlyOpen)?;
-        loop {
-            let tok = self.require()?;
-            match tok.kind {
-                TokenKind::CurlyClose => break,
-                TokenKind::Var => {
-                    let this = &mut *self;
-                    let name = this.expect(TokenKind::Identifier)?.value;
-                    let mut value: Vec<Expr> = Vec::new();
-                    loop {
-                        let tok = this.require()?;
-                        match tok.kind {
-                            TokenKind::SemiColon => break,
-                            _ => value.push(this.expression(tok)?),
-                        }
-                    }
-                    local_vars.push(VarExpr { name, value })
-                }
-                _ => func_block.push(self.expression(tok)?),
-            }
-        }
-        Ok(Expr::Func(Box::new(FuncExpr {
-            name,
-            func_block,
-            local_vars,
-        })))
     }
 
     fn assigin_expr(&mut self) -> Result<Expr, GenericError> {
@@ -186,9 +153,6 @@ impl Parser {
                 TokenKind::CurlyClose => break,
                 TokenKind::Else => {
                     has_else = true;
-                }
-                TokenKind::Func | TokenKind::Directive => {
-                    generic_error!("You cannot declareate {} here!", tok.value)
                 }
                 _ => {
                     if has_else {
