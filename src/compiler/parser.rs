@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    ir::{BuildinOp, Expr, ListLiteral, Operation, Program, VarExpr, WhileExpr},
+    ir::{BuildinOp, Expr, ListLiteral, Operation, PeekExpr, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
@@ -87,10 +87,41 @@ impl Parser {
             TokenKind::Var => self.var_expr()?,
             TokenKind::Assing => self.assigin_expr()?,
             TokenKind::ParenOpen => self.list_expr()?,
+            TokenKind::Peek => self.peek_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
+    }
+
+    fn peek_expr(&mut self) -> Result<Expr, GenericError> {
+        let mut names = vec![];
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyOpen => {
+                    if names.len() == 0 { generic_error!("Peek expect at least 1 identifier.") }
+                    break;
+                }
+                TokenKind::Identifier => names.push(tok.value),
+                _ => generic_error!("")
+            }
+        }
+        let mut body = vec![];
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => break,
+                _ => body.push(self.expression(tok)?),
+            }
+        }
+        
+        Ok(Expr::Peek(Box::new(
+            PeekExpr {
+                names,
+                body
+            }
+        )))
     }
 
     fn assigin_expr(&mut self) -> Result<Expr, GenericError> {

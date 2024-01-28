@@ -1,6 +1,6 @@
+use core::fmt;
+
 use crate::{compiler::ir::Operation, value::Value};
-
-
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Opcode {
@@ -13,7 +13,7 @@ pub enum Opcode {
     Dup2,
     Swap,
     Over,
-    
+
     Add,
     Minus,
     Mul,
@@ -25,27 +25,27 @@ pub enum Opcode {
     Bitand,
     Lor,
     Land,
-    
+
     Bind,
     PushBind,
     Unbind,
-    
+
     Jmp,
     JmpIf,
-    
+
     Eq,
     Neq,
     Gt,
     Lt,
     Gte,
     Lte,
-    
+
     Nop,
-    
+
     GlobalStore,
     GlobalLoad,
 
-    Buildin
+    Buildin,
 }
 
 impl From<&Operation> for Opcode {
@@ -135,7 +135,7 @@ impl From<usize> for Builtin {
             19 => Self::SRead,
             20 => Self::GetSyscalls,
             21 => Self::Syscall,
-            _  => Self::Invalid
+            _ => Self::Invalid,
         }
     }
 }
@@ -144,6 +144,16 @@ impl From<usize> for Builtin {
 pub struct Instr {
     pub kind: Opcode,
     pub operands: Option<usize>,
+}
+
+impl fmt::Display for Instr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(v) = self.operands {
+            write!(f, "{:?}({})", self.kind, v)
+        } else {
+            write!(f, "{:?}", self.kind)
+        }
+    }
 }
 
 impl Instr {
@@ -158,6 +168,10 @@ pub struct Bytecode {
 }
 
 impl Bytecode {
-    pub fn new(program: Vec<Instr>, consts: Vec<Value>) -> Self { Self { program, consts } }
-    pub fn len(&self) -> usize { self.program.len() }
+    pub fn new(program: Vec<Instr>, consts: Vec<Value>) -> Self {
+        Self { program, consts }
+    }
+    pub fn len(&self) -> usize {
+        self.program.len()
+    }
 }

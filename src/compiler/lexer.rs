@@ -14,6 +14,7 @@ pub enum TokenKind {
     Whitespace,
 
     Var,
+    Peek,
     Set,
     Assing,
     Len,
@@ -321,6 +322,7 @@ impl Lexer {
                 "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
+                "peek" => TokenKind::Peek,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {

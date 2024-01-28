@@ -1,21 +1,20 @@
 use std::ops::Deref;
 use std::rc::Rc;
 
+use crate::config::{MEM_CAPACITY, STACK_CAPACITY};
 use crate::exeptions::VMError;
-use crate::config::{STACK_CAPACITY, MEM_CAPACITY};
-use crate::value::Value;
 use crate::instructions::{Builtin, Bytecode, Instr, Opcode};
+use crate::value::Value;
 use crate::vm_error;
-
 
 #[derive(Debug)]
 pub struct CHSVM {
     stack: Vec<Rc<Value>>,
-    return_stack: Vec<usize>,
+    return_stack: Vec<Rc<Value>>,
     memory: Vec<Rc<Value>>,
     ip: usize,
     sp: usize,
-    program: Bytecode
+    program: Bytecode,
 }
 
 impl CHSVM {
@@ -28,11 +27,10 @@ impl CHSVM {
             memory,
             sp: 0,
             ip: 0,
-            program
+            program,
         }
     }
     pub fn execute_instr(&mut self, instr: Instr) -> Result<(), VMError> {
-
         match instr.kind {
             Opcode::Const => {
                 let addrs = match instr.operands {
@@ -54,7 +52,8 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Dup2 => { // a b -> a b a b
+            Opcode::Dup2 => {
+                // a b -> a b a b
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_1.clone())?;
@@ -64,7 +63,8 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Swap => { // a b -> b a
+            Opcode::Swap => {
+                // a b -> b a
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_2)?; // b
@@ -72,7 +72,8 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Over => { // a b -> a b a
+            Opcode::Over => {
+                // a b -> a b a
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(op_1.clone())?; // a
@@ -81,7 +82,8 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Pop => { // a -> _
+            Opcode::Pop => {
+                // a -> _
                 let _ = self.stack_pop()?;
                 self.ip += 1;
                 return Ok(());
@@ -90,24 +92,22 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
+                if op_1.is_ptr() || op_2.is_ptr() {
+                    vm_error!("")
+                }
 
                 match *op_1 {
-                    Value::Int64(v) => {
-                        match *op_2 {
-                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v + o)))? }
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Int64(v + o as i64)))? }
-                            _ => vm_error!("")
-                        }
-                    }
-                    Value::Uint64(v) => {
-                        match *op_2 {
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o)))? }
-                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Uint64(v + o as u64)))? }
-                            _ => vm_error!("")
-                        }
-                    }
-                    _ => vm_error!("")
+                    Value::Int64(v) => match *op_2 {
+                        Value::Int64(o) => self.push_stack(Rc::new(Value::Int64(v + o)))?,
+                        Value::Uint64(o) => self.push_stack(Rc::new(Value::Int64(v + o as i64)))?,
+                        _ => vm_error!(""),
+                    },
+                    Value::Uint64(v) => match *op_2 {
+                        Value::Uint64(o) => self.push_stack(Rc::new(Value::Uint64(v + o)))?,
+                        Value::Int64(o) => self.push_stack(Rc::new(Value::Uint64(v + o as u64)))?,
+                        _ => vm_error!(""),
+                    },
+                    _ => vm_error!(""),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -116,24 +116,22 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
+                if op_1.is_ptr() || op_2.is_ptr() {
+                    vm_error!("")
+                }
 
                 match *op_1 {
-                    Value::Int64(v) => {
-                        match *op_2 {
-                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v - o)))? }
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Int64(v - o as i64)))? }
-                            _ => vm_error!("")
-                        }
-                    }
-                    Value::Uint64(v) => {
-                        match *op_2 {
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v - o)))? }
-                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Uint64(v - o as u64)))? }
-                            _ => vm_error!("")
-                        }
-                    }
-                    _ => vm_error!("")
+                    Value::Int64(v) => match *op_2 {
+                        Value::Int64(o) => self.push_stack(Rc::new(Value::Int64(v - o)))?,
+                        Value::Uint64(o) => self.push_stack(Rc::new(Value::Int64(v - o as i64)))?,
+                        _ => vm_error!(""),
+                    },
+                    Value::Uint64(v) => match *op_2 {
+                        Value::Uint64(o) => self.push_stack(Rc::new(Value::Uint64(v - o)))?,
+                        Value::Int64(o) => self.push_stack(Rc::new(Value::Uint64(v - o as u64)))?,
+                        _ => vm_error!(""),
+                    },
+                    _ => vm_error!(""),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -142,24 +140,22 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
+                if op_1.is_ptr() || op_2.is_ptr() {
+                    vm_error!("")
+                }
 
                 match *op_1 {
-                    Value::Int64(v) => {
-                        match *op_2 {
-                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Int64(v * o)))? }
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Int64(v * o as i64)))? }
-                            _ => vm_error!("")
-                        }
-                    }
-                    Value::Uint64(v) => {
-                        match *op_2 {
-                            Value::Uint64(o) => { self.push_stack(Rc::new(Value::Uint64(v * o)))? }
-                            Value::Int64(o) => { self.push_stack(Rc::new(Value::Uint64(v * o as u64)))? }
-                            _ => vm_error!("")
-                        }
-                    }
-                    _ => vm_error!("")
+                    Value::Int64(v) => match *op_2 {
+                        Value::Int64(o) => self.push_stack(Rc::new(Value::Int64(v * o)))?,
+                        Value::Uint64(o) => self.push_stack(Rc::new(Value::Int64(v * o as i64)))?,
+                        _ => vm_error!(""),
+                    },
+                    Value::Uint64(v) => match *op_2 {
+                        Value::Uint64(o) => self.push_stack(Rc::new(Value::Uint64(v * o)))?,
+                        Value::Int64(o) => self.push_stack(Rc::new(Value::Uint64(v * o as u64)))?,
+                        _ => vm_error!(""),
+                    },
+                    _ => vm_error!(""),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -168,24 +164,42 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
+                if op_1.is_ptr() || op_2.is_ptr() {
+                    vm_error!("")
+                }
 
                 match *op_1 {
-                    Value::Int64(v) => {
-                        match *op_2 {
-                            Value::Int64(o) => { if o == 0 { vm_error!("") } self.push_stack(Rc::new(Value::Int64(v / o)))? }
-                            Value::Uint64(o) => { if o == 0 { vm_error!("") }self.push_stack(Rc::new(Value::Int64(v / o as i64)))? }
-                            _ => vm_error!("")
+                    Value::Int64(v) => match *op_2 {
+                        Value::Int64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Int64(v / o)))?
                         }
-                    }
-                    Value::Uint64(v) => {
-                        match *op_2 {
-                            Value::Uint64(o) => {if o == 0 { vm_error!("") } self.push_stack(Rc::new(Value::Uint64(v / o)))? }
-                            Value::Int64(o) =>  { if o == 0 { vm_error!("") } self.push_stack(Rc::new(Value::Uint64(v / o as u64)))? }
-                            _ => vm_error!("")
+                        Value::Uint64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Int64(v / o as i64)))?
                         }
-                    }
-                    _ => vm_error!("")
+                        _ => vm_error!(""),
+                    },
+                    Value::Uint64(v) => match *op_2 {
+                        Value::Uint64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Uint64(v / o)))?
+                        }
+                        Value::Int64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Uint64(v / o as u64)))?
+                        }
+                        _ => vm_error!(""),
+                    },
+                    _ => vm_error!(""),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -194,24 +208,42 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() { vm_error!("") }
+                if op_1.is_ptr() || op_2.is_ptr() {
+                    vm_error!("")
+                }
 
                 match *op_1 {
-                    Value::Int64(v) => {
-                        match *op_2 {
-                            Value::Int64(o) => { if o == 0 { vm_error!("") } self.push_stack(Rc::new(Value::Int64(v % o)))? }
-                            Value::Uint64(o) => { if o == 0 { vm_error!("") }self.push_stack(Rc::new(Value::Int64(v % o as i64)))? }
-                            _ => vm_error!("")
+                    Value::Int64(v) => match *op_2 {
+                        Value::Int64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Int64(v % o)))?
                         }
-                    }
-                    Value::Uint64(v) => {
-                        match *op_2 {
-                            Value::Uint64(o) => {if o == 0 { vm_error!("") } self.push_stack(Rc::new(Value::Uint64(v % o)))? }
-                            Value::Int64(o) =>  { if o == 0 { vm_error!("") } self.push_stack(Rc::new(Value::Uint64(v % o as u64)))? }
-                            _ => vm_error!("")
+                        Value::Uint64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Int64(v % o as i64)))?
                         }
-                    }
-                    _ => vm_error!("")
+                        _ => vm_error!(""),
+                    },
+                    Value::Uint64(v) => match *op_2 {
+                        Value::Uint64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Uint64(v % o)))?
+                        }
+                        Value::Int64(o) => {
+                            if o == 0 {
+                                vm_error!("")
+                            }
+                            self.push_stack(Rc::new(Value::Uint64(v % o as u64)))?
+                        }
+                        _ => vm_error!(""),
+                    },
+                    _ => vm_error!(""),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -261,7 +293,7 @@ impl CHSVM {
             Opcode::Jmp => {
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 if addrs > self.program.len() {
                     vm_error!("Address out of bounds.")
@@ -277,7 +309,7 @@ impl CHSVM {
                 }
                 let addrs = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 if addrs > self.program.len() {
                     vm_error!("Address out of bounds.")
@@ -301,7 +333,8 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Gt => { // a b > -> a > b 
+            Opcode::Gt => {
+                // a b > -> a > b
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
                 self.push_stack(Value::Bool(op_1 > op_2).into())?;
@@ -332,34 +365,39 @@ impl CHSVM {
             Opcode::Bind => {
                 let q: usize = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 if q <= self.stack.len() {
                     for _ in 0..q {
-                        let value = self.stack_pop_ptr()?;
+                        let value = self.stack_pop()?;
                         self.return_stack.push(value);
                     }
+                    self.ip += 1;
                     return Ok(());
                 }
-                vm_error!("Bind")
+                vm_error!(
+                    "Not enough items on the data stack for bind\nNeed [{}] encountered [{}]",
+                    q,
+                    self.stack.len()
+                )
             }
             Opcode::PushBind => {
                 let q: usize = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("PushBind 1")
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
-                let local = match self.return_stack.iter().rev().nth(q-1) {
-                    Some(v) => *v,
-                    None => vm_error!("PushBind 2"),
-                };
-                self.push_stack(Value::Ptr(local).into())?;
-                self.ip += 1;
-                return Ok(());
+                if let Some(local) = self.return_stack.get(q) {
+                    self.push_stack(local.clone())?;
+                    self.ip += 1;
+                    return Ok(());
+                } else {
+                    vm_error!("return stack underflow")
+                }
             }
             Opcode::Unbind => {
                 let q: usize = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 if q > self.return_stack.len() {
                     vm_error!("")
@@ -381,7 +419,7 @@ impl CHSVM {
                 };
                 let val = match self.memory.get(addrs) {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 self.push_stack(Rc::clone(val))?;
                 self.ip += 1;
@@ -395,7 +433,7 @@ impl CHSVM {
                 let value = self.stack_pop()?;
                 if addrs > self.memory.len() {
                     let mem = self.memory.len();
-                    self.memory.resize(mem+MEM_CAPACITY, Rc::new(Value::Nil));
+                    self.memory.resize(mem + MEM_CAPACITY, Rc::new(Value::Nil));
                 }
                 self.memory[addrs] = value;
                 self.ip += 1;
@@ -404,22 +442,24 @@ impl CHSVM {
             Opcode::Buildin => {
                 let typ: usize = match instr.operands {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind)
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 let buildin = Builtin::from(typ);
-                if buildin.is_invalid() { vm_error!("") }
+                if buildin.is_invalid() {
+                    vm_error!("")
+                }
                 match buildin {
                     Builtin::IdxGet => {
                         let idx = self.stack_pop()?;
                         let list = self.stack_pop()?;
                         let val = match list.get_indexed(&idx) {
                             Ok(v) => v,
-                            Err(e) => vm_error!("{}", e)
+                            Err(e) => vm_error!("{}", e),
                         };
                         self.push_stack(val)?;
                         self.ip += 1;
-                        return Ok(())
-                    },
+                        return Ok(());
+                    }
                     Builtin::IdxSet => {
                         let new_val = self.stack_pop()?;
                         let idx = self.stack_pop()?;
@@ -427,16 +467,16 @@ impl CHSVM {
                         list.set_indexed(&idx, new_val);
                         self.push_stack(Rc::new(list))?;
                         self.ip += 1;
-                        return Ok(())
-                    },
+                        return Ok(());
+                    }
                     Builtin::Len => {
                         let val = self.stack_pop()?;
                         match val.len() {
                             Ok(v) => self.push_stack(v)?,
-                            Err(e) => vm_error!("{}", e)
+                            Err(e) => vm_error!("{}", e),
                         }
                         self.ip += 1;
-                        return Ok(())
+                        return Ok(());
                     }
                     Builtin::Println => {
                         let value = self.stack_pop()?;
@@ -488,7 +528,7 @@ impl CHSVM {
     pub fn run(&mut self, debug: bool) {
         if debug {
             for (i, e) in self.program.program.iter().enumerate() {
-                println!("{} -> {:?}", i, e);
+                println!("{} -> {}", i, e);
             }
         }
         loop {
@@ -497,9 +537,12 @@ impl CHSVM {
             }
             let instr = self.program.program[self.ip];
             match self.execute_instr(instr) {
-                Ok(_) => {} // {println!("{:?} at {} {:?}", self.return_stack, self.ip, self.program.get(self.ip));}
+                Ok(_) => {} // {println!("{:?} at {}", self.return_stack, self.ip);}
                 Err(e) => {
-                    eprintln!("It's a trap: {} at {} {:?}", e, self.ip, self.program.program[self.ip]);
+                    eprintln!(
+                        "It's a trap: {} at {} {}",
+                        e, self.ip, self.program.program[self.ip]
+                    );
                     break;
                 }
             }
@@ -521,28 +564,11 @@ impl CHSVM {
             self.sp -= 1
         }
         match self.stack.pop() {
-            Some(v) => {
-                match *v {
-                    Value::Uint64(v) => Ok(v),
-                    Value::Int64(v) => Ok(v as u64),
-                    _ => vm_error!("")
-                }
-            }
-            None => vm_error!(""),
-        }
-    }
-
-    fn stack_pop_ptr(&mut self) -> Result<usize, VMError> {
-        if !(self.sp == 0) {
-            self.sp -= 1
-        }
-        match self.stack.pop() {
-            Some(v) => {
-                match *v {
-                    Value::Ptr(v) => Ok(v),
-                    _ => vm_error!("")
-                }
-            }
+            Some(v) => match *v {
+                Value::Uint64(v) => Ok(v),
+                Value::Int64(v) => Ok(v as u64),
+                _ => vm_error!(""),
+            },
             None => vm_error!(""),
         }
     }
@@ -552,11 +578,9 @@ impl CHSVM {
             self.sp -= 1
         }
         match self.stack.pop() {
-            Some(v) => {
-                match v.as_ref() {
-                    Value::Bool(v) => Ok(*v),
-                    e => vm_error!("Expected BOOL found {}", e)
-                }
+            Some(v) => match v.as_ref() {
+                Value::Bool(v) => Ok(*v),
+                e => vm_error!("Expected BOOL found {}", e),
             },
             None => vm_error!("Stack underflow"),
         }
