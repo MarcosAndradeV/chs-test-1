@@ -8,7 +8,7 @@
 }
 
 
-(1 2 3) 1 0 peek list idx val {
+@(1 2 3) 1 0 peek list idx val {
     list idx val idxset
 }
 
