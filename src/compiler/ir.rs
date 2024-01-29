@@ -190,6 +190,7 @@ impl IrParser {
         self.instrs.push(Instr::new(Opcode::Bind, Some(names_len)));
         for e in expr.names.iter().rev() {
             let local_count = self.local_def.len();
+            if self.var_def.get(e).is_some() { generic_error!("Peek {} is already a variable name", e) };
             if let Some(shadow) = self.local_def.insert(e.to_string(), local_count) {
                 shadow_names.push((e.to_string(), shadow));
             }
@@ -212,6 +213,7 @@ impl IrParser {
 
     fn var_expr(&mut self, expr: VarExpr) -> Result<(), GenericError> {
         let var_ptr = self.var_count;
+        if self.local_def.get(&expr.name).is_some() { generic_error!("Variable {} is already a peek name", expr.name) };
         self.var_count += 1;
         self.var_def.insert(expr.name.clone(), var_ptr);
         for e in expr.value.into_iter() {
