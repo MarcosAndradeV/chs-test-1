@@ -30,6 +30,7 @@ pub enum TokenKind {
     Identifier,
     Str,
     Char,
+    List,
     
     Hlt,
     Print,
@@ -174,6 +175,12 @@ impl Lexer {
             b'[' => self.make_token(TokenKind::BracketOpen),
             b']' => self.make_token(TokenKind::BracketClose),
             b';' => self.make_token(TokenKind::SemiColon),
+            b'@' => {
+                match self.next_byte() {
+                    b'(' => {self.position+=2; self.token(TokenKind::List, self.position-2)},
+                    _ => Token::invalid("@".to_string())
+                }
+            }
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)

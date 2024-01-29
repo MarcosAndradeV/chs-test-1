@@ -86,7 +86,7 @@ impl Parser {
             TokenKind::Whlie => self.while_expr()?,
             TokenKind::Var => self.var_expr()?,
             TokenKind::Assing => self.assigin_expr()?,
-            TokenKind::ParenOpen => self.list_expr()?,
+            TokenKind::List => self.list_expr()?,
             TokenKind::Peek => self.peek_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
