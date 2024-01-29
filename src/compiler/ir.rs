@@ -303,7 +303,10 @@ impl IrParser {
                 }
             }
             Expr::Assigin(val) => {
-                if let Some(v) = self.var_def.get(val.as_ref()) {
+                if let Some(v) = self.local_def.get(val.as_ref()) {
+                    self.instrs.push(Instr::new(Opcode::SetBind, Some(*v)));
+                }
+                else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalStore, Some(*v)));
                 } else {
                     let var_ptr = self.var_count;

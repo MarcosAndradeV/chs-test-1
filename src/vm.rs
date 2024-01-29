@@ -394,6 +394,19 @@ impl CHSVM {
                     vm_error!("return stack underflow")
                 }
             }
+            Opcode::SetBind => {
+                let q: usize = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
+                };
+                let value = self.stack_pop()?;
+                if let Some(_) = self.return_stack.get(q) {
+                    self.return_stack[q] = value;
+                    self.ip += 1;
+                    return Ok(());
+                } 
+                vm_error!("return stack underflow");
+            }
             Opcode::Unbind => {
                 let q: usize = match instr.operands {
                     Some(v) => v,
@@ -537,7 +550,7 @@ impl CHSVM {
             }
             let instr = self.program.program[self.ip];
             match self.execute_instr(instr) {
-                Ok(_) => {} // {println!("{:?} at {}", self.return_stack, self.ip);}
+                Ok(_) => {} // {println!("{:?} at {}", self.stack, self.ip);}
                 Err(e) => {
                     eprintln!(
                         "It's a trap: {} at {} {}",

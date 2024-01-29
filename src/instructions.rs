@@ -28,6 +28,7 @@ pub enum Opcode {
 
     Bind,
     PushBind,
+    SetBind,
     Unbind,
 
     Jmp,
