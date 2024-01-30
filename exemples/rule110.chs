@@ -1,10 +1,10 @@
 # Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
 
-var BOARD_SIZE 100;
-var board @();
+var BOARD_SIZE := 100;
+var board := @();
 board BOARD_SIZE 1 - 1 idxset := board
 
-var pattern 0;
+var pattern := 0;
 
 0 := i
 while i BOARD_SIZE 2 - < {

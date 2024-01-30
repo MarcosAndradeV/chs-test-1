@@ -152,6 +152,8 @@ impl Parser {
 
     fn var_expr(&mut self) -> Result<Expr, GenericError> {
         let name = self.expect(TokenKind::Identifier)?.value;
+        // type
+        self.expect(TokenKind::Assing)?;
         let mut value: Vec<Expr> = Vec::new();
         loop {
             let tok = self.require()?;

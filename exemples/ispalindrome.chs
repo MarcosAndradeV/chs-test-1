@@ -1,11 +1,11 @@
 # Is Palindrome
-var Palindrome 101;
+var Palindrome := 101;
 
-var x Palindrome;
+var x := Palindrome;
 
-var reverse 0;
-var remainder 0;
-var temp Palindrome;
+var reverse := 0;
+var remainder := 0;
+var temp := Palindrome;
 
 if x 0 < {
     "False" println 

@@ -1,6 +1,6 @@
-var TARGET 9;
+var TARGET := 9;
 
-var nums @(2 7 11 15);
+var nums := @(2 7 11 15);
 
 0 := i 
 while i nums len < {
