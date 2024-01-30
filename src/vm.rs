@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::config::{MEM_CAPACITY, STACK_CAPACITY};
+use crate::config::STACK_CAPACITY;
 use crate::exeptions::VMError;
 use crate::instructions::{Builtin, Bytecode, Instr, Opcode};
 use crate::value::Value;
@@ -11,7 +11,6 @@ use crate::vm_error;
 pub struct CHSVM {
     stack: Vec<Rc<Value>>,
     return_stack: Vec<Rc<Value>>,
-    memory: Vec<Rc<Value>>,
     ip: usize,
     sp: usize,
     program: Bytecode,
@@ -19,12 +18,9 @@ pub struct CHSVM {
 
 impl CHSVM {
     pub fn new(program: Bytecode) -> Self {
-        let mut memory = Vec::with_capacity(MEM_CAPACITY);
-        memory.resize(MEM_CAPACITY, Rc::new(Value::Nil));
         Self {
             stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
-            memory,
             sp: 0,
             ip: 0,
             program,
@@ -430,7 +426,7 @@ impl CHSVM {
                     Some(v) => v,
                     None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
-                let val = match self.memory.get(addrs) {
+                let val = match self.return_stack.get(addrs) {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
@@ -444,11 +440,12 @@ impl CHSVM {
                     None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
                 let value = self.stack_pop()?;
-                if addrs > self.memory.len() {
-                    let mem = self.memory.len();
-                    self.memory.resize(mem + MEM_CAPACITY, Rc::new(Value::Nil));
+                if addrs >= self.return_stack.len() {
+                    self.return_stack.push(value);
+                    self.ip += 1;
+                    return Ok(());
                 }
-                self.memory[addrs] = value;
+                self.return_stack[addrs] = value;
                 self.ip += 1;
                 Ok(())
             }
