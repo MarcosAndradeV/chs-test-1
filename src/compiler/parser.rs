@@ -80,6 +80,8 @@ impl Parser {
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
+            TokenKind::True | TokenKind::False => Expr::BoolExpr(Box::new(token.value)),
+            TokenKind::Nil => Expr::NilExpr,
             TokenKind::Identifier => Expr::IdentExpr(Box::new(token.value)),
 
             TokenKind::If => self.if_expr()?,

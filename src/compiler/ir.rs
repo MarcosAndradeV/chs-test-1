@@ -98,6 +98,8 @@ pub enum Expr {
     Buildin(Box<BuildinOp>),
     IntExpr(Box<String>),
     StrExpr(Box<String>),
+    BoolExpr(Box<String>),
+    NilExpr,
     ListExpr(Box<ListLiteral>),
     IdentExpr(Box<String>),
     If(Box<IfExpr>),
@@ -116,6 +118,8 @@ impl fmt::Display for Expr {
             Expr::Buildin(_) => write!(f, "Buildin"),
             Expr::IntExpr(_) => write!(f, "IntExpr"),
             Expr::StrExpr(_) => write!(f, "StrExpr"),
+            Expr::BoolExpr(_) => write!(f, "BoolExpr"),
+            Expr::NilExpr => write!(f, "NilExpr"),
             Expr::If(_) => write!(f, "If"),
             Expr::Whlie(_) => write!(f, "Whlie"),
             Expr::Var(_) => write!(f, "Var"),
@@ -279,6 +283,20 @@ impl IrParser {
             }
             Expr::StrExpr(v) => {
                 self.consts.push(Value::Str(v.to_string()));
+                self.instrs
+                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+            }
+            Expr::BoolExpr(v) => {
+                if v.as_str() == "true" {
+                    self.consts.push(Value::Bool(true));
+                } else {
+                    self.consts.push(Value::Bool(false));
+                }
+                self.instrs
+                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+            }
+            Expr::NilExpr => {
+                self.consts.push(Value::Nil);
                 self.instrs
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
