@@ -1,4 +1,4 @@
-# Is Palindrome
+# Checks if a number is palindrome
 var Palindrome := 101;
 
 var x := Palindrome;

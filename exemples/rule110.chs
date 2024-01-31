@@ -1,4 +1,5 @@
 # Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
+# Generates a rule 110
 
 var BOARD_SIZE := 100;
 var board := @();
