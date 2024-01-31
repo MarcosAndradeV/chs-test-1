@@ -151,7 +151,7 @@ pub struct IrParser {
     instrs: Vec<Instr>,
     consts: Vec<Value>,
     var_def: HashMap<String, usize>,
-    peek_def: HashMap<String, usize>,
+    peek_def: Vec<String>,
     var_count: usize,
 }
 
@@ -163,7 +163,7 @@ impl IrParser {
             consts: Vec::new(),
             var_def: HashMap::new(),
             var_count: 0,
-            peek_def: HashMap::new(),
+            peek_def: Vec::new(),
         }
     }
 
@@ -190,29 +190,20 @@ impl IrParser {
 
     fn peek_expr(&mut self, expr: PeekExpr) -> Result<(), GenericError> {
         let names_len = expr.names.len();
-        let mut shadow_names: Vec<(String, usize)> = vec![];
         self.instrs.push(Instr::new(Opcode::Bind, Some(names_len)));
         for e in expr.names.iter().rev() {
-            let local_count = self.peek_def.len();
             if self.var_def.get(e).is_some() {
                 generic_error!("Peek {} is already a variable name", e)
             };
-            if let Some(shadow) = self.peek_def.insert(e.to_string(), local_count) {
-                shadow_names.push((e.to_string(), shadow));
-            }
+            self.peek_def.push(e.to_string())
         }
         for e in expr.body.into_iter() {
             self.expr(e)?
         }
         self.instrs
             .push(Instr::new(Opcode::Unbind, Some(names_len)));
-        for e in expr.names.iter() {
-            self.peek_def.remove(e);
-        }
-        if shadow_names.len() != 0 {
-            for (name, pos) in shadow_names.into_iter() {
-                self.peek_def.insert(name, pos);
-            }
+        for _ in expr.names.iter() {
+            self.peek_def.pop();
         }
         Ok(())
     }
@@ -313,8 +304,8 @@ impl IrParser {
                     .push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
             }
             Expr::IdentExpr(val) => {
-                if let Some(v) = self.peek_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::PushBind, Some(*v)));
+                if let Some((v,_)) = self.peek_def.iter().enumerate().rev().find(|(_, s)| s.as_str() == val.as_str()) {
+                    self.instrs.push(Instr::new(Opcode::PushBind, Some(v)));
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 } else {
