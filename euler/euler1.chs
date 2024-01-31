@@ -1,6 +1,6 @@
 var acc 0;
 
-0 := i
+var i := 0;
 while i 1000 < {
     if i 3 mod 0 = 
     i 5 mod 0 = || {

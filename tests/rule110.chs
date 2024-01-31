@@ -6,7 +6,8 @@ board BOARD_SIZE 1 - 1 idxset := board
 
 var pattern := 0;
 
-0 := i
+var i := 0;
+var j := 0;
 while i BOARD_SIZE 2 - < {
     0 := j
     while j BOARD_SIZE < {

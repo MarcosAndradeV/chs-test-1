@@ -400,7 +400,7 @@ impl CHSVM {
                     self.return_stack[q] = value;
                     self.ip += 1;
                     return Ok(());
-                } 
+                }
                 vm_error!("return stack underflow");
             }
             Opcode::Unbind => {

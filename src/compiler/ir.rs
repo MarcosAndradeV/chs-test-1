@@ -147,7 +147,7 @@ pub struct IrParser {
     instrs: Vec<Instr>,
     consts: Vec<Value>,
     var_def: HashMap<String, usize>,
-    local_def: HashMap<String, usize>,
+    peek_def: HashMap<String, usize>,
     var_count: usize,
 }
 
@@ -159,7 +159,7 @@ impl IrParser {
             consts: Vec::new(),
             var_def: HashMap::new(),
             var_count: 0,
-            local_def: HashMap::new(),
+            peek_def: HashMap::new(),
         }
     }
 
@@ -189,9 +189,11 @@ impl IrParser {
         let mut shadow_names: Vec<(String, usize)> = vec![];
         self.instrs.push(Instr::new(Opcode::Bind, Some(names_len)));
         for e in expr.names.iter().rev() {
-            let local_count = self.local_def.len();
-            if self.var_def.get(e).is_some() { generic_error!("Peek {} is already a variable name", e) };
-            if let Some(shadow) = self.local_def.insert(e.to_string(), local_count) {
+            let local_count = self.peek_def.len();
+            if self.var_def.get(e).is_some() {
+                generic_error!("Peek {} is already a variable name", e)
+            };
+            if let Some(shadow) = self.peek_def.insert(e.to_string(), local_count) {
                 shadow_names.push((e.to_string(), shadow));
             }
         }
@@ -201,11 +203,11 @@ impl IrParser {
         self.instrs
             .push(Instr::new(Opcode::Unbind, Some(names_len)));
         for e in expr.names.iter() {
-            self.local_def.remove(e);
+            self.peek_def.remove(e);
         }
         if shadow_names.len() != 0 {
             for (name, pos) in shadow_names.into_iter() {
-                self.local_def.insert(name, pos);
+                self.peek_def.insert(name, pos);
             }
         }
         Ok(())
@@ -213,7 +215,6 @@ impl IrParser {
 
     fn var_expr(&mut self, expr: VarExpr) -> Result<(), GenericError> {
         let var_ptr = self.var_count;
-        if self.local_def.get(&expr.name).is_some() { generic_error!("Variable {} is already a peek name", expr.name) };
         self.var_count += 1;
         self.var_def.insert(expr.name.clone(), var_ptr);
         for e in expr.value.into_iter() {
@@ -294,7 +295,7 @@ impl IrParser {
                     .push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
             }
             Expr::IdentExpr(val) => {
-                if let Some(v) = self.local_def.get(val.as_ref()) {
+                if let Some(v) = self.peek_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::PushBind, Some(*v)));
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
@@ -303,17 +304,13 @@ impl IrParser {
                 }
             }
             Expr::Assigin(val) => {
-                if let Some(v) = self.local_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::SetBind, Some(*v)));
-                }
-                else if let Some(v) = self.var_def.get(val.as_ref()) {
+                if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalStore, Some(*v)));
                 } else {
-                    let var_ptr = self.var_count;
-                    self.var_count += 1;
-                    self.var_def.insert(val.to_string(), var_ptr);
-                    self.instrs
-                        .push(Instr::new(Opcode::GlobalStore, Some(var_ptr)));
+                    generic_error!(
+                        "Cannot assigin a variable that's not existes {}",
+                        val.as_ref()
+                    )
                 }
             }
             e => generic_error!("{} is not simple expression", e),

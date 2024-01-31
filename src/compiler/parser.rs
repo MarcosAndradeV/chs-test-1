@@ -100,11 +100,13 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyOpen => {
-                    if names.len() == 0 { generic_error!("Peek expect at least 1 identifier.") }
+                    if names.len() == 0 {
+                        generic_error!("Peek expect at least 1 identifier.")
+                    }
                     break;
                 }
                 TokenKind::Identifier => names.push(tok.value),
-                _ => generic_error!("")
+                _ => generic_error!(""),
             }
         }
         let mut body = vec![];
@@ -112,16 +114,12 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
+                TokenKind::Var => generic_error!("Cannot create variables inside peek block"),
                 _ => body.push(self.expression(tok)?),
             }
         }
-        
-        Ok(Expr::Peek(Box::new(
-            PeekExpr {
-                names,
-                body
-            }
-        )))
+
+        Ok(Expr::Peek(Box::new(PeekExpr { names, body })))
     }
 
     fn assigin_expr(&mut self) -> Result<Expr, GenericError> {

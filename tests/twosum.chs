@@ -2,7 +2,8 @@ var TARGET := 9;
 
 var nums := @(2 7 11 15);
 
-0 := i 
+var i := 0;
+var j := 0;
 while i nums len < {
     0 := j
 	while j nums len < {
