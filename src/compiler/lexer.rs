@@ -29,7 +29,6 @@ pub enum TokenKind {
     Float,
     Identifier,
     Str,
-    Char,
     List,
     True,
     False,
@@ -166,7 +165,6 @@ impl Lexer {
         match self.current_byte() {
             b'0'..=b'9' => self.number(false),
             b'\"' => self.string(),
-            b'\'' => self.char_lit(),
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
@@ -388,20 +386,6 @@ impl Lexer {
 
     fn null(&self) -> Token {
         Token::null()
-    }
-
-    fn char_lit(&mut self) -> Token {
-        let mut buffer = String::new();
-        self.advance_char();
-        match self.current_byte() {
-            b'\\' => todo!(), // escape
-            _ => buffer.push(self.current_byte() as char)
-        }
-        self.advance_char();
-        if self.current_byte() != b'\'' {
-            return Token::invalid(format!("{} is not valid char", buffer));
-        }
-        Token::new(TokenKind::Char, buffer)
     }
 
     fn string(&mut self) -> Token {
