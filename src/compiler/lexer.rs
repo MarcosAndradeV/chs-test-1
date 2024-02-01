@@ -18,6 +18,8 @@ pub enum TokenKind {
     Set,
     Assing,
     Len,
+    Range,
+    Fill,
 
     IdxGet,
     IdxSet,
@@ -334,6 +336,7 @@ impl Lexer {
                 "swap" => TokenKind::Swap,
                 "peek" => TokenKind::Peek,
                 "true" => TokenKind::True,
+                "fill" => TokenKind::Fill,
                 _ => TokenKind::Identifier
             }
             5 => match value.as_str() {
@@ -341,6 +344,7 @@ impl Lexer {
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
                 "false" => TokenKind::False,
+                "range" => TokenKind::Range,
                 _ => TokenKind::Identifier
             }
             6 => match value.as_str() {
