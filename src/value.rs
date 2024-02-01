@@ -1,11 +1,11 @@
 use core::fmt;
-use std::{cell::RefCell, rc::Rc, io::{self, Read, Write}};
+use std::io::{self, Read, Write};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int64(i64),
     Uint64(u64),
-    List(RefCell<List>),
+    Array(Vec<Value>),
     Ptr(usize),
     Bool(bool),
     Char(char),
@@ -44,38 +44,18 @@ impl fmt::Display for Value {
             Value::Bool(v) => write!(f, "{}", v),
             Value::Str(v) => write!(f, "{}", v),
             Value::Char(v) => write!(f, "{}", v),
-            Value::List(v) => write!(f, "{}", v.borrow().describe()),
-            Value::Nil => write!(f, "\0"),
+            Value::Array(v) => {
+                let mut buff = String::from("[");
+                for a in v.iter() { buff.push_str(&format!("{a} ")) }
+                buff.pop();
+                buff.push_str(&format!("]"));
+                write!(f, "{}", buff.to_string())
+            },
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct List {
-    pub elem: Vec<Rc<Value>>,
-}
-
-impl List {
-    pub fn describe(&self) -> String {
-        let values: Vec<String> = (&self.elem).into_iter().map(|e| e.to_string()).collect();
-        return format!("List([{}])", values.join(", "));
-    }
-    pub fn get_value(&self, pos: usize) -> Result<Rc<Value>, String> {
-        if pos >= self.elem.len() {
-            return Err(format!("Array index out of range for position {}", pos));
-        }
-        return Ok(self.elem[pos].clone());
-    }
-    pub fn set_value(&mut self, pos: usize, obj: Rc<Value>) -> Option<String> {
-        if pos >= self.elem.len() {
-            //return Some(format!("Array index out of range for position {}", pos));
-            self.elem.resize(pos+1, Rc::new(Value::Int64(0)))
-        }
-
-        self.elem[pos] = obj;
-        return None;
-    }
-}
 
 impl Value {
     pub fn as_char(self) -> char {
@@ -105,79 +85,64 @@ impl Value {
     }
     pub fn is_list(&self) -> bool {
         match self {
-            Value::List(_) => true,
+            Value::Array(_) => true,
             _ => false,
         }
     }
-    pub fn get_indexed(&self, idx: &Rc<Value>) -> Result<Rc<Value>, String> {
-        match (self, idx.as_ref()) {
-            (Value::List(arr), Value::Int64(i)) => {
-                if *i < 0 {
-                    return Err(format!("Index {} must be greater than or equal to zero", i));
+    pub fn get_indexed(self, idx: Value) -> Value {
+        match (self, idx) {
+            (Value::Array(arr), Value::Int64(i)) => {
+                if i < 0 || i as usize >= arr.len() {
+                    println!("Index {} is out of bounds", i);
+                    return Value::Nil;
                 }
-                let result = arr.borrow().get_value(*i as usize);
-                if result.is_err() {
-                    return Err(result.unwrap_err());
-                }
-
-                return Ok(result.unwrap());
-            }
-            (Value::List(arr), Value::Uint64(i)) => {
-                let result = arr.borrow().get_value(*i as usize);
-                if result.is_err() {
-                    return Err(result.unwrap_err());
-                }
-
-                return Ok(result.unwrap());
+                return arr[i as usize].clone();
             }
             (Value::Str(st), Value::Int64(i)) => {
-                if *i < 0 {
-                    return Err(format!("Index {} must be greater than or equal to zero", i));
+                let b = st.into_bytes();
+                if i < 0 || i as usize >= b.len() {
+                    println!("Index {} is out of bounds", i);
+                    return Value::Nil;
                 }
-
-                let ch = st.chars().nth(*i as usize);
-                if ch.is_none() {
-                    return Err(format!("String \"{}\" index out of bounds for {}", st, i));
-                }
-
-                return Ok(Rc::new(Value::Str(ch.unwrap().to_string())));
+                Value::Char(b[i as usize] as char)
             }
             (Value::Str(st), Value::Uint64(i)) => {
-                let ch = st.chars().nth(*i as usize);
-                if ch.is_none() {
-                    return Err(format!("String \"{}\" index out of bounds for {}", st, i));
+                if i as usize >= st.len() {
+                    println!("Index {} is out of bounds", i);
+                    return Value::Nil;
                 }
+                let b = st.into_bytes();
+                Value::Char(b[i as usize] as char)
+            }
+            (v, i) => {
+                println!("Cannot index {} from {}", i, v);
+                Value::Nil
+            }
+        }
+    }
 
-                return Ok(Rc::new(Value::Char(ch.unwrap())));
+    pub fn set_indexed(self, idx: Value, new_val: Value) -> Value {
+        match (self, idx) {
+            (Value::Array(mut arr), Value::Int64(i)) => {
+                if i < 0 || i as usize > arr.len() {
+                    println!("Index {} is out of bounds", i);
+                    return Value::Nil;
+                }
+                arr[i as usize] = new_val;
+                Value::Array(arr)
             }
-            _ => {
-                return Err(format!(
-                    "Value of type {:?} does not support indexing of type {:?}", self, idx
-                ));
-            }
+            _ => Value::Nil
         }
     }
-    pub fn set_indexed(&mut self, idx: &Rc<Value>, new_val: Rc<Value>) -> Option<String>{
-        match (self, idx.as_ref()) {
-            (Value::List(arr), Value::Int64(i)) => {
-                arr.borrow_mut().set_value(*i as usize, new_val)
-            }
-            _ => None
-        }
-    }
-    pub fn len(&self) -> Result<Rc<Value>, String> {
+    pub fn len(&self) -> Value {
         match self {
-            Value::List(arr) => {
-                Ok(Rc::new(Value::Int64(arr.borrow().elem.len() as i64)))
+            Value::Array(arr) => {
+                Value::Int64(arr.len() as i64)
             }
             Value::Str(s) => {
-                Ok(Rc::new(Value::Int64(s.len() as i64)))
+                Value::Int64(s.len() as i64)
             }
-            _ => {
-                return Err(format!(
-                    "Value of type {:?} does not support indexing", self
-                ));
-            }
+            _ => Value::Nil
         }
     }
 }
