@@ -34,7 +34,7 @@ chsc run <file.chs>
 
 ```pascal
 var <name> <value>;
-set <name> <value>;
+<value> := <name>
 ```
 
 ```pascal
@@ -44,10 +44,9 @@ var interger 10;
 var text "Some text";
 var mylist (1 2 3 4);
 
-set interger 20;
+20 := interger
 10 := another_interger
-set text "Other text";
-set mylist[0] 2;
+"Other text" := text
 ```
 
 - if-statmets
