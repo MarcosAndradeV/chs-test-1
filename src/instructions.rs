@@ -86,7 +86,7 @@ pub enum Builtin {
     Println,
     Print,
     Debug,
-    Length,
+    Fill,
     Builtins,
     TimeUnix,
     Args,
@@ -102,6 +102,7 @@ pub enum Builtin {
     SRead,
     GetSyscalls,
     Syscall,
+    Range,
     Invalid,
 }
 
@@ -120,7 +121,7 @@ impl From<usize> for Builtin {
             3 => Self::Println,
             4 => Self::Print,
             5 => Self::Debug,
-            6 => Self::Length,
+            6 => Self::Fill,
             7 => Self::Builtins,
             8 => Self::TimeUnix,
             9 => Self::Args,
@@ -136,6 +137,7 @@ impl From<usize> for Builtin {
             19 => Self::SRead,
             20 => Self::GetSyscalls,
             21 => Self::Syscall,
+            22 => Self::Range,
             _ => Self::Invalid,
         }
     }
