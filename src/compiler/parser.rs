@@ -137,7 +137,11 @@ impl Parser {
             match tok.kind {
                 TokenKind::ParenClose => break,
                 TokenKind::Int => {
-                    list.push(Value::Int64(tok.value.parse().unwrap()));
+                    let v = match tok.value.parse() {
+                        Ok(ok) => ok,
+                        Err(e) => generic_error!("{} {}", tok.value, e),
+                    };
+                    list.push(Value::Int64(v));
                 }
                 _ => generic_error!(
                     "{:?}({}) is not suported in List literals",

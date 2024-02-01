@@ -85,22 +85,20 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() {
-                    vm_error!("")
-                }
-
-                match op_1 {
-                    Value::Int64(v) => match op_2 {
-                        Value::Int64(o) => self.push_stack(Value::Int64(v + o))?,
-                        Value::Uint64(o) => self.push_stack(Value::Int64(v + o as i64))?,
-                        _ => vm_error!(""),
-                    },
-                    Value::Uint64(v) => match op_2 {
-                        Value::Uint64(o) => self.push_stack(Value::Uint64(v + o))?,
-                        Value::Int64(o) => self.push_stack(Value::Uint64(v + o as u64))?,
-                        _ => vm_error!(""),
-                    },
-                    _ => vm_error!(""),
+                match (op_1, op_2) {
+                    (Value::Int64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Int64(v+o))?;
+                    }
+                    (Value::Uint64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v+o))?;
+                    }
+                    (Value::Int64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v as u64 + o))?;
+                    }
+                    (Value::Uint64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Uint64(v+o as u64))?;
+                    }
+                    (v, o) => vm_error!("Cannot perform {} + {}", v, o)
                 }
                 self.ip += 1;
                 return Ok(());
@@ -109,22 +107,20 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() {
-                    vm_error!("")
-                }
-
-                match op_1 {
-                    Value::Int64(v) => match op_2 {
-                        Value::Int64(o) => self.push_stack(Value::Int64(v - o))?,
-                        Value::Uint64(o) => self.push_stack(Value::Int64(v - o as i64))?,
-                        _ => vm_error!(""),
-                    },
-                    Value::Uint64(v) => match op_2 {
-                        Value::Uint64(o) => self.push_stack(Value::Uint64(v - o))?,
-                        Value::Int64(o) => self.push_stack(Value::Uint64(v - o as u64))?,
-                        _ => vm_error!(""),
-                    },
-                    _ => vm_error!(""),
+                match (op_1, op_2) {
+                    (Value::Int64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Int64(v-o))?;
+                    }
+                    (Value::Uint64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v-o))?;
+                    }
+                    (Value::Int64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v as u64 - o))?;
+                    }
+                    (Value::Uint64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Uint64(v-o as u64))?;
+                    }
+                    (v, o) => vm_error!("Cannot perform {} - {}", v, o)
                 }
                 self.ip += 1;
                 return Ok(());
@@ -133,22 +129,20 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() {
-                    vm_error!("")
-                }
-
-                match op_1 {
-                    Value::Int64(v) => match op_2 {
-                        Value::Int64(o) => self.push_stack(Value::Int64(v * o))?,
-                        Value::Uint64(o) => self.push_stack(Value::Int64(v * o as i64))?,
-                        _ => vm_error!(""),
-                    },
-                    Value::Uint64(v) => match op_2 {
-                        Value::Uint64(o) => self.push_stack(Value::Uint64(v * o))?,
-                        Value::Int64(o) => self.push_stack(Value::Uint64(v * o as u64))?,
-                        _ => vm_error!(""),
-                    },
-                    _ => vm_error!(""),
+                match (op_1, op_2) {
+                    (Value::Int64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Int64(v*o))?;
+                    }
+                    (Value::Uint64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v*o))?;
+                    }
+                    (Value::Int64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v as u64 * o))?;
+                    }
+                    (Value::Uint64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Uint64(v*o as u64))?;
+                    }
+                    (v, o) => vm_error!("Cannot perform {} * {}", v, o)
                 }
                 self.ip += 1;
                 return Ok(());
@@ -157,42 +151,26 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() {
-                    vm_error!("")
-                }
-
-                match op_1 {
-                    Value::Int64(v) => match op_2 {
-                        Value::Int64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Int64(v / o))?
-                        }
-                        Value::Uint64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Int64(v / o as i64))?
-                        }
-                        _ => vm_error!(""),
-                    },
-                    Value::Uint64(v) => match op_2 {
-                        Value::Uint64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Uint64(v / o))?
-                        }
-                        Value::Int64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Uint64(v / o as u64))?
-                        }
-                        _ => vm_error!(""),
-                    },
-                    _ => vm_error!(""),
+                match (op_1, op_2) {
+                    (_, Value::Int64(0)) => {
+                        vm_error!("Cannot divide by zero")
+                    }
+                    (_, Value::Uint64(0)) => {
+                        vm_error!("Cannot divide by zero")
+                    }
+                    (Value::Int64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Int64(v/o))?;
+                    }
+                    (Value::Uint64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v/o))?;
+                    }
+                    (Value::Int64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v as u64 / o))?;
+                    }
+                    (Value::Uint64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Uint64(v/o as u64))?;
+                    }
+                    (v, o) => vm_error!("Cannot perform {} / {}", v, o)
                 }
                 self.ip += 1;
                 return Ok(());
@@ -201,42 +179,26 @@ impl CHSVM {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
-                if op_1.is_ptr() || op_2.is_ptr() {
-                    vm_error!("")
-                }
-
-                match op_1 {
-                    Value::Int64(v) => match op_2 {
-                        Value::Int64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Int64(v % o))?
-                        }
-                        Value::Uint64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Int64(v % o as i64))?
-                        }
-                        _ => vm_error!(""),
-                    },
-                    Value::Uint64(v) => match op_2 {
-                        Value::Uint64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Uint64(v % o))?
-                        }
-                        Value::Int64(o) => {
-                            if o == 0 {
-                                vm_error!("")
-                            }
-                            self.push_stack(Value::Uint64(v % o as u64))?
-                        }
-                        _ => vm_error!(""),
-                    },
-                    _ => vm_error!(""),
+                match (op_1, op_2) {
+                    (_, Value::Int64(0)) => {
+                        vm_error!("Cannot divide by zero")
+                    }
+                    (_, Value::Uint64(0)) => {
+                        vm_error!("Cannot divide by zero")
+                    }
+                    (Value::Int64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Int64(v%o))?;
+                    }
+                    (Value::Uint64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v%o))?;
+                    }
+                    (Value::Int64(v), Value::Uint64(o)) => {
+                        self.push_stack(Value::Uint64(v as u64 % o))?;
+                    }
+                    (Value::Uint64(v), Value::Int64(o)) => {
+                        self.push_stack(Value::Uint64(v%o as u64))?;
+                    }
+                    (v, o) => vm_error!("Cannot perform {} % {}", v, o)
                 }
                 self.ip += 1;
                 return Ok(());
@@ -575,7 +537,7 @@ impl CHSVM {
                 Ok(_) => {} // {println!("{:?} at {}", self.stack, self.ip);}
                 Err(e) => {
                     eprintln!(
-                        "It's a trap: {} at {} {}",
+                        "It's a trap: {} at {} Instr({})",
                         e, self.ip, self.program.program[self.ip]
                     );
                     break;
@@ -590,7 +552,7 @@ impl CHSVM {
         }
         match self.stack.pop() {
             Some(v) => Ok(v),
-            None => vm_error!(""),
+            None => vm_error!("Stack uderflow"),
         }
     }
 
@@ -602,9 +564,9 @@ impl CHSVM {
             Some(v) => match v {
                 Value::Uint64(v) => Ok(v),
                 Value::Int64(v) => Ok(v as u64),
-                _ => vm_error!(""),
+                a => vm_error!("{} cannot be dynanmic converted into uint", a),
             },
-            None => vm_error!(""),
+            None => vm_error!("Stack uderflow"),
         }
     }
 
@@ -615,7 +577,10 @@ impl CHSVM {
         match self.stack.pop() {
             Some(v) => match v {
                 Value::Bool(v) => Ok(v),
-                e => vm_error!("Expected BOOL found {}", e),
+                Value::Nil => Ok(false),
+                Value::Array(v) => Ok(!v.is_empty()),
+                Value::Str(v) => Ok(!v.is_empty()),
+                a => vm_error!("{} cannot be dynanmic converted into bool", a),
             },
             None => vm_error!("Stack underflow"),
         }
@@ -623,7 +588,7 @@ impl CHSVM {
 
     fn push_stack(&mut self, value: Value) -> Result<(), VMError> {
         if (self.sp + 1) > self.stack.capacity() {
-            vm_error!("")
+            vm_error!("Stack overflow")
         }
         self.sp += 1;
         self.stack.push(value);

@@ -267,7 +267,11 @@ impl IrParser {
     fn simple_expr(&mut self, expr: Expr) -> Result<(), GenericError> {
         match expr {
             Expr::IntExpr(v) => {
-                self.consts.push(Value::Int64(v.parse().unwrap()));
+                let v = match v.parse() {
+                    Ok(ok) => ok,
+                    Err(e) => generic_error!("{v} {}", e),
+                };
+                self.consts.push(Value::Int64(v));
                 self.instrs
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
