@@ -1,14 +1,13 @@
-use std::rc::Rc;
 
 use crate::{
     compiler::ir::IfExpr,
     exeptions::GenericError,
     generic_error,
-    value::{List, Value},
+    value::Value,
 };
 
 use super::{
-    ir::{BuildinOp, Expr, ListLiteral, Operation, PeekExpr, Program, VarExpr, WhileExpr},
+    ir::{BuildinOp, Expr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
@@ -77,6 +76,8 @@ impl Parser {
             TokenKind::Len => Expr::Buildin(Box::new(BuildinOp::Len)),
             TokenKind::IdxGet => Expr::Buildin(Box::new(BuildinOp::IdxGet)),
             TokenKind::IdxSet => Expr::Buildin(Box::new(BuildinOp::IdxSet)),
+            TokenKind::Range => Expr::Buildin(Box::new(BuildinOp::Range)),
+            TokenKind::Fill => Expr::Buildin(Box::new(BuildinOp::Fill)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
@@ -136,7 +137,7 @@ impl Parser {
             match tok.kind {
                 TokenKind::ParenClose => break,
                 TokenKind::Int => {
-                    list.push(Rc::new(Value::Int64(tok.value.parse().unwrap())));
+                    list.push(Value::Int64(tok.value.parse().unwrap()));
                 }
                 _ => generic_error!(
                     "{:?}({}) is not suported in List literals",
@@ -145,9 +146,7 @@ impl Parser {
                 ),
             }
         }
-        Ok(Expr::ListExpr(Box::new(ListLiteral {
-            value: List { elem: list },
-        })))
+        Ok(Expr::ListExpr(Box::new(list)))
     }
 
     fn var_expr(&mut self) -> Result<Expr, GenericError> {

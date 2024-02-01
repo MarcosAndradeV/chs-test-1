@@ -1,10 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, fmt, vec::IntoIter};
+use std::{collections::HashMap, fmt, vec::IntoIter};
 
 use crate::{
     exeptions::GenericError,
     generic_error,
     instructions::{Bytecode, Instr, Opcode},
-    value::{List, Value},
+    value::Value,
 };
 
 #[derive(Debug)]
@@ -46,6 +46,8 @@ pub enum BuildinOp {
     Print,
     Debug,
     FuncCall,
+    Range,
+    Fill,
 }
 
 impl From<&BuildinOp> for usize {
@@ -58,6 +60,8 @@ impl From<&BuildinOp> for usize {
             BuildinOp::Print => 4,
             BuildinOp::Debug => 5,
             BuildinOp::FuncCall => 12,
+            BuildinOp::Range => 22,
+            BuildinOp::Fill => 6,
         }
     }
 }
@@ -88,11 +92,6 @@ pub struct PeekExpr {
 }
 
 #[derive(Debug)]
-pub struct ListLiteral {
-    pub value: List,
-}
-
-#[derive(Debug)]
 pub enum Expr {
     Op(Box<Operation>),
     Buildin(Box<BuildinOp>),
@@ -100,7 +99,7 @@ pub enum Expr {
     StrExpr(Box<String>),
     BoolExpr(Box<String>),
     NilExpr,
-    ListExpr(Box<ListLiteral>),
+    ListExpr(Box<Vec<Value>>),
     IdentExpr(Box<String>),
     If(Box<IfExpr>),
     Whlie(Box<WhileExpr>),
@@ -292,7 +291,7 @@ impl IrParser {
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::ListExpr(v) => {
-                self.consts.push(Value::List(RefCell::new(v.value.clone())));
+                self.consts.push(Value::Array(*v));
                 self.instrs
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
