@@ -2,7 +2,7 @@
 # Generates a rule 110
 
 var BOARD_SIZE := 100;
-var board := @();
+var board := BOARD_SIZE fill;
 board BOARD_SIZE 1 - 1 idxset := board
 
 var pattern := 0;
