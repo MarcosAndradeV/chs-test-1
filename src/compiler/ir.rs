@@ -92,20 +92,27 @@ pub struct PeekExpr {
 }
 
 #[derive(Debug)]
+pub struct FnExpr {
+    pub name: String,
+    pub body: Expressions,
+}
+
+#[derive(Debug)]
 pub enum Expr {
     Op(Box<Operation>),
     Buildin(Box<BuildinOp>),
     IntExpr(Box<String>),
     StrExpr(Box<String>),
     BoolExpr(Box<String>),
-    NilExpr,
     ListExpr(Box<Vec<Value>>),
     IdentExpr(Box<String>),
+    Assigin(Box<String>),
+    NilExpr,
     If(Box<IfExpr>),
     Whlie(Box<WhileExpr>),
     Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
-    Assigin(Box<String>),
+    Fn(Box<FnExpr>),
     Set,
     IndexExpr,
 }
@@ -128,6 +135,7 @@ impl fmt::Display for Expr {
             Expr::Assigin(_) => write!(f, "Assigin"),
             Expr::Set => write!(f, "Set"),
             Expr::IndexExpr => write!(f, "IndexExpr"),
+            Expr::Fn(_) => write!(f, "Fn"),
         }
     }
 }
@@ -145,13 +153,21 @@ impl IntoIterator for Program {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum NamesDef {
+    Fn,
+    Var,
+    None
+}
+
 pub struct IrParser {
     program: IntoIter<Expr>,
     instrs: Vec<Instr>,
     consts: Vec<Value>,
     var_def: HashMap<String, usize>,
-    peek_def: Vec<String>,
     var_count: usize,
+    peek_def: Vec<String>,
+    fn_def: Vec<(String, usize)>,
 }
 
 impl IrParser {
@@ -163,6 +179,7 @@ impl IrParser {
             var_def: HashMap::new(),
             var_count: 0,
             peek_def: Vec::new(),
+            fn_def: Vec::new()
         }
     }
 
@@ -183,16 +200,49 @@ impl IrParser {
             Expr::Whlie(v) => self.while_expr(*v)?,
             Expr::Var(v) => self.var_expr(*v)?,
             Expr::Peek(v) => self.peek_expr(*v)?,
+            Expr::Fn(v) => self.fn_expr(*v)?,
             _ => self.simple_expr(expr)?,
         })
+    }
+
+    fn checks_def(&self, name: &str) -> NamesDef {
+        if self.var_def.get(name).is_some() {
+            return NamesDef::Var;
+        }
+        else if self.fn_def.iter().find(|(nm, _)| *nm == name).is_some() {
+            return NamesDef::Fn;
+        }
+        NamesDef::None
+    }
+
+    fn fn_expr(&mut self, expr: FnExpr) -> Result<(), GenericError> {
+        match self.checks_def(&expr.name) {
+            NamesDef::Fn => todo!(),
+            NamesDef::Var => todo!(),
+            NamesDef::None => {},
+        };
+        let skip_addrs = self.instrs.len();
+        self.instrs.push(Instr::new(Opcode::SkipFn, None));
+        let curr_len = self.instrs.len();
+        self.fn_def.push((expr.name, curr_len));
+        for e in expr.body.into_iter() {
+            self.expr(e)?
+        }
+        self.instrs.push(Instr::new(Opcode::RetFn, None));
+        let curr_len = self.instrs.len();
+        let elem = unsafe { self.instrs.get_unchecked_mut(skip_addrs) };
+        *elem = Instr::new(Opcode::SkipFn, Some(curr_len));
+        Ok(())
     }
 
     fn peek_expr(&mut self, expr: PeekExpr) -> Result<(), GenericError> {
         let names_len = expr.names.len();
         self.instrs.push(Instr::new(Opcode::Bind, Some(names_len)));
         for e in expr.names.iter().rev() {
-            if self.var_def.get(e).is_some() {
-                generic_error!("Peek {} is already a variable name", e)
+            match self.checks_def(e) {
+                NamesDef::Fn => todo!(),
+                NamesDef::Var => todo!(),
+                NamesDef::None => {},
             };
             self.peek_def.push(e.to_string())
         }
@@ -210,6 +260,11 @@ impl IrParser {
     fn var_expr(&mut self, expr: VarExpr) -> Result<(), GenericError> {
         let var_ptr = self.var_count;
         self.var_count += 1;
+        match self.checks_def(&expr.name) {
+            NamesDef::Fn => todo!(),
+            NamesDef::Var => todo!(),
+            NamesDef::None => {},
+        };
         self.var_def.insert(expr.name.clone(), var_ptr);
         for e in expr.value.into_iter() {
             self.simple_expr(e)?;
@@ -309,6 +364,8 @@ impl IrParser {
             Expr::IdentExpr(val) => {
                 if let Some((v,_)) = self.peek_def.iter().enumerate().rev().find(|(_, s)| s.as_str() == val.as_str()) {
                     self.instrs.push(Instr::new(Opcode::PushBind, Some(v)));
+                } else if let Some((_, addrs)) = self.fn_def.iter().find(|(nm, _)| nm.as_str() == val.as_str()) {
+                    self.instrs.push(Instr::new(Opcode::CallFn, Some(*addrs)));
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 } else {

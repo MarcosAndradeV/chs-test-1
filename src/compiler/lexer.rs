@@ -44,6 +44,7 @@ pub enum TokenKind {
     If,
     Else,
     Whlie,
+    Fn,
 
     Add,
     Minus,
@@ -316,6 +317,7 @@ impl Lexer {
         let kind = match value.len() {
             2 => match value.as_str() {
                 "if" => TokenKind::If,
+                "fn" => TokenKind::Fn,
                 _ => TokenKind::Identifier
             }
             3 => match value.as_str() {

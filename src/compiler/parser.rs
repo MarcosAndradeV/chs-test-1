@@ -7,7 +7,7 @@ use crate::{
 };
 
 use super::{
-    ir::{BuildinOp, Expr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
+    ir::{BuildinOp, Expr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
@@ -91,10 +91,26 @@ impl Parser {
             TokenKind::Assing => self.assigin_expr()?,
             TokenKind::List => self.list_expr()?,
             TokenKind::Peek => self.peek_expr()?,
+            TokenKind::Fn => self.fn_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
+    }
+
+    fn fn_expr(&mut self) -> Result<Expr, GenericError> {
+        let name = self.expect(TokenKind::Identifier)?.value;
+        let mut body = vec![];
+        self.expect(TokenKind::CurlyOpen)?;
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => break,
+                TokenKind::Var|TokenKind::Fn => generic_error!("Cannot create {} inside peek block", tok),
+                _ => body.push(self.expression(tok)?),
+            }
+        }
+        Ok(Expr::Fn(Box::new(FnExpr { name, body })))
     }
 
     fn peek_expr(&mut self) -> Result<Expr, GenericError> {
@@ -117,7 +133,7 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Var => generic_error!("Cannot create variables inside peek block"),
+                TokenKind::Var|TokenKind::Fn => generic_error!("Cannot create {} inside peek block", tok),
                 _ => body.push(self.expression(tok)?),
             }
         }

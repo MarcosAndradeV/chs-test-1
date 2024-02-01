@@ -7,7 +7,8 @@ use crate::vm_error;
 #[derive(Debug)]
 pub struct CHSVM {
     stack: Vec<Value>,
-    return_stack: Vec<Value>,
+    temp_stack: Vec<Value>,
+    return_stack: Vec<usize>,
     ip: usize,
     sp: usize,
     program: Bytecode,
@@ -17,6 +18,7 @@ impl CHSVM {
     pub fn new(program: Bytecode) -> Self {
         Self {
             stack: Vec::with_capacity(STACK_CAPACITY),
+            temp_stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
             sp: 0,
             ip: 0,
@@ -325,7 +327,7 @@ impl CHSVM {
                 if q <= self.stack.len() {
                     for _ in 0..q {
                         let value = self.stack_pop()?;
-                        self.return_stack.push(value);
+                        self.temp_stack.push(value);
                     }
                     self.ip += 1;
                     return Ok(());
@@ -341,7 +343,7 @@ impl CHSVM {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
-                if let Some(local) = self.return_stack.get(q) {
+                if let Some(local) = self.temp_stack.get(q) {
                     self.push_stack(local.clone())?;
                     self.ip += 1;
                     return Ok(());
@@ -355,8 +357,8 @@ impl CHSVM {
                     None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
                 let value = self.stack_pop()?;
-                if let Some(_) = self.return_stack.get(q) {
-                    self.return_stack[q] = value;
+                if let Some(_) = self.temp_stack.get(q) {
+                    self.temp_stack[q] = value;
                     self.ip += 1;
                     return Ok(());
                 }
@@ -367,11 +369,11 @@ impl CHSVM {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
-                if q > self.return_stack.len() {
+                if q > self.temp_stack.len() {
                     vm_error!("")
                 }
                 for _ in 0..q {
-                    self.return_stack.pop();
+                    self.temp_stack.pop();
                 }
                 self.ip += 1;
                 return Ok(());
@@ -385,7 +387,7 @@ impl CHSVM {
                     Some(v) => v,
                     None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
-                let val = match self.return_stack.get(addrs) {
+                let val = match self.temp_stack.get(addrs) {
                     Some(v) => v,
                     None => vm_error!("{:?} operand is not provided.", instr.kind),
                 };
@@ -399,13 +401,47 @@ impl CHSVM {
                     None => vm_error!("OPERAND_NOT_PROVIDED"),
                 };
                 let value = self.stack_pop()?;
-                if addrs >= self.return_stack.len() {
-                    self.return_stack.push(value);
+                if addrs >= self.temp_stack.len() {
+                    self.temp_stack.push(value);
                     self.ip += 1;
                     return Ok(());
                 }
-                self.return_stack[addrs] = value;
+                self.temp_stack[addrs] = value;
                 self.ip += 1;
+                Ok(())
+            }
+            Opcode::SkipFn => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
+                };
+                if addrs > self.program.len() {
+                    vm_error!("Address out of bounds.")
+                }
+                self.ip = addrs;
+                Ok(())
+            }
+            Opcode::CallFn => {
+                let addrs = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
+                };
+                if addrs > self.program.len() {
+                    vm_error!("Address out of bounds.")
+                }
+                self.return_stack.push(self.ip+1);
+                self.ip = addrs;
+                Ok(())
+            }
+            Opcode::RetFn => {
+                let addrs = match self.return_stack.pop() {
+                    Some(v) => v,
+                    _ => vm_error!("Cannot return from inside of a peek block."),
+                };
+                if addrs > self.program.len() {
+                    vm_error!("Address out of bounds.")
+                }
+                self.ip = addrs;
                 Ok(())
             }
             Opcode::Buildin => {

@@ -47,6 +47,10 @@ pub enum Opcode {
     GlobalLoad,
 
     Buildin,
+    
+    SkipFn,
+    CallFn,
+    RetFn,
 }
 
 impl From<&Operation> for Opcode {
