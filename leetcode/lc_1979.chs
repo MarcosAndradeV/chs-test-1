@@ -36,5 +36,22 @@ fn max {
   }
 }
 
-@(1 2 3) min println
-@(1 2 3) max println
+fn gcd {
+  while dup 0 != {
+    peek a b {
+      b a b mod
+    }
+  } pop
+}
+
+fn gcd_rec {
+  if dup 0 = {
+    pop
+    else
+    peek a b { b a b mod } gcd_rec
+  }
+}
+
+@(2 5 6 9 10) dup min swap max gcd println
+@(7 5 6 8 3) dup min swap max gcd println
+@(3 3) dup min swap max gcd println
