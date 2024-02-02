@@ -6,14 +6,14 @@ use clap::{Arg, Command, ArgAction};
 fn main() -> io::Result<()>{
     // Basic CLI just for tests.
     let cmd = Command::new("chsc")
-        .about("...")
+        .about("CHS compiler and runner.")
         .version("0.0.1")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .author("Marcos V. Andrade Almeida")
         .subcommand(
             Command::new("run")
-                .about("...")
+                .about("Runs an CHS file.")
                 .short_flag('R')
                 .arg(Arg::new("filename").value_name("FILE").num_args(1))
                 .arg(
@@ -22,6 +22,12 @@ fn main() -> io::Result<()>{
                         .short('d')
                         .action(ArgAction::SetTrue)
                         .help("Runs with debug mode"))
+        )
+        .subcommand(
+            Command::new("build")
+                .about("Builds an CHS file.")
+                .short_flag('B')
+                .arg(Arg::new("filename").value_name("FILE").num_args(1))
         )
         .get_matches();
 
@@ -53,10 +59,42 @@ fn main() -> io::Result<()>{
                 return Ok(());
             }
             println!("File not provided.");
-            println!("Usage: chsvm <file.chs>");
+            println!("Usage: chsc run <file.chs>");
             return Ok(());
 
         }
-        _ => unreachable!()
+        Some(("build", file_matches)) => {
+            if file_matches.contains_id("filename") {
+                let filename = file_matches
+                    .get_one::<String>("filename")
+                    .expect("contains_id");
+                let bytes = lex_file(filename.into())?;
+                let mut fist_parser = Parser::new(bytes);
+                let program: Program = match fist_parser.parse_to_ir() {
+                    Ok(prog) => prog,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        process::exit(1);
+                    },
+                };
+                let mut second_parser = IrParser::new(program);
+                let bytecode: Bytecode = match second_parser.parse() {
+                    Ok(code) => code,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        process::exit(1);
+                    },
+                };
+                println!("{}:\n{:#?}",filename , bytecode);
+                return Ok(());
+            }
+            println!("File not provided.");
+            println!("Usage: chsc build <file.chs>");
+            return Ok(());
+        }
+        e => {
+            eprintln!("{:?}", e);
+            unreachable!()
+        }
     }
 }
