@@ -1,10 +1,4 @@
-
-use crate::{
-    compiler::ir::IfExpr,
-    exeptions::GenericError,
-    generic_error,
-    value::Value,
-};
+use crate::{compiler::ir::IfExpr, exeptions::GenericError, generic_error, value::Value};
 
 use super::{
     ir::{BuildinOp, Expr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
@@ -78,6 +72,7 @@ impl Parser {
             TokenKind::IdxSet => Expr::Buildin(Box::new(BuildinOp::IdxSet)),
             TokenKind::Range => Expr::Buildin(Box::new(BuildinOp::Range)),
             TokenKind::Fill => Expr::Buildin(Box::new(BuildinOp::Fill)),
+            TokenKind::ReadLine => Expr::Buildin(Box::new(BuildinOp::ReadLine)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
@@ -106,7 +101,9 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Var|TokenKind::Fn => generic_error!("Cannot create {} inside peek block", tok),
+                TokenKind::Var | TokenKind::Fn => {
+                    generic_error!("Cannot create {} inside peek block", tok)
+                }
                 _ => body.push(self.expression(tok)?),
             }
         }
@@ -133,7 +130,9 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Var|TokenKind::Fn => generic_error!("Cannot create {} inside peek block", tok),
+                TokenKind::Var | TokenKind::Fn => {
+                    generic_error!("Cannot create {} inside peek block", tok)
+                }
                 _ => body.push(self.expression(tok)?),
             }
         }

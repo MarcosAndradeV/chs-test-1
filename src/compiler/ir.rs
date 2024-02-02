@@ -48,6 +48,7 @@ pub enum BuildinOp {
     FuncCall,
     Range,
     Fill,
+    ReadLine,
 }
 
 impl From<&BuildinOp> for usize {
@@ -62,6 +63,7 @@ impl From<&BuildinOp> for usize {
             BuildinOp::FuncCall => 12,
             BuildinOp::Range => 22,
             BuildinOp::Fill => 6,
+            BuildinOp::ReadLine => 17,
         }
     }
 }
@@ -157,7 +159,7 @@ impl IntoIterator for Program {
 enum NamesDef {
     Fn,
     Var,
-    None
+    None,
 }
 
 pub struct IrParser {
@@ -179,7 +181,7 @@ impl IrParser {
             var_def: HashMap::new(),
             var_count: 0,
             peek_def: Vec::new(),
-            fn_def: Vec::new()
+            fn_def: Vec::new(),
         }
     }
 
@@ -208,8 +210,7 @@ impl IrParser {
     fn checks_def(&self, name: &str) -> NamesDef {
         if self.var_def.get(name).is_some() {
             return NamesDef::Var;
-        }
-        else if self.fn_def.iter().find(|(nm, _)| *nm == name).is_some() {
+        } else if self.fn_def.iter().find(|(nm, _)| *nm == name).is_some() {
             return NamesDef::Fn;
         }
         NamesDef::None
@@ -219,7 +220,7 @@ impl IrParser {
         match self.checks_def(&expr.name) {
             NamesDef::Fn => todo!(),
             NamesDef::Var => todo!(),
-            NamesDef::None => {},
+            NamesDef::None => {}
         };
         let skip_addrs = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::SkipFn, None));
@@ -242,7 +243,7 @@ impl IrParser {
             match self.checks_def(e) {
                 NamesDef::Fn => todo!(),
                 NamesDef::Var => todo!(),
-                NamesDef::None => {},
+                NamesDef::None => {}
             };
             self.peek_def.push(e.to_string())
         }
@@ -263,7 +264,7 @@ impl IrParser {
         match self.checks_def(&expr.name) {
             NamesDef::Fn => todo!(),
             NamesDef::Var => todo!(),
-            NamesDef::None => {},
+            NamesDef::None => {}
         };
         self.var_def.insert(expr.name.clone(), var_ptr);
         for e in expr.value.into_iter() {
@@ -362,9 +363,19 @@ impl IrParser {
                     .push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
             }
             Expr::IdentExpr(val) => {
-                if let Some((v,_)) = self.peek_def.iter().enumerate().rev().find(|(_, s)| s.as_str() == val.as_str()) {
+                if let Some((v, _)) = self
+                    .peek_def
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .find(|(_, s)| s.as_str() == val.as_str())
+                {
                     self.instrs.push(Instr::new(Opcode::PushBind, Some(v)));
-                } else if let Some((_, addrs)) = self.fn_def.iter().find(|(nm, _)| nm.as_str() == val.as_str()) {
+                } else if let Some((_, addrs)) = self
+                    .fn_def
+                    .iter()
+                    .find(|(nm, _)| nm.as_str() == val.as_str())
+                {
                     self.instrs.push(Instr::new(Opcode::CallFn, Some(*addrs)));
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));

@@ -1,5 +1,9 @@
-use std::{fs::File, io::{self, Read}, path::PathBuf};
 use core::fmt;
+use std::{
+    fs::File,
+    io::{self, Read},
+    path::PathBuf,
+};
 
 pub fn lex_file(filepath: PathBuf) -> io::Result<Vec<u8>> {
     let mut file = File::open(filepath)?;
@@ -23,10 +27,10 @@ pub enum TokenKind {
 
     IdxGet,
     IdxSet,
-    
+
     Invalid,
     Null,
-    
+
     Int,
     Float,
     Identifier,
@@ -35,12 +39,13 @@ pub enum TokenKind {
     True,
     False,
     Nil,
-    
+
     Hlt,
     Print,
     Println,
     Debug,
-    
+    ReadLine,
+
     If,
     Else,
     Whlie,
@@ -57,14 +62,14 @@ pub enum TokenKind {
     Bitand,
     Lor,
     Land,
-    
+
     Eq,
     Neq,
     Gt,
     Gte,
     Lt,
     Lte,
-    
+
     CurlyOpen,
     CurlyClose,
 
@@ -76,7 +81,7 @@ pub enum TokenKind {
 
     SemiColon,
     Colon,
-    
+
     Pop,
     Dup,
     Dup2,
@@ -108,8 +113,6 @@ impl Token {
     fn null() -> Self {
         Self::new(TokenKind::Null, String::new())
     }
-
-
 }
 
 pub struct Lexer {
@@ -171,8 +174,9 @@ impl Lexer {
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-'| b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' | b':'
-            => self.operator(),
+            b'-' | b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' | b':' => {
+                self.operator()
+            }
             b'{' => self.make_token(TokenKind::CurlyOpen),
             b'}' => self.make_token(TokenKind::CurlyClose),
             b'(' => self.make_token(TokenKind::ParenOpen),
@@ -180,12 +184,13 @@ impl Lexer {
             b'[' => self.make_token(TokenKind::BracketOpen),
             b']' => self.make_token(TokenKind::BracketClose),
             b';' => self.make_token(TokenKind::SemiColon),
-            b'@' => {
-                match self.next_byte() {
-                    b'(' => {self.position+=2; self.token(TokenKind::List, self.position-2)},
-                    _ => Token::invalid("@".to_string())
+            b'@' => match self.next_byte() {
+                b'(' => {
+                    self.position += 2;
+                    self.token(TokenKind::List, self.position - 2)
                 }
-            }
+                _ => Token::invalid("@".to_string()),
+            },
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -196,60 +201,67 @@ impl Lexer {
         }
     }
 
-
     fn operator(&mut self) -> Token {
         match self.current_byte() {
-            b'-' => {
-
-                match self.next_byte() {
-                    b'0'..=b'9' => self.number(true),
-                    _ => self.make_token(TokenKind::Minus)
-                }
-                
+            b'-' => match self.next_byte() {
+                b'0'..=b'9' => self.number(true),
+                _ => self.make_token(TokenKind::Minus),
             },
             b'+' => self.make_token(TokenKind::Add),
             b'*' => self.make_token(TokenKind::Mul),
             b'/' => self.make_token(TokenKind::Div),
             b'=' => self.make_token(TokenKind::Eq),
-            b'!' => {
-                match self.next_byte() {
-                    b'=' => {self.position+=2; self.token(TokenKind::Neq, self.position-2)},
-                    _ => Token::invalid("! ?".to_string())
+            b'!' => match self.next_byte() {
+                b'=' => {
+                    self.position += 2;
+                    self.token(TokenKind::Neq, self.position - 2)
                 }
-            }
-            b'>' => {
-                match self.next_byte() {
-                    b'=' => {self.position+=2; self.token(TokenKind::Gte, self.position-2)},
-                    b'>' => {self.position+=2; self.token(TokenKind::Shr, self.position-2)},
-                    _ => self.make_token(TokenKind::Gt)
-                }
-            }
-            b'<' => {
-                match self.next_byte() {
-                    b'=' => {self.position+=2; self.token(TokenKind::Lte, self.position-2)},
-                    b'<' => {self.position+=2; self.token(TokenKind::Shl, self.position-2)},
-                    _ => self.make_token(TokenKind::Lt)
-                }
-            }
-            b'|' => {
-                match self.next_byte() {
-                    b'|' => {self.position+=2; self.token(TokenKind::Lor, self.position-2)},
-                    _ => self.make_token(TokenKind::Bitor)
-                }
+                _ => Token::invalid("! ?".to_string()),
             },
-            b'&' => {
-                match self.next_byte() {
-                    b'&' => {self.position+=2; self.token(TokenKind::Land, self.position-2)},
-                    _ => self.make_token(TokenKind::Bitand)
+            b'>' => match self.next_byte() {
+                b'=' => {
+                    self.position += 2;
+                    self.token(TokenKind::Gte, self.position - 2)
                 }
+                b'>' => {
+                    self.position += 2;
+                    self.token(TokenKind::Shr, self.position - 2)
+                }
+                _ => self.make_token(TokenKind::Gt),
             },
-            b':' => {
-                match self.next_byte() {
-                    b'=' => {self.position+=2; self.token(TokenKind::Assing, self.position-2)},
-                    _ => self.make_token(TokenKind::Colon),
+            b'<' => match self.next_byte() {
+                b'=' => {
+                    self.position += 2;
+                    self.token(TokenKind::Lte, self.position - 2)
                 }
-            }
-            _ => self.make_token(TokenKind::Invalid)
+                b'<' => {
+                    self.position += 2;
+                    self.token(TokenKind::Shl, self.position - 2)
+                }
+                _ => self.make_token(TokenKind::Lt),
+            },
+            b'|' => match self.next_byte() {
+                b'|' => {
+                    self.position += 2;
+                    self.token(TokenKind::Lor, self.position - 2)
+                }
+                _ => self.make_token(TokenKind::Bitor),
+            },
+            b'&' => match self.next_byte() {
+                b'&' => {
+                    self.position += 2;
+                    self.token(TokenKind::Land, self.position - 2)
+                }
+                _ => self.make_token(TokenKind::Bitand),
+            },
+            b':' => match self.next_byte() {
+                b'=' => {
+                    self.position += 2;
+                    self.token(TokenKind::Assing, self.position - 2)
+                }
+                _ => self.make_token(TokenKind::Colon),
+            },
+            _ => self.make_token(TokenKind::Invalid),
         }
     }
 
@@ -318,8 +330,8 @@ impl Lexer {
             2 => match value.as_str() {
                 "if" => TokenKind::If,
                 "fn" => TokenKind::Fn,
-                _ => TokenKind::Identifier
-            }
+                _ => TokenKind::Identifier,
+            },
             3 => match value.as_str() {
                 "pop" => TokenKind::Pop,
                 "dup" => TokenKind::Dup,
@@ -329,8 +341,8 @@ impl Lexer {
                 "set" => TokenKind::Set,
                 "len" => TokenKind::Len,
                 "nil" => TokenKind::Nil,
-                _ => TokenKind::Identifier
-            }
+                _ => TokenKind::Identifier,
+            },
             4 => match value.as_str() {
                 "else" => TokenKind::Else,
                 "dup2" => TokenKind::Dup2,
@@ -339,25 +351,26 @@ impl Lexer {
                 "peek" => TokenKind::Peek,
                 "true" => TokenKind::True,
                 "fill" => TokenKind::Fill,
-                _ => TokenKind::Identifier
-            }
+                _ => TokenKind::Identifier,
+            },
             5 => match value.as_str() {
                 "print" => TokenKind::Print,
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
                 "false" => TokenKind::False,
                 "range" => TokenKind::Range,
-                _ => TokenKind::Identifier
-            }
+                "input" => TokenKind::ReadLine,
+                _ => TokenKind::Identifier,
+            },
             6 => match value.as_str() {
                 "idxget" => TokenKind::IdxGet,
                 "idxset" => TokenKind::IdxSet,
-                _ => TokenKind::Identifier
-            }
+                _ => TokenKind::Identifier,
+            },
             7 => match value.as_str() {
                 "println" => TokenKind::Println,
-                _ => TokenKind::Identifier
-            }
+                _ => TokenKind::Identifier,
+            },
             _ => TokenKind::Identifier,
         };
 
@@ -399,33 +412,46 @@ impl Lexer {
         self.advance_char();
         loop {
             match self.current_byte() {
-                0 | b'\"' => {self.advance_char(); break;}
-                b'\\' => {
-                    match self.next_byte() {
-                        b'n' => {buffer.push('\n'); self.advance_char(); self.advance_char();}
-                        _ => {buffer.push(self.current_byte() as char); self.advance_char()}
-                    }
+                0 | b'\"' => {
+                    self.advance_char();
+                    break;
                 }
-                _ => {buffer.push(self.current_byte() as char); self.advance_char()}
+                b'\\' => match self.next_byte() {
+                    b'n' => {
+                        buffer.push('\n');
+                        self.advance_char();
+                        self.advance_char();
+                    }
+                    _ => {
+                        buffer.push(self.current_byte() as char);
+                        self.advance_char()
+                    }
+                },
+                _ => {
+                    buffer.push(self.current_byte() as char);
+                    self.advance_char()
+                }
             }
         }
         Token::new(TokenKind::Str, buffer)
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::{Lexer, TokenKind};
 
-   #[test]
-   fn test(){
-    let mut lex = Lexer::new("%def".to_string().into_bytes());
-    loop {
-        let tok = lex.next_token();
-        println!("{:?}", tok);
+    #[test]
+    fn test() {
+        let mut lex = Lexer::new("%def".to_string().into_bytes());
+        loop {
+            let tok = lex.next_token();
+            println!("{:?}", tok);
 
-        if tok.kind == TokenKind::Null {break;}
+            if tok.kind == TokenKind::Null {
+                break;
+            }
+        }
     }
-   }
 }
+

@@ -1,7 +1,7 @@
 use crate::config::STACK_CAPACITY;
 use crate::exeptions::VMError;
 use crate::instructions::{Builtin, Bytecode, Instr, Opcode};
-use crate::value::Value;
+use crate::value::{read_line, Value};
 use crate::vm_error;
 
 #[derive(Debug)]
@@ -89,18 +89,18 @@ impl CHSVM {
 
                 match (op_1, op_2) {
                     (Value::Int64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Int64(v+o))?;
+                        self.push_stack(Value::Int64(v + o))?;
                     }
                     (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v+o))?;
+                        self.push_stack(Value::Uint64(v + o))?;
                     }
                     (Value::Int64(v), Value::Uint64(o)) => {
                         self.push_stack(Value::Uint64(v as u64 + o))?;
                     }
                     (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v+o as u64))?;
+                        self.push_stack(Value::Uint64(v + o as u64))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} + {}", v, o)
+                    (v, o) => vm_error!("Cannot perform {} + {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -111,18 +111,18 @@ impl CHSVM {
 
                 match (op_1, op_2) {
                     (Value::Int64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Int64(v-o))?;
+                        self.push_stack(Value::Int64(v - o))?;
                     }
                     (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v-o))?;
+                        self.push_stack(Value::Uint64(v - o))?;
                     }
                     (Value::Int64(v), Value::Uint64(o)) => {
                         self.push_stack(Value::Uint64(v as u64 - o))?;
                     }
                     (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v-o as u64))?;
+                        self.push_stack(Value::Uint64(v - o as u64))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} - {}", v, o)
+                    (v, o) => vm_error!("Cannot perform {} - {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -133,18 +133,18 @@ impl CHSVM {
 
                 match (op_1, op_2) {
                     (Value::Int64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Int64(v*o))?;
+                        self.push_stack(Value::Int64(v * o))?;
                     }
                     (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v*o))?;
+                        self.push_stack(Value::Uint64(v * o))?;
                     }
                     (Value::Int64(v), Value::Uint64(o)) => {
                         self.push_stack(Value::Uint64(v as u64 * o))?;
                     }
                     (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v*o as u64))?;
+                        self.push_stack(Value::Uint64(v * o as u64))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} * {}", v, o)
+                    (v, o) => vm_error!("Cannot perform {} * {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -161,18 +161,18 @@ impl CHSVM {
                         vm_error!("Cannot divide by zero")
                     }
                     (Value::Int64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Int64(v/o))?;
+                        self.push_stack(Value::Int64(v / o))?;
                     }
                     (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v/o))?;
+                        self.push_stack(Value::Uint64(v / o))?;
                     }
                     (Value::Int64(v), Value::Uint64(o)) => {
                         self.push_stack(Value::Uint64(v as u64 / o))?;
                     }
                     (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v/o as u64))?;
+                        self.push_stack(Value::Uint64(v / o as u64))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} / {}", v, o)
+                    (v, o) => vm_error!("Cannot perform {} / {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -189,18 +189,18 @@ impl CHSVM {
                         vm_error!("Cannot divide by zero")
                     }
                     (Value::Int64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Int64(v%o))?;
+                        self.push_stack(Value::Int64(v % o))?;
                     }
                     (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v%o))?;
+                        self.push_stack(Value::Uint64(v % o))?;
                     }
                     (Value::Int64(v), Value::Uint64(o)) => {
                         self.push_stack(Value::Uint64(v as u64 % o))?;
                     }
                     (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v%o as u64))?;
+                        self.push_stack(Value::Uint64(v % o as u64))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} % {}", v, o)
+                    (v, o) => vm_error!("Cannot perform {} % {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -429,7 +429,7 @@ impl CHSVM {
                 if addrs > self.program.len() {
                     vm_error!("Address out of bounds.")
                 }
-                self.return_stack.push(self.ip+1);
+                self.return_stack.push(self.ip + 1);
                 self.ip = addrs;
                 Ok(())
             }
@@ -504,14 +504,14 @@ impl CHSVM {
                         match val {
                             Value::Int64(v) => {
                                 let r = (0..v as usize)
-                                .into_iter()
-                                .map(|elem| Value::Int64(elem as i64))
-                                .collect();
+                                    .into_iter()
+                                    .map(|elem| Value::Int64(elem as i64))
+                                    .collect();
                                 self.push_stack(Value::Array(r))?;
                                 self.ip += 1;
                                 return Ok(());
                             }
-                            _ => vm_error!("")
+                            _ => vm_error!(""),
                         }
                     }
                     Builtin::Fill => {
@@ -523,17 +523,14 @@ impl CHSVM {
                                     vec.push(0)
                                 }
                                 self.push_stack(Value::Array(
-                                    vec
-                                    .into_iter()
-                                    .map(|elem| Value::Int64(elem))
-                                    .collect()
+                                    vec.into_iter().map(|elem| Value::Int64(elem)).collect(),
                                 ))?;
                                 self.ip += 1;
                                 return Ok(());
                             }
-                            _ => vm_error!("")
+                            _ => vm_error!(""),
                         }
-                    },
+                    }
                     Builtin::Builtins => todo!(),
                     Builtin::TimeUnix => todo!(),
                     Builtin::Args => todo!(),
@@ -544,7 +541,12 @@ impl CHSVM {
                     Builtin::FWrite => todo!(),
                     Builtin::FAppend => todo!(),
                     Builtin::FRead => todo!(),
-                    Builtin::ReadLine => todo!(),
+                    Builtin::ReadLine => {
+                        let res = read_line();
+                        self.push_stack(Value::Str(res.unwrap()))?;
+                        self.ip += 1;
+                        Ok(())
+                    }
                     Builtin::SWrite => todo!(),
                     Builtin::SRead => todo!(),
                     Builtin::GetSyscalls => todo!(),
