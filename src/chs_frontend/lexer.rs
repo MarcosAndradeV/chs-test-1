@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-pub fn lex_file(filepath: PathBuf) -> io::Result<Vec<u8>> {
+pub fn read_file_to_bytes(filepath: PathBuf) -> io::Result<Vec<u8>> {
     let mut file = File::open(filepath)?;
     let mut data = vec![];
     file.read_to_end(&mut data)?;

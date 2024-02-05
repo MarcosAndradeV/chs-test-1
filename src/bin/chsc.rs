@@ -1,6 +1,6 @@
 use std::{io, process};
 
-use chs::{chs_frontend::{ast::Program, lexer::lex_file, parser::Parser}, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM}};
+use chs::{chs_frontend::{ast::Program, lexer::read_file_to_bytes, parser::Parser}, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM}};
 use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{
@@ -37,7 +37,7 @@ fn main() -> io::Result<()>{
                 let filename = file_matches
                     .get_one::<String>("filename")
                     .expect("contains_id");
-                let bytes = lex_file(filename.into())?;
+                let bytes = read_file_to_bytes(filename.into())?;
                 let mut fist_parser = Parser::new(bytes);
                 let program: Program = match fist_parser.parse_to_ir() {
                     Ok(prog) => prog,
@@ -68,7 +68,7 @@ fn main() -> io::Result<()>{
                 let filename = file_matches
                     .get_one::<String>("filename")
                     .expect("contains_id");
-                let bytes = lex_file(filename.into())?;
+                let bytes = read_file_to_bytes(filename.into())?;
                 let mut fist_parser = Parser::new(bytes);
                 let program: Program = match fist_parser.parse_to_ir() {
                     Ok(prog) => prog,

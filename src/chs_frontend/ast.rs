@@ -96,20 +96,21 @@ pub struct FnExpr {
 pub enum Expr {
     Op(Box<Operation>),
     Buildin(Box<BuildinOp>),
+
     IntExpr(Box<String>),
     StrExpr(Box<String>),
     BoolExpr(Box<String>),
     ListExpr(Box<Vec<String>>),
+    NilExpr,
+
     IdentExpr(Box<String>),
     Assigin(Box<String>),
-    NilExpr,
+    
     If(Box<IfExpr>),
     Whlie(Box<WhileExpr>),
     Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
-    Set,
-    IndexExpr,
 }
 
 impl fmt::Display for Expr {
@@ -128,8 +129,6 @@ impl fmt::Display for Expr {
             Expr::ListExpr(_) => write!(f, "ListExpr"),
             Expr::IdentExpr(_) => write!(f, "Identifier"),
             Expr::Assigin(_) => write!(f, "Assigin"),
-            Expr::Set => write!(f, "Set"),
-            Expr::IndexExpr => write!(f, "IndexExpr"),
             Expr::Fn(_) => write!(f, "Fn"),
         }
     }
