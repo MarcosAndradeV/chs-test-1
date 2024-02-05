@@ -201,7 +201,14 @@ impl IrParser {
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::ListExpr(v) => {
-                self.consts.push(Value::Array(*v));
+                let mut list = vec![];
+                for s in *v {
+                    match s.parse::<i64>() {
+                        Ok(o) => list.push(Value::Int64(o)),
+                        Err(e) => generic_error!("{}", e),
+                    }
+                }
+                self.consts.push(Value::Array(list));
                 self.instrs
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }

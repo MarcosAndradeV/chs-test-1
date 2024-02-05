@@ -1,4 +1,4 @@
-use crate::{chs_vm::value::Value, exeptions::GenericError, generic_error};
+use crate::{exeptions::GenericError, generic_error};
 
 use super::{
     ast::{BuildinOp, Expr, IfExpr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
@@ -152,13 +152,7 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::ParenClose => break,
-                TokenKind::Int => {
-                    let v = match tok.value.parse() {
-                        Ok(ok) => ok,
-                        Err(e) => generic_error!("{} {}", tok.value, e),
-                    };
-                    list.push(Value::Int64(v));
-                }
+                TokenKind::Int => list.push(tok.value),
                 _ => generic_error!(
                     "{:?}({}) is not suported in List literals",
                     tok.kind,

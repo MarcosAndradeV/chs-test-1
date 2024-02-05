@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::chs_vm::value::Value;
-
 #[derive(Debug)]
 pub enum Operation {
     Pop,
@@ -101,7 +99,7 @@ pub enum Expr {
     IntExpr(Box<String>),
     StrExpr(Box<String>),
     BoolExpr(Box<String>),
-    ListExpr(Box<Vec<Value>>),
+    ListExpr(Box<Vec<String>>),
     IdentExpr(Box<String>),
     Assigin(Box<String>),
     NilExpr,
