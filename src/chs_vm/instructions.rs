@@ -1,6 +1,8 @@
 use core::fmt;
 
-use crate::{compiler::ir::Operation, value::Value};
+use crate::chs_frontend::ast::Operation;
+
+use super::value::Value;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Opcode {

@@ -1,10 +1,10 @@
 use std::process;
 
-use crate::config::STACK_CAPACITY;
-use crate::exeptions::VMError;
-use crate::instructions::{Builtin, Bytecode, Instr, Opcode};
-use crate::value::{read_line, Value};
-use crate::vm_error;
+use crate::{config::STACK_CAPACITY, exeptions::VMError, vm_error};
+
+use super::{instructions::{Builtin, Bytecode, Instr, Opcode}, value::{read_line, Value}};
+
+
 
 #[derive(Debug)]
 pub struct CHSVM {

@@ -1,6 +1,6 @@
 use std::{io, process};
 
-use chs::{compiler::{ir::{IrParser, Program}, lexer::lex_file, parser::Parser}, instructions::Bytecode, vm::CHSVM};
+use chs::{chs_frontend::{ast::Program, lexer::lex_file, parser::Parser}, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM}};
 use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{

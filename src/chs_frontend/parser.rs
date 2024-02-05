@@ -1,7 +1,7 @@
-use crate::{compiler::ir::IfExpr, exeptions::GenericError, generic_error, value::Value};
+use crate::{chs_vm::value::Value, exeptions::GenericError, generic_error};
 
 use super::{
-    ir::{BuildinOp, Expr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
+    ast::{BuildinOp, Expr, IfExpr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
