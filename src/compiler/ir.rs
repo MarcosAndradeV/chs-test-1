@@ -45,10 +45,10 @@ pub enum BuildinOp {
     Println,
     Print,
     Debug,
-    FuncCall,
-    Range,
     Fill,
     ReadLine,
+    Range,
+    Exit,
 }
 
 impl From<&BuildinOp> for usize {
@@ -60,10 +60,10 @@ impl From<&BuildinOp> for usize {
             BuildinOp::Println => 3,
             BuildinOp::Print => 4,
             BuildinOp::Debug => 5,
-            BuildinOp::FuncCall => 12,
-            BuildinOp::Range => 22,
             BuildinOp::Fill => 6,
-            BuildinOp::ReadLine => 17,
+            BuildinOp::ReadLine => 7,
+            BuildinOp::Range => 8,
+            BuildinOp::Exit => 9,
         }
     }
 }

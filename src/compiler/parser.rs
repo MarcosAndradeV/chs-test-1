@@ -73,6 +73,7 @@ impl Parser {
             TokenKind::Range => Expr::Buildin(Box::new(BuildinOp::Range)),
             TokenKind::Fill => Expr::Buildin(Box::new(BuildinOp::Fill)),
             TokenKind::ReadLine => Expr::Buildin(Box::new(BuildinOp::ReadLine)),
+            TokenKind::Exit => Expr::Buildin(Box::new(BuildinOp::Exit)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),

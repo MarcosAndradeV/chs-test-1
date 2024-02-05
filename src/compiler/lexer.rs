@@ -45,6 +45,7 @@ pub enum TokenKind {
     Println,
     Debug,
     ReadLine,
+    Exit,
 
     If,
     Else,
@@ -351,6 +352,7 @@ impl Lexer {
                 "peek" => TokenKind::Peek,
                 "true" => TokenKind::True,
                 "fill" => TokenKind::Fill,
+                "exit" => TokenKind::Exit,
                 _ => TokenKind::Identifier,
             },
             5 => match value.as_str() {

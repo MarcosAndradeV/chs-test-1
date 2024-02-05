@@ -1,3 +1,5 @@
+use std::process;
+
 use crate::config::STACK_CAPACITY;
 use crate::exeptions::VMError;
 use crate::instructions::{Builtin, Bytecode, Instr, Opcode};
@@ -499,21 +501,6 @@ impl CHSVM {
                         self.ip += 1;
                         return Ok(());
                     }
-                    Builtin::Range => {
-                        let val = self.stack_pop()?;
-                        match val {
-                            Value::Int64(v) => {
-                                let r = (0..v as usize)
-                                    .into_iter()
-                                    .map(|elem| Value::Int64(elem as i64))
-                                    .collect();
-                                self.push_stack(Value::Array(r))?;
-                                self.ip += 1;
-                                return Ok(());
-                            }
-                            _ => vm_error!(""),
-                        }
-                    }
                     Builtin::Fill => {
                         let val = self.stack_pop()?;
                         match val {
@@ -528,29 +515,37 @@ impl CHSVM {
                                 self.ip += 1;
                                 return Ok(());
                             }
-                            _ => vm_error!(""),
+                            _ => vm_error!("fill expect int."),
                         }
                     }
-                    Builtin::Builtins => todo!(),
-                    Builtin::TimeUnix => todo!(),
-                    Builtin::Args => todo!(),
-                    Builtin::Exit => todo!(),
-                    Builtin::TypeOf => todo!(),
-                    Builtin::CallFunc => todo!(),
-                    Builtin::FStat => todo!(),
-                    Builtin::FWrite => todo!(),
-                    Builtin::FAppend => todo!(),
-                    Builtin::FRead => todo!(),
+                    Builtin::Range => {
+                        let val = self.stack_pop()?;
+                        match val {
+                            Value::Int64(v) => {
+                                let r = (0..v as usize)
+                                    .into_iter()
+                                    .map(|elem| Value::Int64(elem as i64))
+                                    .collect();
+                                self.push_stack(Value::Array(r))?;
+                                self.ip += 1;
+                                return Ok(());
+                            }
+                            _ => vm_error!("Range expects int."),
+                        }
+                    }
                     Builtin::ReadLine => {
                         let res = read_line();
                         self.push_stack(Value::Str(res.unwrap()))?;
                         self.ip += 1;
                         Ok(())
                     }
-                    Builtin::SWrite => todo!(),
-                    Builtin::SRead => todo!(),
-                    Builtin::GetSyscalls => todo!(),
-                    Builtin::Syscall => todo!(),
+                    Builtin::Exit => {
+                        let e = match self.stack_pop()? {
+                            Value::Int64(v) => {v as i32}
+                            _ => vm_error!("Exit expects a int.")
+                        };
+                        process::exit(e)
+                    },
                     Builtin::Invalid => todo!(),
                 }
             }
