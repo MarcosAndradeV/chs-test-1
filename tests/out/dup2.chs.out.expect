@@ -1,2 +1,0 @@
-CHSVM: [Int64(1), Int64(2)], SP: 2, STACK_LEN: 2
-CHSVM: [Int64(1), Int64(2), Int64(1), Int64(2)], SP: 4, STACK_LEN: 4

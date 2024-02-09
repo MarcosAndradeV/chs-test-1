@@ -8,7 +8,7 @@
     if dup 5 mod 0 = {
     "Buzz\n" print
     else 
-    dup println
+    dup print "\n" print
     }
     1 +
 } pop

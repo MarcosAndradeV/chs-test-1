@@ -1,2 +1,6 @@
-CHSVM: [Int64(1), Int64(2)], SP: 2, STACK_LEN: 2
-CHSVM: [Int64(1), Int64(2), Int64(1)], SP: 3, STACK_LEN: 3
+Debug:
+Data Stack: [Int64(1), Int64(2)]
+Temp Stack: []
+Debug:
+Data Stack: [Int64(1), Int64(2), Int64(1)]
+Temp Stack: []
