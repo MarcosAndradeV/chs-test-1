@@ -428,6 +428,36 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
+            Opcode::Concat    => {
+                let other = self.stack_pop()?;
+                let val = self.stack_pop()?;
+                match (&val, &other) {
+                    (Value::Array(_), Value::Array(_)) => {},
+                    (Value::Str(_), Value::Str(_)) => {},
+                    (v, o) => vm_error!("Cannot concat {} with {}", v, o),
+                }
+                self.push_stack(val.concat(other))?;
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::Tail    => {
+                let val = self.stack_pop()?;
+                if !val.is_list() && !val.is_str() {
+                    vm_error!("Cannot get tail of {}", val)
+                }
+                self.push_stack(val.tail())?;
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::Head    => {
+                let val = self.stack_pop()?;
+                if !val.is_list() && !val.is_str() {
+                    vm_error!("Cannot get head of {}", val)
+                }
+                self.push_stack(val.head())?;
+                self.ip += 1;
+                Ok(())
+            }
             Opcode::Halt => {
                 return Ok(());
             }
@@ -455,9 +485,6 @@ impl CHSVM {
                     break;
                 }
             }
-        }
-        if let Some(v) = self.stack_pop().ok() {
-            println!("{}", v);
         }
     }
 

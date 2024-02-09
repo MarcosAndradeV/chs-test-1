@@ -241,6 +241,9 @@ impl IrParser {
                     Operation::IdxSet => self.instrs.push(Instr::new(Opcode::IdxSet, None)),
                     Operation::IdxGet => self.instrs.push(Instr::new(Opcode::IdxGet, None)),
                     Operation::Len    => self.instrs.push(Instr::new(Opcode::Len, None)),
+                    Operation::Concat => self.instrs.push(Instr::new(Opcode::Concat, None)),
+                    Operation::Tail   => self.instrs.push(Instr::new(Opcode::Tail, None)),
+                    Operation::Head   => self.instrs.push(Instr::new(Opcode::Head, None)),
                 }
             }
             Expr::IdentExpr(val) => {

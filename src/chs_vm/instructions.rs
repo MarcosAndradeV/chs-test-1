@@ -55,6 +55,9 @@ pub enum Opcode {
     IdxSet,
     IdxGet,
     Len,
+    Concat,
+    Head,
+    Tail,
 }
 
 

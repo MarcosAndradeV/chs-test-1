@@ -92,17 +92,71 @@ impl Value {
         }
     }
 
+    pub fn tail(self) -> Value {
+        match self {
+            Value::Array(arr) => {
+                if let Some((_, tail)) = arr.split_first() {
+                    Value::Array(tail.to_owned())
+                } else {
+                    Value::Nil
+                }
+            }
+            Value::Str(st) => {
+                if let Some((_, tail)) = st.split_first() {
+                    Value::Str(tail.to_owned())
+                } else {
+                    Value::Nil
+                }
+            }
+            _ => Value::Nil
+        }
+    }
+
+    pub fn head(self) -> Value {
+        match self {
+            Value::Array(arr) => {
+                if let Some((head, _)) = arr.split_first() {
+                    head.to_owned()
+                } else {
+                    Value::Nil
+                }
+            }
+            Value::Str(st) => {
+                if let Some((head, _)) = st.split_first() {
+                    Value::Char(head.to_owned())
+                } else {
+                    Value::Nil
+                }
+            }
+            _ => Value::Nil
+        }
+    }
+
+    pub fn concat(self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Array(mut arr), Value::Array(o)) => {
+                arr.extend(o);
+                Value::Array(arr)
+            }
+            (Value::Str(mut st), Value::Str(o)) => {
+                st.extend(o);
+                Value::Str(st)
+            }
+            (_, _) => Value::Nil
+        }
+    }
+
     pub fn set_indexed(self, idx: Value, new_val: Value) -> Value {
         match (self, idx) {
             (Value::Array(mut arr), Value::Int64(i)) => {
-                if i < 0 || i as usize > arr.len() {
+                if i < 0 || i as usize >= arr.len() {
                     return Value::Nil;
                 }
                 arr[i as usize] = new_val;
                 Value::Array(arr)
             }
             (Value::Str(mut st), Value::Int64(i)) => {
-                if i < 0 || i as usize > st.len() {
+                if i < 0 || i as usize >= st.len() {
                     return Value::Nil;
                 }
                 if let Some(v) = new_val.to_char() {
