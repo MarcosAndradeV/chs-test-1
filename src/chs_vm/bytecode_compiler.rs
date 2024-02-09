@@ -1,6 +1,6 @@
 use std::{collections::HashMap, vec::IntoIter};
 
-use crate::{chs_frontend::ast::{Expr, FnExpr, IfExpr, PeekExpr, Program, VarExpr, WhileExpr}, exeptions::GenericError, generic_error};
+use crate::{chs_frontend::ast::{Expr, FnExpr, IfExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, exeptions::GenericError, generic_error};
 
 use super::{instructions::{Bytecode, Instr, Opcode}, value::Value};
 
@@ -182,7 +182,7 @@ impl IrParser {
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::StrExpr(v) => {
-                self.consts.push(Value::Str(v.to_string()));
+                self.consts.push(Value::Str(v.chars().collect()));
                 self.instrs
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
@@ -213,11 +213,35 @@ impl IrParser {
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::Op(v) => {
-                self.instrs.push(Instr::new(Opcode::from(v.as_ref()), None));
-            }
-            Expr::Buildin(v) => {
-                self.instrs
-                    .push(Instr::new(Opcode::Buildin, Some(usize::from(v.as_ref()))));
+                match *v {
+                    Operation::Pop    => self.instrs.push(Instr::new(Opcode::Pop, None)),
+                    Operation::Dup    => self.instrs.push(Instr::new(Opcode::Dup, None)),
+                    Operation::Swap   => self.instrs.push(Instr::new(Opcode::Swap, None)),
+                    Operation::Over   => self.instrs.push(Instr::new(Opcode::Over, None)),
+                    Operation::Add    => self.instrs.push(Instr::new(Opcode::Add, None)),
+                    Operation::Minus  => self.instrs.push(Instr::new(Opcode::Minus, None)),
+                    Operation::Mul    => self.instrs.push(Instr::new(Opcode::Mul, None)),
+                    Operation::Div    => self.instrs.push(Instr::new(Opcode::Div, None)),
+                    Operation::Mod    => self.instrs.push(Instr::new(Opcode::Mod, None)),
+                    Operation::Eq     => self.instrs.push(Instr::new(Opcode::Eq, None)),
+                    Operation::Neq    => self.instrs.push(Instr::new(Opcode::Neq, None)),
+                    Operation::Gt     => self.instrs.push(Instr::new(Opcode::Gt, None)),
+                    Operation::Gte    => self.instrs.push(Instr::new(Opcode::Gte, None)),
+                    Operation::Lte    => self.instrs.push(Instr::new(Opcode::Lte, None)),
+                    Operation::Lt     => self.instrs.push(Instr::new(Opcode::Lt, None)),
+                    Operation::Land   => self.instrs.push(Instr::new(Opcode::Land, None)),
+                    Operation::Lor    => self.instrs.push(Instr::new(Opcode::Lor, None)),
+                    Operation::Shl    => self.instrs.push(Instr::new(Opcode::Shl, None)),
+                    Operation::Shr    => self.instrs.push(Instr::new(Opcode::Shr, None)),
+                    Operation::Bitand => self.instrs.push(Instr::new(Opcode::Bitand, None)),
+                    Operation::Bitor  => self.instrs.push(Instr::new(Opcode::Bitor, None)),
+                    Operation::Debug  => self.instrs.push(Instr::new(Opcode::Debug, None)),
+                    Operation::Exit   => self.instrs.push(Instr::new(Opcode::Exit, None)),
+                    Operation::Print  => self.instrs.push(Instr::new(Opcode::Print, None)),
+                    Operation::IdxSet => self.instrs.push(Instr::new(Opcode::IdxSet, None)),
+                    Operation::IdxGet => self.instrs.push(Instr::new(Opcode::IdxGet, None)),
+                    Operation::Len    => self.instrs.push(Instr::new(Opcode::Len, None)),
+                }
             }
             Expr::IdentExpr(val) => {
                 if let Some((v, _)) = self

@@ -1,8 +1,7 @@
-use std::process;
 
 use crate::{config::STACK_CAPACITY, exeptions::VMError, vm_error};
 
-use super::{instructions::{Builtin, Bytecode, Instr, Opcode}, value::{read_line, Value}};
+use super::{instructions::{Bytecode, Instr, Opcode}, value::Value};
 
 
 
@@ -49,17 +48,6 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Dup2 => {
-                // a b -> a b a b
-                let op_2 = self.stack_pop()?; // b
-                let op_1 = self.stack_pop()?; // a
-                self.push_stack(op_1.clone())?;
-                self.push_stack(op_2.clone())?;
-                self.push_stack(op_1)?;
-                self.push_stack(op_2)?;
-                self.ip += 1;
-                return Ok(());
-            }
             Opcode::Swap => {
                 // a b -> b a
                 let op_2 = self.stack_pop()?; // b
@@ -93,15 +81,6 @@ impl CHSVM {
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v + o))?;
                     }
-                    (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v + o))?;
-                    }
-                    (Value::Int64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v as u64 + o))?;
-                    }
-                    (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v + o as u64))?;
-                    }
                     (v, o) => vm_error!("Cannot perform {} + {}", v, o),
                 }
                 self.ip += 1;
@@ -114,15 +93,6 @@ impl CHSVM {
                 match (op_1, op_2) {
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v - o))?;
-                    }
-                    (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v - o))?;
-                    }
-                    (Value::Int64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v as u64 - o))?;
-                    }
-                    (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v - o as u64))?;
                     }
                     (v, o) => vm_error!("Cannot perform {} - {}", v, o),
                 }
@@ -137,15 +107,6 @@ impl CHSVM {
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v * o))?;
                     }
-                    (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v * o))?;
-                    }
-                    (Value::Int64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v as u64 * o))?;
-                    }
-                    (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v * o as u64))?;
-                    }
                     (v, o) => vm_error!("Cannot perform {} * {}", v, o),
                 }
                 self.ip += 1;
@@ -159,20 +120,8 @@ impl CHSVM {
                     (_, Value::Int64(0)) => {
                         vm_error!("Cannot divide by zero")
                     }
-                    (_, Value::Uint64(0)) => {
-                        vm_error!("Cannot divide by zero")
-                    }
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v / o))?;
-                    }
-                    (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v / o))?;
-                    }
-                    (Value::Int64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v as u64 / o))?;
-                    }
-                    (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v / o as u64))?;
                     }
                     (v, o) => vm_error!("Cannot perform {} / {}", v, o),
                 }
@@ -187,20 +136,8 @@ impl CHSVM {
                     (_, Value::Int64(0)) => {
                         vm_error!("Cannot divide by zero")
                     }
-                    (_, Value::Uint64(0)) => {
-                        vm_error!("Cannot divide by zero")
-                    }
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v % o))?;
-                    }
-                    (Value::Uint64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v % o))?;
-                    }
-                    (Value::Int64(v), Value::Uint64(o)) => {
-                        self.push_stack(Value::Uint64(v as u64 % o))?;
-                    }
-                    (Value::Uint64(v), Value::Int64(o)) => {
-                        self.push_stack(Value::Uint64(v % o as u64))?;
                     }
                     (v, o) => vm_error!("Cannot perform {} % {}", v, o),
                 }
@@ -208,44 +145,44 @@ impl CHSVM {
                 return Ok(());
             }
             Opcode::Shr => {
-                let op_2 = self.stack_pop_u64()?;
-                let op_1 = self.stack_pop_u64()?;
-                self.push_stack(Value::Uint64(op_1 >> op_2).into())?;
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Int64(op_1 >> op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::Shl => {
-                let op_2 = self.stack_pop_u64()?;
-                let op_1 = self.stack_pop_u64()?;
-                self.push_stack(Value::Uint64(op_1 << op_2).into())?;
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Int64(op_1 << op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::Lor => {
                 let op_2 = self.stack_pop_bool()?;
                 let op_1 = self.stack_pop_bool()?;
-                self.push_stack(Value::Bool(op_1 || op_2).into())?;
+                self.push_stack(Value::Bool(op_1 || op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::Land => {
                 let op_2 = self.stack_pop_bool()?;
                 let op_1 = self.stack_pop_bool()?;
-                self.push_stack(Value::Bool(op_1 && op_2).into())?;
+                self.push_stack(Value::Bool(op_1 && op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::Bitor => {
-                let op_2 = self.stack_pop_u64()?;
-                let op_1 = self.stack_pop_u64()?;
-                self.push_stack(Value::Uint64(op_1 | op_2).into())?;
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Int64(op_1 | op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
             Opcode::Bitand => {
-                let op_2 = self.stack_pop_u64()?;
-                let op_1 = self.stack_pop_u64()?;
-                self.push_stack(Value::Uint64(op_1 & op_2).into())?;
+                let op_2 = self.stack_pop_i64()?;
+                let op_1 = self.stack_pop_i64()?;
+                self.push_stack(Value::Int64(op_1 & op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
@@ -446,108 +383,50 @@ impl CHSVM {
                 self.ip = addrs;
                 Ok(())
             }
-            Opcode::Buildin => {
-                let typ: usize = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
-                let buildin = Builtin::from(typ);
-                if buildin.is_invalid() {
-                    vm_error!("")
+            Opcode::Debug  => {
+                println!("Debug:\nData Stack: {:?}\nTemp Stack: {:?}", self.stack, self.temp_stack);
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::Exit   => {
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::Print  => {
+                let val = self.stack_pop()?;
+                print!("{val}");
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::IdxGet => {
+                let idx = self.stack_pop()?;
+                let val = self.stack_pop()?;
+                if !val.is_list() && !val.is_str() {
+                    vm_error!("Cannot index {} with {}", val, idx)
                 }
-                match buildin {
-                    Builtin::IdxGet => {
-                        let idx = self.stack_pop()?;
-                        let list = self.stack_pop()?;
-                        let val = list.get_indexed(idx);
-                        self.push_stack(val)?;
-                        self.ip += 1;
-                        return Ok(());
-                    }
-                    Builtin::IdxSet => {
-                        let new_val = self.stack_pop()?;
-                        let idx = self.stack_pop()?;
-                        let list = self.stack_pop()?;
-                        let new_list = list.set_indexed(idx, new_val);
-                        self.push_stack(new_list)?;
-                        self.ip += 1;
-                        return Ok(());
-                    }
-                    Builtin::Len => {
-                        let val = self.stack_pop()?;
-                        self.push_stack(val.len())?;
-                        self.ip += 1;
-                        return Ok(());
-                    }
-                    Builtin::Println => {
-                        let value = self.stack_pop()?;
-                        println!("{}", value.to_string());
-                        self.ip += 1;
-                        return Ok(());
-                    }
-                    Builtin::Print => {
-                        let val = self.stack_pop()?;
-                        print!("{}", val.to_string());
-                        self.ip += 1;
-                        return Ok(());
-                    }
-                    Builtin::Debug => {
-                        println!(
-                            "CHSVM: {:?}, SP: {}, STACK_LEN: {}",
-                            self.stack,
-                            self.sp,
-                            self.stack.len()
-                        );
-                        self.ip += 1;
-                        return Ok(());
-                    }
-                    Builtin::Fill => {
-                        let val = self.stack_pop()?;
-                        match val {
-                            Value::Int64(v) => {
-                                let mut vec: Vec<i64> = vec![];
-                                for _ in 0..=v {
-                                    vec.push(0)
-                                }
-                                self.push_stack(Value::Array(
-                                    vec.into_iter().map(|elem| Value::Int64(elem)).collect(),
-                                ))?;
-                                self.ip += 1;
-                                return Ok(());
-                            }
-                            _ => vm_error!("fill expect int."),
-                        }
-                    }
-                    Builtin::Range => {
-                        let val = self.stack_pop()?;
-                        match val {
-                            Value::Int64(v) => {
-                                let r = (0..v as usize)
-                                    .into_iter()
-                                    .map(|elem| Value::Int64(elem as i64))
-                                    .collect();
-                                self.push_stack(Value::Array(r))?;
-                                self.ip += 1;
-                                return Ok(());
-                            }
-                            _ => vm_error!("Range expects int."),
-                        }
-                    }
-                    Builtin::ReadLine => {
-                        let res = read_line();
-                        self.push_stack(Value::Str(res.unwrap()))?;
-                        self.ip += 1;
-                        Ok(())
-                    }
-                    Builtin::Exit => {
-                        let e = match self.stack_pop()? {
-                            Value::Int64(v) => {v as i32}
-                            _ => vm_error!("Exit expects a int.")
-                        };
-                        process::exit(e)
-                    },
-                    Builtin::Invalid => todo!(),
+                self.push_stack(val.get_indexed(idx))?;
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::IdxSet => {
+                let new_val = self.stack_pop()?;
+                let idx = self.stack_pop()?;
+                let val = self.stack_pop()?;
+                if !val.is_list() {
+                    vm_error!("Cannot index {} with {}", val, idx)
                 }
+                self.push_stack(val.set_indexed(idx, new_val))?;
+                self.ip += 1;
+                Ok(())
+            }
+            Opcode::Len    => {
+                let val = self.stack_pop()?;
+                if !val.is_list() && !val.is_str() {
+                    vm_error!("Cannot get length of {}", val)
+                }
+                self.push_stack(val.len())?;
+                self.ip += 1;
+                Ok(())
             }
             Opcode::Halt => {
                 return Ok(());
@@ -577,6 +456,9 @@ impl CHSVM {
                 }
             }
         }
+        if let Some(v) = self.stack_pop().ok() {
+            println!("{}", v);
+        }
     }
 
     fn stack_pop(&mut self) -> Result<Value, VMError> {
@@ -589,15 +471,16 @@ impl CHSVM {
         }
     }
 
-    fn stack_pop_u64(&mut self) -> Result<u64, VMError> {
+    fn stack_pop_i64(&mut self) -> Result<i64, VMError> {
         if !(self.sp == 0) {
             self.sp -= 1
         }
         match self.stack.pop() {
             Some(v) => match v {
-                Value::Uint64(v) => Ok(v),
-                Value::Int64(v) => Ok(v as u64),
-                a => vm_error!("{} cannot be dynanmic converted into uint", a),
+                Value::Int64(v) => Ok(v),
+                Value::Bool(v) => Ok(v as i64),
+                Value::Nil => Ok(0),
+                a => vm_error!("{} cannot be dynanmic converted into int", a),
             },
             None => vm_error!("Stack uderflow"),
         }
@@ -613,7 +496,8 @@ impl CHSVM {
                 Value::Nil => Ok(false),
                 Value::Array(v) => Ok(!v.is_empty()),
                 Value::Str(v) => Ok(!v.is_empty()),
-                a => vm_error!("{} cannot be dynanmic converted into bool", a),
+                Value::Int64(v) => Ok(v != 0),
+                Value::Char(v) => Ok(v != '\0'),
             },
             None => vm_error!("Stack underflow"),
         }

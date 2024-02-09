@@ -1,7 +1,5 @@
 use core::fmt;
 
-use crate::chs_frontend::ast::Operation;
-
 use super::value::Value;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -12,7 +10,6 @@ pub enum Opcode {
 
     Pop,
     Dup,
-    Dup2,
     Swap,
     Over,
 
@@ -47,81 +44,20 @@ pub enum Opcode {
 
     GlobalStore,
     GlobalLoad,
-
-    Buildin,
     
     SkipFn,
     CallFn,
     RetFn,
-}
 
-impl From<&Operation> for Opcode {
-    fn from(item: &Operation) -> Self {
-        match item {
-            Operation::Pop => Self::Pop,
-            Operation::Dup => Self::Dup,
-            Operation::Dup2 => Self::Dup2,
-            Operation::Swap => Self::Swap,
-            Operation::Over => Self::Over,
-            Operation::Add => Self::Add,
-            Operation::Minus => Self::Minus,
-            Operation::Mul => Self::Mul,
-            Operation::Div => Self::Div,
-            Operation::Mod => Self::Mod,
-            Operation::Eq => Self::Eq,
-            Operation::Neq => Self::Neq,
-            Operation::Gt => Self::Gt,
-            Operation::Gte => Self::Gte,
-            Operation::Lte => Self::Lte,
-            Operation::Lt => Self::Lt,
-            Operation::Land => Self::Land,
-            Operation::Lor => Self::Lor,
-            Operation::Shl => Self::Shl,
-            Operation::Shr => Self::Shr,
-            Operation::Bitand => Self::Bitand,
-            Operation::Bitor => Self::Bitor,
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Debug, Eq, Copy, PartialOrd)]
-pub enum Builtin {
-    IdxGet = 0,
-    IdxSet,
-    Len,
-    Println,
-    Print,
     Debug,
-    Fill,
-    ReadLine,
-    Range,
     Exit,
-    Invalid,
+    Print,
+    IdxSet,
+    IdxGet,
+    Len,
 }
 
-impl Builtin {
-    pub fn is_invalid(&self) -> bool {
-        *self == Builtin::Invalid
-    }
-}
 
-impl From<usize> for Builtin {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Self::IdxGet,
-            1 => Self::IdxSet,
-            2 => Self::Len,
-            3 => Self::Println,
-            4 => Self::Print,
-            5 => Self::Debug,
-            6 => Self::Fill,
-            7 => Self::ReadLine,
-            8 => Self::Range,
-            9 => Self::Exit,
-            _ => Self::Invalid,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Instr {
