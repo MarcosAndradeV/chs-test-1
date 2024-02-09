@@ -3,7 +3,7 @@
 0 1
 while over 100 < {
     peek a b {
-        a println
+        a print "\n" print
         b a b +
     }
 } pop pop

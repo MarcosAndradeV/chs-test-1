@@ -8,7 +8,7 @@ var remainder := 0;
 var temp := Palindrome;
 
 if x 0 < {
-    "False" println 
+    "False\n" print
     else
     while temp 0 != {
         temp 10 mod := remainder
@@ -17,8 +17,8 @@ if x 0 < {
     }
 
     if reverse x = {
-        "True" println
+        "True\n" print
         else
-        "False" println
+        "False\n" print
     }
 }

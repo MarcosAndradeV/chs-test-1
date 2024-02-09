@@ -14,9 +14,9 @@ fn sum {
     }
 }
 
-@(1 5 8 2)
+[1 5 8 2]
 dup
 sum
 swap len  # Length
 /         # Divide
-println
+print "\n" print

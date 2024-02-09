@@ -17,7 +17,8 @@ fn find {
     }
 }
 
-@(1 5 8 2)
+[1 5 8 2]
 8
 find
-println
+print
+"\n" print

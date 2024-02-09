@@ -36,5 +36,5 @@ fn max {
   }
 }
 
-@(1 2 3) min println
-@(1 2 3) max println
+[1 2 3] min print "\n" print
+[1 2 3] max print "\n" print

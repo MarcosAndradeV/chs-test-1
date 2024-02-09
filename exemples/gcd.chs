@@ -14,5 +14,5 @@ fn gcd_rec {
   }
 }
 
-10 2 gcd println
-10 2 gcd_rec println
+10 2 gcd print "\n" print
+10 2 gcd_rec print "\n" print
