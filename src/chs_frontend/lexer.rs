@@ -16,35 +16,24 @@ pub fn read_file_to_bytes(filepath: PathBuf) -> io::Result<Vec<u8>> {
 pub enum TokenKind {
     Comment,
     Whitespace,
-
     Var,
     Peek,
-    Set,
     Assing,
     Len,
-    Range,
-    Fill,
-
     IdxGet,
     IdxSet,
-
     Invalid,
     Null,
-
     Int,
     Float,
     Identifier,
     Str,
-    List,
     True,
     False,
     Nil,
 
-    Hlt,
     Print,
-    Println,
     Debug,
-    ReadLine,
     Exit,
 
     If,
@@ -85,7 +74,6 @@ pub enum TokenKind {
 
     Pop,
     Dup,
-    Dup2,
     Over,
     Swap,
 }
@@ -171,7 +159,7 @@ impl Lexer {
     fn next_regular_token(&mut self) -> Token {
         match self.current_byte() {
             b'0'..=b'9' => self.number(false),
-            b'\"' => self.string(),
+            b'\"' => self.string(self.position),
             b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
@@ -185,13 +173,6 @@ impl Lexer {
             b'[' => self.make_token(TokenKind::BracketOpen),
             b']' => self.make_token(TokenKind::BracketClose),
             b';' => self.make_token(TokenKind::SemiColon),
-            b'@' => match self.next_byte() {
-                b'(' => {
-                    self.position += 2;
-                    self.token(TokenKind::List, self.position - 2)
-                }
-                _ => Token::invalid("@".to_string()),
-            },
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -336,22 +317,18 @@ impl Lexer {
             3 => match value.as_str() {
                 "pop" => TokenKind::Pop,
                 "dup" => TokenKind::Dup,
-                "hlt" => TokenKind::Hlt,
                 "mod" => TokenKind::Mod,
                 "var" => TokenKind::Var,
-                "set" => TokenKind::Set,
                 "len" => TokenKind::Len,
                 "nil" => TokenKind::Nil,
                 _ => TokenKind::Identifier,
             },
             4 => match value.as_str() {
                 "else" => TokenKind::Else,
-                "dup2" => TokenKind::Dup2,
                 "over" => TokenKind::Over,
                 "swap" => TokenKind::Swap,
                 "peek" => TokenKind::Peek,
                 "true" => TokenKind::True,
-                "fill" => TokenKind::Fill,
                 "exit" => TokenKind::Exit,
                 _ => TokenKind::Identifier,
             },
@@ -360,17 +337,11 @@ impl Lexer {
                 "while" => TokenKind::Whlie,
                 "debug" => TokenKind::Debug,
                 "false" => TokenKind::False,
-                "range" => TokenKind::Range,
-                "input" => TokenKind::ReadLine,
                 _ => TokenKind::Identifier,
             },
             6 => match value.as_str() {
                 "idxget" => TokenKind::IdxGet,
                 "idxset" => TokenKind::IdxSet,
-                _ => TokenKind::Identifier,
-            },
-            7 => match value.as_str() {
-                "println" => TokenKind::Println,
                 _ => TokenKind::Identifier,
             },
             _ => TokenKind::Identifier,
@@ -409,12 +380,13 @@ impl Lexer {
         Token::null()
     }
 
-    fn string(&mut self) -> Token {
+    fn string(&mut self, start: usize) -> Token {
         let mut buffer = String::new();
         self.advance_char();
         loop {
             match self.current_byte() {
-                0 | b'\"' => {
+                0 => return self.invalid(start, self.position),
+                b'\"' => {
                     self.advance_char();
                     break;
                 }
@@ -429,6 +401,7 @@ impl Lexer {
                         self.advance_char()
                     }
                 },
+                b'\n' => return self.invalid(start, self.position),
                 _ => {
                     buffer.push(self.current_byte() as char);
                     self.advance_char()

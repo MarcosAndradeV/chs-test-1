@@ -4,7 +4,6 @@ use std::fmt;
 pub enum Operation {
     Pop,
     Dup,
-    Dup2,
     Swap,
     Over,
 
@@ -28,37 +27,13 @@ pub enum Operation {
     Shr,
     Bitand,
     Bitor,
-}
 
-#[derive(Debug)]
-pub enum BuildinOp {
-    IdxGet,
-    IdxSet,
-    Len,
-    Println,
-    Print,
     Debug,
-    Fill,
-    ReadLine,
-    Range,
     Exit,
-}
-
-impl From<&BuildinOp> for usize {
-    fn from(value: &BuildinOp) -> Self {
-        match value {
-            BuildinOp::IdxGet => 0,
-            BuildinOp::IdxSet => 1,
-            BuildinOp::Len => 2,
-            BuildinOp::Println => 3,
-            BuildinOp::Print => 4,
-            BuildinOp::Debug => 5,
-            BuildinOp::Fill => 6,
-            BuildinOp::ReadLine => 7,
-            BuildinOp::Range => 8,
-            BuildinOp::Exit => 9,
-        }
-    }
+    Print,
+    IdxSet,
+    IdxGet,
+    Len,
 }
 
 #[derive(Debug)]
@@ -95,7 +70,6 @@ pub struct FnExpr {
 #[derive(Debug)]
 pub enum Expr {
     Op(Box<Operation>),
-    Buildin(Box<BuildinOp>),
 
     IntExpr(Box<String>),
     StrExpr(Box<String>),
@@ -117,7 +91,6 @@ impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expr::Op(_) => write!(f, "Op"),
-            Expr::Buildin(_) => write!(f, "Buildin"),
             Expr::IntExpr(_) => write!(f, "IntExpr"),
             Expr::StrExpr(_) => write!(f, "StrExpr"),
             Expr::BoolExpr(_) => write!(f, "BoolExpr"),

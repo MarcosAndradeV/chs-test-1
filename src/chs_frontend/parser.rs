@@ -1,7 +1,7 @@
 use crate::{exeptions::GenericError, generic_error};
 
 use super::{
-    ast::{BuildinOp, Expr, IfExpr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
+    ast::{ Expr, IfExpr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
@@ -40,7 +40,6 @@ impl Parser {
         let expr = match token.kind {
             TokenKind::Pop => Expr::Op(Box::new(Operation::Pop)),
             TokenKind::Dup => Expr::Op(Box::new(Operation::Dup)),
-            TokenKind::Dup2 => Expr::Op(Box::new(Operation::Dup2)),
             TokenKind::Over => Expr::Op(Box::new(Operation::Over)),
             TokenKind::Swap => Expr::Op(Box::new(Operation::Swap)),
 
@@ -64,16 +63,12 @@ impl Parser {
             TokenKind::Land => Expr::Op(Box::new(Operation::Land)),
             TokenKind::Lor => Expr::Op(Box::new(Operation::Lor)),
 
-            TokenKind::Print => Expr::Buildin(Box::new(BuildinOp::Print)),
-            TokenKind::Println => Expr::Buildin(Box::new(BuildinOp::Println)),
-            TokenKind::Debug => Expr::Buildin(Box::new(BuildinOp::Debug)),
-            TokenKind::Len => Expr::Buildin(Box::new(BuildinOp::Len)),
-            TokenKind::IdxGet => Expr::Buildin(Box::new(BuildinOp::IdxGet)),
-            TokenKind::IdxSet => Expr::Buildin(Box::new(BuildinOp::IdxSet)),
-            TokenKind::Range => Expr::Buildin(Box::new(BuildinOp::Range)),
-            TokenKind::Fill => Expr::Buildin(Box::new(BuildinOp::Fill)),
-            TokenKind::ReadLine => Expr::Buildin(Box::new(BuildinOp::ReadLine)),
-            TokenKind::Exit => Expr::Buildin(Box::new(BuildinOp::Exit)),
+            TokenKind::Debug => Expr::Op(Box::new(Operation::Debug)),
+            TokenKind::Exit  => Expr::Op(Box::new(Operation::Exit)),
+            TokenKind::Print => Expr::Op(Box::new(Operation::Print)),
+            TokenKind::IdxSet => Expr::Op(Box::new(Operation::IdxSet)),
+            TokenKind::IdxGet => Expr::Op(Box::new(Operation::IdxGet)),
+            TokenKind::Len => Expr::Op(Box::new(Operation::Len)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
@@ -85,7 +80,7 @@ impl Parser {
             TokenKind::Whlie => self.while_expr()?,
             TokenKind::Var => self.var_expr()?,
             TokenKind::Assing => self.assigin_expr()?,
-            TokenKind::List => self.list_expr()?,
+            TokenKind::BracketOpen => self.list_expr()?,
             TokenKind::Peek => self.peek_expr()?,
             TokenKind::Fn => self.fn_expr()?,
 
@@ -151,7 +146,7 @@ impl Parser {
         loop {
             let tok = self.require()?;
             match tok.kind {
-                TokenKind::ParenClose => break,
+                TokenKind::BracketClose => break,
                 TokenKind::Int => list.push(tok.value),
                 _ => generic_error!(
                     "{:?}({}) is not suported in List literals",
