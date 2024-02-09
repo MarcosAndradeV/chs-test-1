@@ -69,6 +69,9 @@ impl Parser {
             TokenKind::IdxSet => Expr::Op(Box::new(Operation::IdxSet)),
             TokenKind::IdxGet => Expr::Op(Box::new(Operation::IdxGet)),
             TokenKind::Len => Expr::Op(Box::new(Operation::Len)),
+            TokenKind::Concat => Expr::Op(Box::new(Operation::Concat)),
+            TokenKind::Head => Expr::Op(Box::new(Operation::Head)),
+            TokenKind::Tail => Expr::Op(Box::new(Operation::Tail)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),

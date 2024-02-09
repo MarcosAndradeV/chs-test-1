@@ -22,6 +22,9 @@ pub enum TokenKind {
     Len,
     IdxGet,
     IdxSet,
+    Concat,
+    Head,
+    Tail,
     Invalid,
     Null,
     Int,
@@ -330,6 +333,8 @@ impl Lexer {
                 "peek" => TokenKind::Peek,
                 "true" => TokenKind::True,
                 "exit" => TokenKind::Exit,
+                "tail" => TokenKind::Tail,
+                "head" => TokenKind::Head,
                 _ => TokenKind::Identifier,
             },
             5 => match value.as_str() {
@@ -342,6 +347,7 @@ impl Lexer {
             6 => match value.as_str() {
                 "idxget" => TokenKind::IdxGet,
                 "idxset" => TokenKind::IdxSet,
+                "concat" => TokenKind::Concat,
                 _ => TokenKind::Identifier,
             },
             _ => TokenKind::Identifier,

@@ -34,6 +34,9 @@ pub enum Operation {
     IdxSet,
     IdxGet,
     Len,
+    Concat,
+    Tail,
+    Head,
 }
 
 #[derive(Debug)]
