@@ -1,3 +1,7 @@
+fn println {
+  print "\n" print
+}
+
 fn reverse { # [int] : [int]
     if dup len 0 = {
         pop []
