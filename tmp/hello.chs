@@ -1,1 +1,3 @@
-"Hello, world!\n" print
+import "std.chs"
+
+"Hello, world!" println
