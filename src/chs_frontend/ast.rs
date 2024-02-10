@@ -37,6 +37,7 @@ pub enum Operation {
     Concat,
     Tail,
     Head,
+    Call,
 }
 
 #[derive(Debug)]
@@ -88,7 +89,8 @@ pub enum Expr {
     Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
-    Import(Box<String>)
+    Import(Box<String>),
+    NoCall(Box<String>)
 }
 
 impl fmt::Display for Expr {
@@ -108,6 +110,7 @@ impl fmt::Display for Expr {
             Expr::Assigin(_) => write!(f, "Assigin"),
             Expr::Fn(_) => write!(f, "Fn"),
             Expr::Import(_) => write!(f, "Import"),
+            Expr::NoCall(_) => write!(f, "NoCall"),
         }
     }
 }

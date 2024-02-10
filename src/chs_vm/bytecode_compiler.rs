@@ -63,7 +63,10 @@ impl IrParser {
     fn import_expr(&mut self, expr: String) -> Result<(), GenericError> {
         let mut p = PathBuf::from(expr);
         if !p.exists() {
-            p = PathBuf::from(format!("std/{}", p.display()))
+            p = PathBuf::from(format!("std/{}", p.display()));
+            if !p.exists() {
+                generic_error!("Cannot find file {}", p.display())
+            }
         }
         let value = format!("{}", p.display());
         if self.imported_files.iter().find(|f| *f == &value).is_none() {
@@ -268,6 +271,7 @@ impl IrParser {
                     Operation::Concat => self.instrs.push(Instr::new(Opcode::Concat, None)),
                     Operation::Tail   => self.instrs.push(Instr::new(Opcode::Tail, None)),
                     Operation::Head   => self.instrs.push(Instr::new(Opcode::Head, None)),
+                    Operation::Call   => self.instrs.push(Instr::new(Opcode::Call, None)),
                 }
             }
             Expr::IdentExpr(val) => {
@@ -289,6 +293,19 @@ impl IrParser {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 } else {
                     generic_error!("{} is not defined", val.to_string())
+                }
+            }
+            Expr::NoCall(val) => {
+                if let Some((_, addrs)) = self
+                    .fn_def
+                    .iter()
+                    .find(|(nm, _)| nm.as_str() == val.as_str())
+                {
+                    self.consts.push(Value::Fn(*addrs, 0));
+                    self.instrs
+                        .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                } else {
+                    generic_error!("{} is not function", val.to_string())
                 }
             }
             Expr::Assigin(val) => {

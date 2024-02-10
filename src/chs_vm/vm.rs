@@ -458,6 +458,17 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
+            Opcode::Call => {
+                let val = self.stack_pop()?;
+                match val {
+                    Value::Fn(v, _) => {
+                        self.return_stack.push(self.ip + 1);
+                        self.ip = v;
+                        Ok(())
+                    },
+                    v => vm_error!("Cannot call {}", v),
+                }
+            }
             Opcode::Halt => {
                 return Ok(());
             }
@@ -525,6 +536,7 @@ impl CHSVM {
                 Value::Str(v) => Ok(!v.is_empty()),
                 Value::Int64(v) => Ok(v != 0),
                 Value::Char(v) => Ok(v != '\0'),
+                _ => Ok(false),
             },
             None => vm_error!("Stack underflow"),
         }

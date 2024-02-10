@@ -8,6 +8,7 @@ pub enum Value {
     Bool(bool),
     Str(Vec<char>),
     Char(char),
+    Fn(usize, usize),
     Nil,
 }
 
@@ -40,6 +41,7 @@ impl fmt::Display for Value {
                 write!(f, "{}", buff.to_string())
             },
             Value::Char(v) => write!(f, "{}", v),
+            Value::Fn(v, _) => write!(f, "Fn({})", v),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -68,6 +70,12 @@ impl Value {
     pub fn is_list(&self) -> bool {
         match self {
             Value::Array(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_fn(&self) -> bool {
+        match self {
+            Value::Fn(_, _) => true,
             _ => false,
         }
     }

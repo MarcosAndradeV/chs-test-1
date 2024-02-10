@@ -39,6 +39,7 @@ pub enum TokenKind {
     Print,
     Debug,
     Exit,
+    Call,
 
     If,
     Else,
@@ -75,6 +76,7 @@ pub enum TokenKind {
 
     SemiColon,
     Colon,
+    Tilde,
 
     Pop,
     Dup,
@@ -177,6 +179,7 @@ impl Lexer {
             b'[' => self.make_token(TokenKind::BracketOpen),
             b']' => self.make_token(TokenKind::BracketClose),
             b';' => self.make_token(TokenKind::SemiColon),
+            b'~' => self.make_token(TokenKind::Tilde),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -336,6 +339,7 @@ impl Lexer {
                 "exit" => TokenKind::Exit,
                 "tail" => TokenKind::Tail,
                 "head" => TokenKind::Head,
+                "call" => TokenKind::Call,
                 _ => TokenKind::Identifier,
             },
             5 => match value.as_str() {

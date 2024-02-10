@@ -72,6 +72,7 @@ impl Parser {
             TokenKind::Concat => Expr::Op(Box::new(Operation::Concat)),
             TokenKind::Head => Expr::Op(Box::new(Operation::Head)),
             TokenKind::Tail => Expr::Op(Box::new(Operation::Tail)),
+            TokenKind::Call => Expr::Op(Box::new(Operation::Call)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
@@ -87,10 +88,16 @@ impl Parser {
             TokenKind::Peek => self.peek_expr()?,
             TokenKind::Fn => self.fn_expr()?,
             TokenKind::Import => self.import_expr()?,
+            TokenKind::Tilde => self.nocall_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
+    }
+
+    fn nocall_expr(&mut self) -> Result<Expr, GenericError> {
+        let f = self.expect(TokenKind::Identifier)?.value;
+        Ok(Expr::NoCall(Box::new(f)))
     }
 
     fn import_expr(&mut self) -> Result<Expr, GenericError> {
