@@ -86,10 +86,16 @@ impl Parser {
             TokenKind::BracketOpen => self.list_expr()?,
             TokenKind::Peek => self.peek_expr()?,
             TokenKind::Fn => self.fn_expr()?,
+            TokenKind::Import => self.import_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
+    }
+
+    fn import_expr(&mut self) -> Result<Expr, GenericError> {
+        let file = self.expect(TokenKind::Str)?.value;
+        Ok(Expr::Import(Box::new(file)))
     }
 
     fn fn_expr(&mut self) -> Result<Expr, GenericError> {

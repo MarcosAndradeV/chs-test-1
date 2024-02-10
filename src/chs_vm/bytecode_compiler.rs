@@ -1,6 +1,6 @@
-use std::{collections::HashMap, vec::IntoIter};
+use std::{collections::HashMap, path::PathBuf, vec::IntoIter};
 
-use crate::{chs_frontend::ast::{Expr, FnExpr, IfExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, exeptions::GenericError, generic_error};
+use crate::{chs_frontend::{ast::{Expr, FnExpr, IfExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, lexer::read_file_to_bytes, parser::Parser}, exeptions::GenericError, generic_error};
 
 use super::{instructions::{Bytecode, Instr, Opcode}, value::Value};
 
@@ -20,6 +20,7 @@ pub struct IrParser {
     var_count: usize,
     peek_def: Vec<String>,
     fn_def: Vec<(String, usize)>,
+    imported_files: Vec<String>
 }
 
 impl IrParser {
@@ -32,6 +33,7 @@ impl IrParser {
             var_count: 0,
             peek_def: Vec::new(),
             fn_def: Vec::new(),
+            imported_files: Vec::new(),
         }
     }
 
@@ -53,8 +55,30 @@ impl IrParser {
             Expr::Var(v) => self.var_expr(*v)?,
             Expr::Peek(v) => self.peek_expr(*v)?,
             Expr::Fn(v) => self.fn_expr(*v)?,
+            Expr::Import(v) => self.import_expr(*v)?,
             _ => self.simple_expr(expr)?,
         })
+    }
+
+    fn import_expr(&mut self, expr: String) -> Result<(), GenericError> {
+        let mut p = PathBuf::from(expr);
+        if !p.exists() {
+            p = PathBuf::from(format!("std/{}", p.display()))
+        }
+        let value = format!("{}", p.display());
+        if self.imported_files.iter().find(|f| *f == &value).is_none() {
+            self.imported_files.push(value);
+            let bytes = match read_file_to_bytes(p) {
+                Ok(ok) => ok,
+                Err(e) => generic_error!("{}", e),
+            };
+            let mut fist_parser = Parser::new(bytes);
+            let mut program = fist_parser.parse_to_ir()?.into_iter();
+            while let Some(expr) = program.next() {
+                self.expr(expr)?;
+            }
+        };
+        Ok(())
     }
 
     fn checks_def(&self, name: &str) -> NamesDef {
