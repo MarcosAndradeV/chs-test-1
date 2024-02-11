@@ -77,6 +77,9 @@ impl IrParser {
             if !p.exists() {
                 generic_error!("Cannot find file {}", p.display())
             }
+            if !p.extension().is_some_and(|ext| ext == "chs") {
+                generic_error!("Cannot import .chs file")
+            }
         }
         let value = format!("{}", p.display());
         if self.imported_files.iter().find(|f| *f == &value).is_none() {
@@ -105,8 +108,8 @@ impl IrParser {
 
     fn fn_expr(&mut self, expr: FnExpr) -> Result<(), GenericError> {
         match self.checks_def(&expr.name) {
-            NamesDef::Fn => todo!(),
-            NamesDef::Var => todo!(),
+            NamesDef::Fn   => generic_error!("{} is already Function name.", expr.name),
+            NamesDef::Var  => generic_error!("{} is already Variable name.", expr.name),
             NamesDef::None => {}
         };
         let skip_addrs = self.instrs.len();
@@ -128,8 +131,8 @@ impl IrParser {
         self.instrs.push(Instr::new(Opcode::Bind, Some(names_len)));
         for e in expr.names.iter().rev() {
             match self.checks_def(e) {
-                NamesDef::Fn => todo!(),
-                NamesDef::Var => todo!(),
+                NamesDef::Fn   => generic_error!("{} is already Function name.", e),
+                NamesDef::Var  => generic_error!("{} is already Variable name.", e),
                 NamesDef::None => {}
             };
             self.peek_def.push(e.to_string())
@@ -149,8 +152,8 @@ impl IrParser {
         let var_ptr = self.var_count;
         self.var_count += 1;
         match self.checks_def(&expr.name) {
-            NamesDef::Fn => todo!(),
-            NamesDef::Var => todo!(),
+            NamesDef::Fn   => generic_error!("{} is already Function name.", expr.name),
+            NamesDef::Var  => {}
             NamesDef::None => {}
         };
         self.var_def.insert(expr.name.clone(), var_ptr);
