@@ -1,7 +1,7 @@
 use crate::{exeptions::GenericError, generic_error};
 
 use super::{
-    ast::{ Expr, IfExpr, FnExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
+    ast::{Expr, FnExpr, IfExpr, ListExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr},
     lexer::{Lexer, Token, TokenKind},
 };
 
@@ -64,7 +64,7 @@ impl Parser {
             TokenKind::Lor => Expr::Op(Box::new(Operation::Lor)),
 
             TokenKind::Debug => Expr::Op(Box::new(Operation::Debug)),
-            TokenKind::Exit  => Expr::Op(Box::new(Operation::Exit)),
+            TokenKind::Exit => Expr::Op(Box::new(Operation::Exit)),
             TokenKind::Print => Expr::Op(Box::new(Operation::Print)),
             TokenKind::IdxSet => Expr::Op(Box::new(Operation::IdxSet)),
             TokenKind::IdxGet => Expr::Op(Box::new(Operation::IdxGet)),
@@ -160,18 +160,22 @@ impl Parser {
     fn list_expr(&mut self) -> Result<Expr, GenericError> {
         let mut list = vec![];
         loop {
-            let tok = self.require()?;
-            match tok.kind {
+            let token = self.require()?;
+            match token.kind {
                 TokenKind::BracketClose => break,
-                TokenKind::Int => list.push(tok.value),
-                _ => generic_error!(
+                TokenKind::If
+                | TokenKind::Whlie
+                | TokenKind::Fn
+                | TokenKind::Var
+                | TokenKind::Import => generic_error!(
                     "{:?}({}) is not suported in List literals",
-                    tok.kind,
-                    tok.value
+                    token.kind,
+                    token.value
                 ),
+                _ => list.push(self.expression(token)?),
             }
         }
-        Ok(Expr::ListExpr(Box::new(list)))
+        Ok(Expr::ListExpr(Box::new(ListExpr { itens: list })))
     }
 
     fn var_expr(&mut self) -> Result<Expr, GenericError> {

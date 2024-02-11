@@ -469,6 +469,16 @@ impl CHSVM {
                     v => vm_error!("Cannot call {}", v),
                 }
             }
+            Opcode::MakeList => {
+                let q = match instr.operands {
+                    Some(v) => v,
+                    None => vm_error!("{:?} operand is not provided.", instr.kind),
+                };
+                let v = Value::Array(self.stack.split_off(self.stack.len().saturating_sub(q).into()));
+                self.push_stack(v)?;
+                self.ip += 1;
+                Ok(())
+            }
             Opcode::Halt => {
                 return Ok(());
             }

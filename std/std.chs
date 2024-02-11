@@ -6,7 +6,7 @@ fn reverse { # [int] : [int]
     if dup len 0 = {
         pop []
         else
-        dup tail reverse swap head peek h { [0] 0 h idxset } concat
+        dup tail reverse swap [head] concat
     }
 }
 

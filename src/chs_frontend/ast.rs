@@ -72,13 +72,18 @@ pub struct FnExpr {
 }
 
 #[derive(Debug)]
+pub struct ListExpr {
+    pub itens: Vec<Expr>,
+}
+
+#[derive(Debug)]
 pub enum Expr {
     Op(Box<Operation>),
 
     IntExpr(Box<String>),
     StrExpr(Box<String>),
     BoolExpr(Box<String>),
-    ListExpr(Box<Vec<String>>),
+    ListExpr(Box<ListExpr>),
     NilExpr,
 
     IdentExpr(Box<String>),

@@ -59,6 +59,7 @@ pub enum Opcode {
     Head,
     Tail,
     Call,
+    MakeList,
 }
 
 

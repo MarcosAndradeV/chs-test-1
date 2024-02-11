@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, vec::IntoIter};
 
-use crate::{chs_frontend::{ast::{Expr, FnExpr, IfExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, lexer::read_file_to_bytes, parser::Parser}, exeptions::GenericError, generic_error};
+use crate::{chs_frontend::{ast::{Expr, FnExpr, IfExpr, ListExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, lexer::read_file_to_bytes, parser::Parser}, exeptions::GenericError, generic_error};
 
 use super::{instructions::{Bytecode, Instr, Opcode}, value::Value};
 
@@ -56,8 +56,18 @@ impl IrParser {
             Expr::Peek(v) => self.peek_expr(*v)?,
             Expr::Fn(v) => self.fn_expr(*v)?,
             Expr::Import(v) => self.import_expr(*v)?,
+            Expr::ListExpr(v) => self.list_expr(*v)?,
             _ => self.simple_expr(expr)?,
         })
+    }
+
+    fn list_expr(&mut self, expr: ListExpr) -> Result<(), GenericError> {
+        let list_init = self.instrs.len();
+        for e in expr.itens.into_iter() {
+            self.expr(e)?
+        }
+        self.instrs.push(Instr::new(Opcode::MakeList, Some(self.instrs.len().saturating_sub(list_init))));
+        Ok(())
     }
 
     fn import_expr(&mut self, expr: String) -> Result<(), GenericError> {
@@ -145,7 +155,7 @@ impl IrParser {
         };
         self.var_def.insert(expr.name.clone(), var_ptr);
         for e in expr.value.into_iter() {
-            self.simple_expr(e)?;
+            self.expr(e)?;
         }
         self.instrs
             .push(Instr::new(Opcode::GlobalStore, Some(var_ptr)));
@@ -227,18 +237,18 @@ impl IrParser {
                 self.instrs
                     .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
-            Expr::ListExpr(v) => {
-                let mut list = vec![];
-                for s in *v {
-                    match s.parse::<i64>() {
-                        Ok(o) => list.push(Value::Int64(o)),
-                        Err(e) => generic_error!("{}", e),
-                    }
-                }
-                self.consts.push(Value::Array(list));
-                self.instrs
-                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
-            }
+            // Expr::ListExpr(v) => {
+            //     let mut list = vec![];
+            //     for s in *v {
+            //         match s.parse::<i64>() {
+            //             Ok(o) => list.push(Value::Int64(o)),
+            //             Err(e) => generic_error!("{}", e),
+            //         }
+            //     }
+            //     self.consts.push(Value::Array(list));
+            //     self.instrs
+            //         .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+            // }
             Expr::Op(v) => {
                 match *v {
                     Operation::Pop    => self.instrs.push(Instr::new(Opcode::Pop, None)),
