@@ -2,7 +2,7 @@ fn println {
   print "\n" print
 }
 
-fn reverse { # [int] : [int]
+fn reverse { # [any] : [any]
     if dup len 0 = {
         pop []
         else
@@ -10,15 +10,14 @@ fn reverse { # [int] : [int]
     }
 }
 
-fn repeat { # int [int] : [int]
+fn repeat { # int [any] : [any]
     if over 0 < {
-
         else
         swap 1 - swap [0] concat repeat
     }
 }
 
-fn min { # [int]
+fn min { # [int] : int
   peek l {
     l len 1 -
     l 0 idxget
@@ -37,7 +36,7 @@ fn min { # [int]
   }
 }
 
-fn max { # [int]
+fn max { # [int] : int
   peek l {
     l len 1 -
     l 0 idxget
@@ -70,7 +69,7 @@ fn sum { # [int] : int
     }
 }
 
-fn find { # [int] int : int
+fn find { # [any] any : int
     peek list elem {
         0 while dup list len < {
             if list over idxget
