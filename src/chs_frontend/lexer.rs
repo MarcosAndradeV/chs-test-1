@@ -76,6 +76,8 @@ pub enum TokenKind {
 
     SemiColon,
     Colon,
+    DoubleColon,
+    Arrow,
     Tilde,
 
     Pop,
@@ -216,6 +218,10 @@ impl Lexer {
         match self.current_byte() {
             b'-' => match self.next_byte() {
                 b'0'..=b'9' => self.number(true),
+                b'>' => {
+                    self.position += 2;
+                    self.token(TokenKind::Arrow, self.position - 2)
+                }
                 _ => self.make_token(TokenKind::Minus),
             },
             b'+' => self.make_token(TokenKind::Add),
@@ -269,6 +275,10 @@ impl Lexer {
                 b'=' => {
                     self.position += 2;
                     self.token(TokenKind::Assing, self.position - 2)
+                }
+                b':' => {
+                    self.position += 2;
+                    self.token(TokenKind::DoubleColon, self.position - 2)
                 }
                 _ => self.make_token(TokenKind::Colon),
             },
