@@ -89,7 +89,7 @@ impl IrParser {
                 Err(e) => generic_error!("{}", e),
             };
             let mut fist_parser = Parser::new(bytes);
-            let mut program = fist_parser.parse_to_ir()?.into_iter();
+            let mut program = fist_parser.parse_to_ast()?.into_iter();
             while let Some(expr) = program.next() {
                 self.expr(expr)?;
             }
