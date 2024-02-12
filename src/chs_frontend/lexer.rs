@@ -88,25 +88,42 @@ pub enum TokenKind {
 pub struct Token {
     pub kind: TokenKind,
     pub value: String,
+    pub loc: (usize, usize)
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}({})", self.kind, self.value)
+        write!(f, "{}:{} {:?} -> {}", self.loc.0, self.loc.1, self.kind, self.value)
     }
 }
 
 impl Token {
-    fn new(kind: TokenKind, value: String) -> Self {
-        Self { kind, value }
+    fn new(kind: TokenKind, value: String, loc: (usize, usize)) -> Self {
+        Self { kind, value, loc }
     }
 
-    fn invalid(value: String) -> Self {
-        Self::new(TokenKind::Invalid, value)
+    fn invalid(value: String, loc: (usize, usize)) -> Self {
+        Self::new(TokenKind::Invalid, value, loc)
     }
 
-    fn null() -> Self {
-        Self::new(TokenKind::Null, String::new())
+    fn null(loc: (usize, usize)) -> Self {
+        Self::new(TokenKind::Null, String::new(), loc)
+    }
+
+    pub fn empty() -> Self {
+        Self::new(TokenKind::Null, String::new(), (0, 0))
+    }
+
+    pub fn get_loc(&self) -> String {
+        format!("{}:{}", self.loc.0, self.loc.1)
+    }
+
+    pub fn get_kind(&self) -> String {
+        format!("{:?}", self.kind)
+    }
+
+    pub fn get_value(&self) -> String {
+        format!("{}", self.value)
     }
 }
 
@@ -115,7 +132,9 @@ pub struct Lexer {
 
     max_position: usize,
 
-    pub position: usize,
+    position: usize,
+    col: usize,
+    row: usize,
 }
 
 impl Lexer {
@@ -125,6 +144,8 @@ impl Lexer {
             input,
             max_position: max,
             position: 0,
+            col: 1,
+            row: 1,
         }
     }
 
@@ -156,6 +177,7 @@ impl Lexer {
 
     fn advance_char(&mut self) {
         self.position += 1;
+        self.col += 1;
     }
 
     fn has_next(&self) -> bool {
@@ -205,7 +227,7 @@ impl Lexer {
                     self.position += 2;
                     self.token(TokenKind::Neq, self.position - 2)
                 }
-                _ => Token::invalid("! ?".to_string()),
+                _ => Token::invalid("!".to_string(), (self.row, self.col)),
             },
             b'>' => match self.next_byte() {
                 b'=' => {
@@ -264,14 +286,18 @@ impl Lexer {
 
         while self.has_next() {
             match self.current_byte() {
-                b' ' | b'\t' | b'\r' | b'\n' => self.advance_char(),
+                b' ' | b'\t' | b'\r' => self.advance_char(),
+                b'\n' => {
+                    self.row += 1;
+                    self.advance_char();
+                }
                 _ => break,
             }
         }
 
         let value = self.slice_string(start, self.position);
 
-        Token::new(TokenKind::Whitespace, value)
+        Token::new(TokenKind::Whitespace, value, (self.row, self.col))
     }
 
     fn number(&mut self, skip_first: bool) -> Token {
@@ -359,7 +385,7 @@ impl Lexer {
             _ => TokenKind::Identifier,
         };
 
-        Token::new(kind, value)
+        Token::new(kind, value, (self.row, self.col))
     }
 
     fn advance_identifier_bytes(&mut self) {
@@ -373,7 +399,7 @@ impl Lexer {
 
     fn token(&mut self, kind: TokenKind, start: usize) -> Token {
         let value = self.slice_string(start, self.position);
-        Token::new(kind, value)
+        Token::new(kind, value, (self.row, self.col))
     }
 
     fn slice_string(&mut self, start: usize, stop: usize) -> String {
@@ -385,11 +411,11 @@ impl Lexer {
 
         self.position = self.max_position;
 
-        Token::invalid(value)
+        Token::invalid(value, (self.row, self.col))
     }
 
     fn null(&self) -> Token {
-        Token::null()
+        Token::null((self.row, self.col))
     }
 
     fn string(&mut self, start: usize) -> Token {
@@ -420,7 +446,7 @@ impl Lexer {
                 }
             }
         }
-        Token::new(TokenKind::Str, buffer)
+        Token::new(TokenKind::Str, buffer, (self.row, self.col))
     }
 }
 
@@ -430,10 +456,11 @@ mod test {
 
     #[test]
     fn test() {
-        let mut lex = Lexer::new("%def".to_string().into_bytes());
+        let mut lex = Lexer::new("1 1 +".to_string().into_bytes());
         loop {
             let tok = lex.next_token();
             println!("{:?}", tok);
+            println!("{}", tok);
 
             if tok.kind == TokenKind::Null {
                 break;
