@@ -59,7 +59,7 @@ pub struct GenericError {
 
 impl fmt::Display for GenericError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "GenericError({})", self.msg)
+        write!(f, "{}", self.msg)
     }
 }
 
