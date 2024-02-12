@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc, str::FromStr};
+use std::{rc::Rc, str::FromStr};
 
 use crate::{exeptions::GenericError, generic_error};
 
@@ -63,19 +63,26 @@ pub enum Opkind {
     WhileStart,
     WhileBlock,
     WhileEnd,
-    None
+    MakeFn,
+    Ret,
+    Call,
+    None,
 }
 
 #[derive(Debug)]
 pub struct Operation {
     kind: Opkind,
     operand: Option<usize>,
-    token: Token
+    token: Token,
 }
 
 impl Operation {
     pub fn empty() -> Self {
-        Operation { kind: Opkind::None, operand: None, token: Token::empty() }
+        Operation {
+            kind: Opkind::None,
+            operand: None,
+            token: Token::empty(),
+        }
     }
 }
 
@@ -84,38 +91,38 @@ impl FromStr for Intrinsic {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "+"      => Self::Add,
-            "-"      => Self::Minus,
-            "*"      => Self::Mul,
-            "/"      => Self::Div,
-            "="      => Self::Eq,
-            "&"      => Self::Bitand,
-            "|"      => Self::Bitor,
-            "<"      => Self::Lt,
-            ">"      => Self::Gt,
-            "<="     => Self::Lte,
-            ">="     => Self::Gte,
-            "!="     => Self::Neq,
-            ">>"     => Self::Shr,
-            "<<"     => Self::Shl,
-            "||"     => Self::Lor,
-            "&&"     => Self::Land,
-            "pop"    => Self::Pop,
-            "dup"    => Self::Dup,
-            "mod"    => Self::Mod,
-            "len"    => Self::Len,
-            "over"   => Self::Over,
-            "swap"   => Self::Swap,
-            "exit"   => Self::Exit,
-            "tail"   => Self::Tail,
-            "head"   => Self::Head,
-            "call"   => Self::Call,
-            "print"  => Self::Print,
-            "debug"  => Self::Debug,
+            "+" => Self::Add,
+            "-" => Self::Minus,
+            "*" => Self::Mul,
+            "/" => Self::Div,
+            "=" => Self::Eq,
+            "&" => Self::Bitand,
+            "|" => Self::Bitor,
+            "<" => Self::Lt,
+            ">" => Self::Gt,
+            "<=" => Self::Lte,
+            ">=" => Self::Gte,
+            "!=" => Self::Neq,
+            ">>" => Self::Shr,
+            "<<" => Self::Shl,
+            "||" => Self::Lor,
+            "&&" => Self::Land,
+            "pop" => Self::Pop,
+            "dup" => Self::Dup,
+            "mod" => Self::Mod,
+            "len" => Self::Len,
+            "over" => Self::Over,
+            "swap" => Self::Swap,
+            "exit" => Self::Exit,
+            "tail" => Self::Tail,
+            "head" => Self::Head,
+            "call" => Self::Call,
+            "print" => Self::Print,
+            "debug" => Self::Debug,
             "idxget" => Self::IdxGet,
             "idxset" => Self::IdxSet,
             "concat" => Self::Concat,
-            _ => generic_error!("Cannot parse {} to Intrinsic", s)
+            _ => generic_error!("Cannot parse {} to Intrinsic", s),
         })
     }
 }
@@ -126,11 +133,7 @@ pub struct MirParser {
     lexer: Lexer,
     peeked: Option<Token>,
     ops: Operations,
-    var_def: HashMap<String, usize>,
-    var_count: usize,
-    peek_def: Vec<String>,
-    fn_def: Vec<(String, usize)>,
-    imported_files: Vec<String>
+    fn_def: Vec<String>
 }
 
 impl MirParser {
@@ -140,11 +143,7 @@ impl MirParser {
             lexer,
             peeked: None,
             ops: Vec::new(),
-            var_def: HashMap::new(),
-            var_count: 0,
-            peek_def: Vec::new(),
             fn_def: Vec::new(),
-            imported_files: Vec::new(),
         }
     }
 
@@ -191,20 +190,52 @@ impl MirParser {
             | TokenKind::Tail
             | TokenKind::Head
             | TokenKind::Call => self.add_op_intrinsic(token)?,
-            
+
             TokenKind::Int
             | TokenKind::Str
             | TokenKind::True
             | TokenKind::False
-            | TokenKind::Nil 
-            => self.add_op_const(token)?,
+            | TokenKind::Nil => self.add_op_const(token)?,
 
             TokenKind::If => self.if_block(token)?,
+            TokenKind::Fn => self.fn_block(token)?,
             TokenKind::Whlie => self.while_block(token)?,
             TokenKind::BracketOpen => self.list_expr(token)?,
 
-            _ => generic_error!("File:{}: Token {} is not implemeted", token.get_loc(), token.get_kind())
+            _ => generic_error!(
+                "File:{}: Token {} is not implemeted",
+                token.get_loc(),
+                token.get_kind()
+            ),
         }
+        Ok(())
+    }
+
+    fn fn_block(&mut self, token: Token) -> Result<(), GenericError> {
+        let offset = self.ops.len();
+        self.ops.push(Operation::empty());
+
+        let name = self.expect(TokenKind::Identifier)?.value;
+
+        self.fn_def.push(name);
+
+        self.expect(TokenKind::CurlyOpen)?;
+
+        loop {
+            let token = self.require()?;
+            match token.kind {
+                TokenKind::CurlyClose => break,
+                _ => self.expression(token)?,
+            }
+        }
+
+        let skip_len = self.ops.len().saturating_sub(offset);
+        let elem = unsafe { self.ops.get_unchecked_mut(offset) };
+        *elem = Operation {
+            kind: Opkind::MakeFn,
+            operand: Some(skip_len),
+            token,
+        };
         Ok(())
     }
 
@@ -217,7 +248,11 @@ impl MirParser {
                 TokenKind::BracketOpen => self.list_expr(token)?,
                 _ if self.add_op_intrinsic(token.clone()).is_ok() => {}
                 _ if self.add_op_const(token.clone()).is_ok() => {}
-                _ => generic_error!("File:{}: Token {} not allowed in list literals", token.get_loc(), token.get_kind())
+                _ => generic_error!(
+                    "File:{}: Token {} not allowed in list literals",
+                    token.get_loc(),
+                    token.get_kind()
+                ),
             }
         }
         let op = Operation {
@@ -236,8 +271,11 @@ impl MirParser {
         loop {
             let token = self.require()?;
             match token.kind {
-                TokenKind::CurlyOpen => {self.peeked = Some(token); break},
-                _ => self.expression(token)?
+                TokenKind::CurlyOpen => {
+                    self.peeked = Some(token);
+                    break;
+                }
+                _ => self.expression(token)?,
             }
         }
 
@@ -249,19 +287,31 @@ impl MirParser {
             let token = self.require()?;
             match token.kind {
                 TokenKind::CurlyClose => {
-                    self.ops.push(Operation { kind: Opkind::WhileEnd, operand: Some(while_start), token });
+                    self.ops.push(Operation {
+                        kind: Opkind::WhileEnd,
+                        operand: Some(while_start),
+                        token,
+                    });
                     break;
-                },
-                _ => self.expression(token)?
+                }
+                _ => self.expression(token)?,
             }
         }
 
         let curr_len = self.ops.len();
         let elem = unsafe { self.ops.get_unchecked_mut(while_block) };
-        *elem = Operation { kind: Opkind::WhileBlock, operand: Some(curr_len), token: wb_token };
+        *elem = Operation {
+            kind: Opkind::WhileBlock,
+            operand: Some(curr_len),
+            token: wb_token,
+        };
 
         let elem = unsafe { self.ops.get_unchecked_mut(while_start) };
-        *elem = Operation { kind: Opkind::WhileStart, operand: Some(curr_len.saturating_sub(1)), token };
+        *elem = Operation {
+            kind: Opkind::WhileStart,
+            operand: Some(curr_len.saturating_sub(1)),
+            token,
+        };
         Ok(())
     }
 
@@ -274,17 +324,25 @@ impl MirParser {
             let token = self.require()?;
             match token.kind {
                 TokenKind::CurlyClose => {
-                    self.ops.push(Operation { kind: Opkind::IfEnd, operand: None, token });
+                    self.ops.push(Operation {
+                        kind: Opkind::IfEnd,
+                        operand: None,
+                        token,
+                    });
                     break;
-                },
+                }
                 TokenKind::Else => generic_error!("File:{}: Not implemeted", token.get_loc()),
-                _ => self.expression(token)?
+                _ => self.expression(token)?,
             }
         }
 
         let curr_len = self.ops.len().saturating_sub(1);
         let elem = unsafe { self.ops.get_unchecked_mut(offset) };
-        *elem = Operation { kind: Opkind::IfStart, operand: Some(curr_len), token };
+        *elem = Operation {
+            kind: Opkind::IfStart,
+            operand: Some(curr_len),
+            token,
+        };
         Ok(())
     }
 
@@ -293,24 +351,30 @@ impl MirParser {
             TokenKind::Int => {
                 let v = token.value.parse::<i64>();
                 if v.is_err() {
-                    generic_error!("File:{}: Token {} cannot be parse {}", token.get_loc(), token.get_value(), v.unwrap_err())
+                    generic_error!(
+                        "File:{}: Token {} cannot be parse {}",
+                        token.get_loc(),
+                        token.get_value(),
+                        v.unwrap_err()
+                    )
                 }
                 Const::Int64(v.unwrap())
             }
             TokenKind::True | TokenKind::False => {
                 let v = token.value.parse::<bool>();
                 if v.is_err() {
-                    generic_error!("File:{}: Token {} cannot be parse {}", token.get_loc(), token.get_value(), v.unwrap_err())
+                    generic_error!(
+                        "File:{}: Token {} cannot be parse {}",
+                        token.get_loc(),
+                        token.get_value(),
+                        v.unwrap_err()
+                    )
                 }
                 Const::Bool(v.unwrap())
             }
-            TokenKind::Str => {
-                Const::Str(token.value.chars().collect())
-            }
-            TokenKind::Nil => {
-                Const::Nil
-            }
-            _ => generic_error!("")
+            TokenKind::Str => Const::Str(token.value.chars().collect()),
+            TokenKind::Nil => Const::Nil,
+            _ => generic_error!(""),
         };
 
         let op = Operation {
@@ -357,7 +421,11 @@ impl MirParser {
     fn require(&mut self) -> Result<Token, GenericError> {
         let token = self.next();
         if matches!(token.kind, TokenKind::Invalid | TokenKind::Null) {
-            generic_error!("File:{}: Required token is {}", token.get_loc(), token.get_kind());
+            generic_error!(
+                "File:{}: Required token is {}",
+                token.get_loc(),
+                token.get_kind()
+            );
         }
         Ok(token)
     }
@@ -369,7 +437,12 @@ impl MirParser {
             return Ok(token);
         }
 
-        generic_error!("File:{}: Expected {:?} but get {}", token.get_loc(), kind, token.get_kind())
+        generic_error!(
+            "File:{}: Expected {:?} but get {} -> {}",
+            token.get_loc(),
+            kind,
+            token.get_kind(),
+            token.get_value()
+        )
     }
-
 }
