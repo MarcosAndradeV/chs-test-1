@@ -1,6 +1,6 @@
 use std::{io, process};
 
-use chs::{chs_frontend::{ast::Program, lexer::read_file_to_bytes, parser::Parser}, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM}};
+use chs::{chs_frontend::{ast::Program, lexer::read_file_to_bytes, mir::MirParser, parser::Parser}, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM}};
 use clap::{Arg, Command, ArgAction};
 
 fn main() -> io::Result<()>{
@@ -39,7 +39,7 @@ fn main() -> io::Result<()>{
                     .expect("contains_id");
                 let bytes = read_file_to_bytes(filename.into())?;
                 let mut fist_parser = Parser::new(bytes);
-                let program: Program = match fist_parser.parse_to_ir() {
+                let program: Program = match fist_parser.parse_to_ast() {
                     Ok(prog) => prog,
                     Err(e) => {
                         eprintln!("{e}");
@@ -69,23 +69,15 @@ fn main() -> io::Result<()>{
                     .get_one::<String>("filename")
                     .expect("contains_id");
                 let bytes = read_file_to_bytes(filename.into())?;
-                let mut fist_parser = Parser::new(bytes);
-                let program: Program = match fist_parser.parse_to_ir() {
-                    Ok(prog) => prog,
-                    Err(e) => {
-                        eprintln!("{e}");
-                        process::exit(1);
-                    },
-                };
-                let mut second_parser = IrParser::new(program);
-                let bytecode: Bytecode = match second_parser.parse() {
+                let mir_parser = MirParser::new(bytes);
+                let mir = match mir_parser.parse_to_mir() {
                     Ok(code) => code,
                     Err(e) => {
                         eprintln!("{e}");
                         process::exit(1);
                     },
                 };
-                println!("{}:\n{:#?}",filename , bytecode);
+                println!("{:#?}", mir);
                 return Ok(());
             }
             println!("File not provided.");
