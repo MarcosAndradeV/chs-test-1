@@ -23,7 +23,7 @@ impl Parser {
         }
     }
 
-    pub fn parse_to_ir(&mut self) -> Result<Program, GenericError> {
+    pub fn parse_to_ast(&mut self) -> Result<Program, GenericError> {
         let mut exprs: Vec<Expr> = Vec::new();
         loop {
             let token = self.next();
