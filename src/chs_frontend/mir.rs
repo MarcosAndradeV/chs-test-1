@@ -129,11 +129,50 @@ impl FromStr for Intrinsic {
 
 pub type Operations = Vec<Operation>;
 
+#[derive(Debug)]
+pub enum CHSType {
+    Int,
+    Str,
+    List(Rc<Self>),
+    Fn(Rc<[Self]>, Rc<[Self]>),
+    Nil,
+    Void,
+    Enum(String, Rc<[Self]>),
+}
+
+impl FromStr for CHSType {
+    type Err = GenericError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "int" => Ok(Self::Int),
+            "str" => Ok(Self::Str),
+            "void" => Ok(Self::Void),
+            _ => generic_error!("Cannot parse {} to CHSType", s),
+        }
+    }
+}
+#[derive(Debug)]
+pub struct CHSFn {
+    name: String,
+    addr: usize,
+    loc: (usize, usize),
+    ins: Rc<[CHSType]>,
+    outs: Rc<[CHSType]>,
+    used: bool,
+}
+
+#[derive(Debug)]
+pub struct Mir {
+    ops: Vec<Operation>,
+    fns: Vec<CHSFn>,
+}
+
 pub struct MirParser {
     lexer: Lexer,
     peeked: Option<Token>,
     ops: Operations,
-    fn_def: Vec<String>
+    fn_def: Vec<CHSFn>,
 }
 
 impl MirParser {
@@ -147,12 +186,15 @@ impl MirParser {
         }
     }
 
-    pub fn parse_to_mir(mut self) -> Result<Operations, GenericError> {
+    pub fn parse_to_mir(mut self) -> Result<Mir, GenericError> {
         loop {
             let token = self.next();
 
             if token.kind == TokenKind::Null {
-                return Ok(self.ops);
+                return Ok(Mir {
+                    ops: self.ops,
+                    fns: self.fn_def,
+                });
             }
             self.expression(token)?;
         }
@@ -217,15 +259,63 @@ impl MirParser {
 
         let name = self.expect(TokenKind::Identifier)?.value;
 
-        self.fn_def.push(name);
+        self.expect(TokenKind::DoubleColon)?;
+        let mut ins = vec![];
+        loop {
+            let token = self.require()?;
+            match token.kind {
+                TokenKind::Arrow => break,
+                TokenKind::Identifier => ins.push(CHSType::from_str(&token.value)?),
+                TokenKind::BracketOpen => {
+                    ins.push(CHSType::List(Rc::new(CHSType::from_str(
+                        &self.expect(TokenKind::Identifier)?.value,
+                    )?)));
+                    self.expect(TokenKind::BracketClose)?;
+                }
+                TokenKind::CurlyOpen => {
+                    self.peeked = Some(token);
+                    break;
+                }
+                _ => generic_error!("File:{}: ???", token.get_loc()),
+            }
+        }
+        let mut outs = vec![];
+        loop {
+            let token = self.require()?;
+            match token.kind {
+                TokenKind::CurlyOpen => break,
+                TokenKind::Identifier => outs.push(CHSType::from_str(&token.value)?),
+                TokenKind::BracketOpen => {
+                    outs.push(CHSType::List(Rc::new(CHSType::from_str(
+                        &self.expect(TokenKind::Identifier)?.value,
+                    )?)));
+                    self.expect(TokenKind::BracketClose)?;
+                }
+                _ => generic_error!("File:{}: ???", token.get_loc()),
+            }
+        }
 
-        self.expect(TokenKind::CurlyOpen)?;
+        self.fn_def.push(CHSFn {
+            name,
+            addr: self.ops.len(),
+            loc: token.loc,
+            ins: ins.into(),
+            outs: outs.into(),
+            used: false,
+        });
 
         loop {
             let token = self.require()?;
             match token.kind {
-                TokenKind::CurlyClose => break,
-                _ => self.expression(token)?,
+                TokenKind::CurlyClose => {
+                    self.ops.push(Operation {
+                        kind: Opkind::Ret,
+                        operand: None,
+                        token,
+                    });
+                    break;
+                }
+                _ => self.expression(token)?
             }
         }
 
