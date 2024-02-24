@@ -1,5 +1,7 @@
-var a := 10;
+fn main {
+    var a := 10;
 
-[a] print
+    [a] print
 
-[0 dup] print
+    [0 dup] print
+}

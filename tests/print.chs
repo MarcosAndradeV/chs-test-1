@@ -1,1 +1,3 @@
-10 print
+fn main {
+    10 print
+}

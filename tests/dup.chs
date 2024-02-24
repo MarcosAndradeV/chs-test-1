@@ -1,3 +1,5 @@
-1 debug
-dup debug
-pop pop
+fn main {
+    1 debug
+    dup debug
+    pop pop
+}
