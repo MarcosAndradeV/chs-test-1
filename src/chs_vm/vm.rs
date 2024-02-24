@@ -22,7 +22,7 @@ impl CHSVM {
             temp_stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
             sp: 0,
-            ip: 0,
+            ip: program.entry,
             program,
         }
     }
@@ -349,17 +349,6 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::SkipFn => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
-                if addrs > self.program.len() {
-                    vm_error!("Address out of bounds.")
-                }
-                self.ip = addrs;
-                Ok(())
-            }
             Opcode::CallFn => {
                 let addrs = match instr.operands {
                     Some(v) => v,
@@ -375,7 +364,7 @@ impl CHSVM {
             Opcode::RetFn => {
                 let addrs = match self.return_stack.pop() {
                     Some(v) => v,
-                    _ => vm_error!("Cannot return from inside of a peek block."),
+                    None => vm_error!("Cannot return from outside of a block."),
                 };
                 if addrs > self.program.len() {
                     vm_error!("Address out of bounds.")

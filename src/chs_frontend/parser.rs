@@ -87,16 +87,10 @@ impl Parser {
             TokenKind::BracketOpen => self.list_expr()?,
             TokenKind::Peek => self.peek_expr()?,
             TokenKind::Fn => self.fn_expr()?,
-            TokenKind::Tilde => self.nocall_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
         };
         Ok(expr)
-    }
-
-    fn nocall_expr(&mut self) -> Result<Expr, GenericError> {
-        let f = self.expect(TokenKind::Identifier)?.value;
-        Ok(Expr::NoCall(Box::new(f)))
     }
 
     fn fn_expr(&mut self) -> Result<Expr, GenericError> {
@@ -107,8 +101,8 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Var | TokenKind::Fn => {
-                    generic_error!("Cannot create {} inside peek block", tok)
+                TokenKind::Fn => {
+                    generic_error!("Cannot create {} inside peek block", tok.get_kind())
                 }
                 _ => body.push(self.expression(tok)?),
             }

@@ -94,7 +94,6 @@ pub enum Expr {
     Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
-    NoCall(Box<String>)
 }
 
 impl fmt::Display for Expr {
@@ -113,7 +112,6 @@ impl fmt::Display for Expr {
             Expr::IdentExpr(_) => write!(f, "Identifier"),
             Expr::Assigin(_) => write!(f, "Assigin"),
             Expr::Fn(_) => write!(f, "Fn"),
-            Expr::NoCall(_) => write!(f, "NoCall"),
         }
     }
 }

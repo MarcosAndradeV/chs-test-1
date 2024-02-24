@@ -4,11 +4,11 @@ use std::io::{self, Read, Write};
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int64(i64),
-    Array(Vec<Value>),
+    Array(Vec<Self>),
     Bool(bool),
     Str(Vec<char>),
     Char(char),
-    Fn(usize, usize),
+    Fn(usize, Vec<Self>),
     Nil,
 }
 

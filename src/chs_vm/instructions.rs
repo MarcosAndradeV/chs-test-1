@@ -45,7 +45,6 @@ pub enum Opcode {
     GlobalStore,
     GlobalLoad,
     
-    SkipFn,
     CallFn,
     RetFn,
 
@@ -87,13 +86,14 @@ impl Instr {
 }
 #[derive(Debug, Clone)]
 pub struct Bytecode {
+    pub entry: usize,
     pub program: Vec<Instr>,
     pub consts: Vec<Value>,
 }
 
 impl Bytecode {
-    pub fn new(program: Vec<Instr>, consts: Vec<Value>) -> Self {
-        Self { program, consts }
+    pub fn new(program: Vec<Instr>, consts: Vec<Value>, entry: usize) -> Self {
+        Self { program, consts, entry }
     }
     pub fn len(&self) -> usize {
         self.program.len()

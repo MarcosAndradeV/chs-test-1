@@ -19,7 +19,7 @@ pub struct IrParser {
     var_def: HashMap<String, usize>,
     var_count: usize,
     peek_def: Vec<String>,
-    fn_def: Vec<(String, usize)>,
+    fn_def: HashMap<String, usize>,
 }
 
 impl IrParser {
@@ -31,7 +31,7 @@ impl IrParser {
             var_def: HashMap::new(),
             var_count: 0,
             peek_def: Vec::new(),
-            fn_def: Vec::new(),
+            fn_def: HashMap::new(),
         }
     }
 
@@ -40,10 +40,16 @@ impl IrParser {
             self.expr(expr)?;
         }
 
-        Ok(Bytecode {
-            program: self.instrs.clone(),
-            consts: self.consts.clone(),
-        })
+        if let Some((_, entry)) = self.fn_def.iter().find(|(nm, _)| *nm == "main") {            
+            Ok(Bytecode {
+                program: self.instrs.clone(),
+                consts: self.consts.clone(),
+                entry: *entry
+            })
+        } else {
+          generic_error!("main entry point not provided!")  
+        }
+
     }
 
     fn expr(&mut self, expr: Expr) -> Result<(), GenericError> {
@@ -70,7 +76,7 @@ impl IrParser {
     fn checks_def(&self, name: &str) -> NamesDef {
         if self.var_def.get(name).is_some() {
             return NamesDef::Var;
-        } else if self.fn_def.iter().find(|(nm, _)| *nm == name).is_some() {
+        } else if self.fn_def.get(name).is_some() {
             return NamesDef::Fn;
         }
         NamesDef::None
@@ -82,17 +88,16 @@ impl IrParser {
             NamesDef::Var  => generic_error!("{} is already Variable name.", expr.name),
             NamesDef::None => {}
         };
-        let skip_addrs = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::SkipFn, None));
         let curr_len = self.instrs.len();
-        self.fn_def.push((expr.name, curr_len));
+        let ismain = expr.name.as_str() == "main";
+        self.fn_def.insert(expr.name, curr_len);
         for e in expr.body.into_iter() {
             self.expr(e)?
         }
+        if ismain {
+            return Ok(())
+        }
         self.instrs.push(Instr::new(Opcode::RetFn, None));
-        let curr_len = self.instrs.len();
-        let elem = unsafe { self.instrs.get_unchecked_mut(skip_addrs) };
-        *elem = Instr::new(Opcode::SkipFn, Some(curr_len));
         Ok(())
     }
 
@@ -266,29 +271,13 @@ impl IrParser {
                     .find(|(_, s)| s.as_str() == val.as_str())
                 {
                     self.instrs.push(Instr::new(Opcode::PushBind, Some(v)));
-                } else if let Some((_, addrs)) = self
-                    .fn_def
-                    .iter()
-                    .find(|(nm, _)| nm.as_str() == val.as_str())
+                } else if let Some(addrs) = self.fn_def.get(val.as_ref())
                 {
                     self.instrs.push(Instr::new(Opcode::CallFn, Some(*addrs)));
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
                 } else {
                     generic_error!("{} is not defined", val.to_string())
-                }
-            }
-            Expr::NoCall(val) => {
-                if let Some((_, addrs)) = self
-                    .fn_def
-                    .iter()
-                    .find(|(nm, _)| nm.as_str() == val.as_str())
-                {
-                    self.consts.push(Value::Fn(*addrs, 0));
-                    self.instrs
-                        .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
-                } else {
-                    generic_error!("{} is not function", val.to_string())
                 }
             }
             Expr::Assigin(val) => {
