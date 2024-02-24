@@ -1,4 +1,6 @@
-import "../std/std.chs"
+fn println {
+  print "\n" print
+}
 
 1 0 while over 100 <= {
   peek idx acc {

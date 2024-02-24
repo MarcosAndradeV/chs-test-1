@@ -87,7 +87,6 @@ impl Parser {
             TokenKind::BracketOpen => self.list_expr()?,
             TokenKind::Peek => self.peek_expr()?,
             TokenKind::Fn => self.fn_expr()?,
-            TokenKind::Import => self.import_expr()?,
             TokenKind::Tilde => self.nocall_expr()?,
 
             _ => generic_error!("{} is not implemeted", token),
@@ -98,11 +97,6 @@ impl Parser {
     fn nocall_expr(&mut self) -> Result<Expr, GenericError> {
         let f = self.expect(TokenKind::Identifier)?.value;
         Ok(Expr::NoCall(Box::new(f)))
-    }
-
-    fn import_expr(&mut self) -> Result<Expr, GenericError> {
-        let file = self.expect(TokenKind::Str)?.value;
-        Ok(Expr::Import(Box::new(file)))
     }
 
     fn fn_expr(&mut self) -> Result<Expr, GenericError> {
@@ -166,8 +160,7 @@ impl Parser {
                 TokenKind::If
                 | TokenKind::Whlie
                 | TokenKind::Fn
-                | TokenKind::Var
-                | TokenKind::Import => generic_error!(
+                | TokenKind::Var => generic_error!(
                     "{:?}({}) is not suported in List literals",
                     token.kind,
                     token.value

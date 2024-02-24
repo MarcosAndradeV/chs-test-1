@@ -34,7 +34,6 @@ pub enum TokenKind {
     True,
     False,
     Nil,
-    Import,
 
     Print,
     Debug,
@@ -389,7 +388,6 @@ impl Lexer {
                 "idxget" => TokenKind::IdxGet,
                 "idxset" => TokenKind::IdxSet,
                 "concat" => TokenKind::Concat,
-                "import" => TokenKind::Import,
                 _ => TokenKind::Identifier,
             },
             _ => TokenKind::Identifier,

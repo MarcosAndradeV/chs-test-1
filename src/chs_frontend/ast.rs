@@ -94,7 +94,6 @@ pub enum Expr {
     Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
-    Import(Box<String>),
     NoCall(Box<String>)
 }
 
@@ -114,7 +113,6 @@ impl fmt::Display for Expr {
             Expr::IdentExpr(_) => write!(f, "Identifier"),
             Expr::Assigin(_) => write!(f, "Assigin"),
             Expr::Fn(_) => write!(f, "Fn"),
-            Expr::Import(_) => write!(f, "Import"),
             Expr::NoCall(_) => write!(f, "NoCall"),
         }
     }

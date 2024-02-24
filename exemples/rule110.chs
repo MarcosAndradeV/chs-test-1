@@ -1,7 +1,12 @@
 # Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
 # Generates a rule 110
 
-import "std.chs"
+fn repeat { # int [any] : [any]
+    if over 0 < {
+        else
+        swap 1 - swap [0] concat repeat
+    }
+}
 
 var BOARD_SIZE := 100;
 var board := BOARD_SIZE [] repeat;
