@@ -47,7 +47,11 @@ impl IrParser {
                 entry: *entry
             })
         } else {
-          generic_error!("main entry point not provided!")  
+            Ok(Bytecode {
+                program: self.instrs.clone(),
+                consts: self.consts.clone(),
+                entry: 0
+            })
         }
 
     }

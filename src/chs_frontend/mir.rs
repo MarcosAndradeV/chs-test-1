@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::{rc::Rc, str::FromStr};
 
 use crate::{exeptions::GenericError, generic_error};

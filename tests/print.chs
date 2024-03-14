@@ -1,3 +1,1 @@
-fn main {
-    10 print
-}
+10 print

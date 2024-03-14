@@ -1,7 +1,5 @@
-fn main {
-    var a := 10;
+var a := 10;
 
-    [a] print
+[a] print
 
-    [0 dup] print
-}
+[0 dup] print
