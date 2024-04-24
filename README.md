@@ -113,15 +113,6 @@ swap # [a b] -> [b a]
 & # bit and
 ```
 
-- Special operations
-
-```sh
-print # prints the top of the stack
-println # prints the top of the stack with a newline
-len # get the length of the top of the stack
-debug # show the current state of the CHSVM
-```
-
 ## Development Milestones
 
 - [X] [Turing Complete](exemples/rule110.chs)
