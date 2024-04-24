@@ -86,7 +86,6 @@ while <condition> {
 
 ```sh
 dup # [a] -> [a a]
-dup2 # [a b] -> [a b a b]
 over # [a b] -> [a b a]
 pop # [a] -> []
 swap # [a b] -> [b a]
