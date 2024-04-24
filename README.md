@@ -84,7 +84,7 @@ while <condition> {
 
 - stack operations
 
-```sh
+```python
 dup # [a] -> [a a]
 over # [a b] -> [a b a]
 pop # [a] -> []
@@ -93,7 +93,7 @@ swap # [a b] -> [b a]
 
 - logical operations
 
-```c
+```python
 = # equal
 != # not equal
 < # less than
@@ -106,7 +106,7 @@ swap # [a b] -> [b a]
 
 - Bitwise operations
 
-```c
+```python
 >> # right bit shift
 << # left bit shift
 | # bit or
