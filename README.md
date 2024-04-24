@@ -33,7 +33,7 @@ chsc run <file.chs>
 - Variables
 
 ```pascal
-var <name> <value>;
+var <name> := <value>;
 <value> := <name>
 ```
 
@@ -41,8 +41,8 @@ var <name> <value>;
 var interger 10;
 20 := another_interger
 
-var text "Some text";
-var mylist (1 2 3 4);
+var text := "Some text";
+var mylist := [1 2 3 4];
 
 20 := interger
 10 := another_interger
