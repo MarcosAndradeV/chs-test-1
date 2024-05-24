@@ -7,7 +7,7 @@ fn gcd {
 }
 
 fn gcd_rec {
-  if dup 0 = {
+  dup 0 = if {
     pop
     else
     peek a b { b a b mod } gcd_rec

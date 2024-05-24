@@ -5,9 +5,7 @@ fn min {
     while over 0 >= { 
       peek idx acc {
         idx 1 -
-        if
-        acc
-        l idx idxget < {
+        acc l idx idxget < if {
           acc
           else
           l idx idxget
@@ -24,9 +22,7 @@ fn max {
     while over 0 >= { 
       peek idx acc {
         idx 1 -
-        if
-        acc
-        l idx idxget > {
+        acc l idx idxget > if {
           acc
           else
           l idx idxget

@@ -2,7 +2,7 @@
 # Generates a rule 110
 
 fn repeat { # int [any] : [any]
-    if over 0 < {
+    over 0 < if {
         else
         swap 1 - swap [0] concat repeat
     }

@@ -3,13 +3,13 @@
 fn find { # [any] any : int
     peek list elem {
         0 while dup list len < {
-            if list over idxget
-            elem = {
+            list over idxget
+            elem = if {
                 list len 1 +
                 else
                 1 +
             }
-        } if dup list len > {
+        } dup list len > if {
             pop
             else
             -1

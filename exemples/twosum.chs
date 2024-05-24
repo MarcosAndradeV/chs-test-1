@@ -10,8 +10,8 @@ var j := 0;
 while i nums len < {
     0 := j
 	while j nums len < {
-        if i j != {
-            if nums i idxget nums j idxget + TARGET = {
+        i j != if {
+            nums i idxget nums j idxget + TARGET = if {
                 i print ", " print j print "\n" print
                 100 := i
                 100 := j

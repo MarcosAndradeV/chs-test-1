@@ -1,5 +1,7 @@
+fn println { print "\n" print }
+
 600851475143 2 while over 1 > {
-    if dup2 mod 0 = {
+    peek a b { a b a b } mod 0 = if {
         dup println
         swap over / swap
         else

@@ -2,13 +2,13 @@
 
 
 1 while dup 100 < {
-    if dup 15 mod 0 = {
+    dup 15 mod 0 = if {
     "FizzBuzz\n" print
     }
-    if dup 3 mod 0 = {
+    dup 3 mod 0 = if {
     "Fizz\n" print
     }
-    if dup 5 mod 0 = {
+    dup 5 mod 0 = if {
     "Buzz\n" print
     else 
     dup print "\n" print
