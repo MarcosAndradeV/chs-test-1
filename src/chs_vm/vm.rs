@@ -172,6 +172,12 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
+            Opcode::Lnot => {
+                let op_1 = self.stack_pop_bool()?;
+                self.push_stack(Value::Bool(!op_1))?;
+                self.ip += 1;
+                return Ok(());
+            }
             Opcode::Bitor => {
                 let op_2 = self.stack_pop_i64()?;
                 let op_1 = self.stack_pop_i64()?;

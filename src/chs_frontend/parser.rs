@@ -62,6 +62,7 @@ impl Parser {
             TokenKind::Bitor => Expr::Op(Box::new(Operation::Bitor)),
             TokenKind::Land => Expr::Op(Box::new(Operation::Land)),
             TokenKind::Lor => Expr::Op(Box::new(Operation::Lor)),
+            TokenKind::Lnot => Expr::Op(Box::new(Operation::Lnot)),
 
             TokenKind::Debug => Expr::Op(Box::new(Operation::Debug)),
             TokenKind::Exit => Expr::Op(Box::new(Operation::Exit)),

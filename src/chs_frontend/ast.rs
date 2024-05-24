@@ -22,6 +22,7 @@ pub enum Operation {
 
     Land,
     Lor,
+    Lnot,
 
     Shl,
     Shr,

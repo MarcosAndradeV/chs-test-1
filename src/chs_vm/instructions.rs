@@ -24,6 +24,7 @@ pub enum Opcode {
     Bitand,
     Lor,
     Land,
+    Lnot,
 
     Bind,
     PushBind,

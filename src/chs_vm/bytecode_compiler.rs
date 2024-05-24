@@ -239,6 +239,7 @@ impl IrParser {
                     Operation::Lt     => self.instrs.push(Instr::new(Opcode::Lt, None)),
                     Operation::Land   => self.instrs.push(Instr::new(Opcode::Land, None)),
                     Operation::Lor    => self.instrs.push(Instr::new(Opcode::Lor, None)),
+                    Operation::Lnot    => self.instrs.push(Instr::new(Opcode::Lnot, None)),
                     Operation::Shl    => self.instrs.push(Instr::new(Opcode::Shl, None)),
                     Operation::Shr    => self.instrs.push(Instr::new(Opcode::Shr, None)),
                     Operation::Bitand => self.instrs.push(Instr::new(Opcode::Bitand, None)),
