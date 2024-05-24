@@ -17,7 +17,6 @@ The syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_lan
 git clone git@github.com:MarcosAndradeV/chs-lang.git
 cd chs-lang
 make chsc
-make test
 cd tmp/
 chsc run <file.chs>
 ```

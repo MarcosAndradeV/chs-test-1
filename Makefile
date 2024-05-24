@@ -9,13 +9,7 @@ build:
 install:
 	cp target/$(target)/$(prog) ./tmp/$(prog)
 
-retest: build install
-	python3 test.py retest
-
 chsc: build install retest
-
-test: build install
-	python3 test.py
 
 help:
 	@echo "usage: make $(prog)"
