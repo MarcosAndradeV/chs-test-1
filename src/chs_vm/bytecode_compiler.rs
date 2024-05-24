@@ -40,19 +40,10 @@ impl IrParser {
             self.expr(expr)?;
         }
 
-        if let Some((_, entry)) = self.fn_def.iter().find(|(nm, _)| *nm == "main") {            
-            Ok(Bytecode {
+        Ok(Bytecode {
                 program: self.instrs.clone(),
                 consts: self.consts.clone(),
-                entry: *entry
             })
-        } else {
-            Ok(Bytecode {
-                program: self.instrs.clone(),
-                consts: self.consts.clone(),
-                entry: 0
-            })
-        }
 
     }
 
@@ -92,16 +83,17 @@ impl IrParser {
             NamesDef::Var  => generic_error!("{} is already Variable name.", expr.name),
             NamesDef::None => {}
         };
+        let ifaddrs = self.instrs.len();
+        self.instrs.push(Instr::new(Opcode::Jmp, None));
         let curr_len = self.instrs.len();
-        let ismain = expr.name.as_str() == "main";
         self.fn_def.insert(expr.name, curr_len);
         for e in expr.body.into_iter() {
             self.expr(e)?
         }
-        if ismain {
-            return Ok(())
-        }
         self.instrs.push(Instr::new(Opcode::RetFn, None));
+        let curr_len = self.instrs.len();
+        let elem = unsafe { self.instrs.get_unchecked_mut(ifaddrs) };
+        *elem = Instr::new(Opcode::Jmp, Some(curr_len));
         Ok(())
     }
 

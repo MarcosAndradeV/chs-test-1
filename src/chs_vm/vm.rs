@@ -22,7 +22,7 @@ impl CHSVM {
             temp_stack: Vec::with_capacity(STACK_CAPACITY),
             return_stack: Vec::with_capacity(STACK_CAPACITY),
             sp: 0,
-            ip: program.entry,
+            ip: 0,
             program,
         }
     }
