@@ -154,9 +154,6 @@ impl IrParser {
     }
 
     fn if_expr(&mut self, expr: IfExpr) -> Result<(), GenericError> {
-        for e in expr.cond.into_iter() {
-            self.expr(e)?
-        }
         let offset = self.instrs.len();
         self.instrs.push(Instr::new(Opcode::JmpIf, None));
         for e in expr.if_branch.into_iter() {

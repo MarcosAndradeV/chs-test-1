@@ -42,7 +42,6 @@ pub enum Operation {
 
 #[derive(Debug)]
 pub struct IfExpr {
-    pub cond: Expressions,
     pub if_branch: Expressions,
     pub else_branch: Option<Expressions>,
 }

@@ -181,17 +181,7 @@ impl Parser {
     }
 
     fn if_expr(&mut self) -> Result<Expr, GenericError> {
-        let mut cond: Vec<Expr> = Vec::new();
-        loop {
-            // condition
-            let tok = self.require()?;
-            match tok.kind {
-                TokenKind::CurlyOpen => {
-                    break;
-                }
-                _ => cond.push(self.expression(tok)?),
-            }
-        }
+        self.expect(TokenKind::CurlyOpen)?;
         let mut if_branch: Vec<Expr> = Vec::new();
         let mut else_branch: Vec<Expr> = Vec::new();
         let mut has_else: bool = false;
@@ -213,13 +203,11 @@ impl Parser {
         }
         if has_else {
             Ok(Expr::If(Box::new(IfExpr {
-                cond,
                 if_branch,
                 else_branch: Some(else_branch),
             })))
         } else {
             Ok(Expr::If(Box::new(IfExpr {
-                cond,
                 if_branch,
                 else_branch: None,
             })))
