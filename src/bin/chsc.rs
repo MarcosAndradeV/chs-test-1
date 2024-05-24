@@ -31,7 +31,7 @@ fn main() -> io::Result<()> {
         return Ok(());
     }else{
         println!("File not provided.");
-        println!("Usage: {chsc} run <file.chs>");
+        println!("Usage: {chsc} <file.chs>");
         return Ok(());
     }
 }
