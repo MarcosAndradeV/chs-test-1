@@ -1,7 +1,7 @@
-# Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
-# Generates a rule 110
+// Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
+// Generates a rule 110
 
-fn repeat { # int [any] : [any]
+fn repeat { // int [any] : [any]
     over 0 < if {
         else
         swap 1 - swap [0] concat repeat

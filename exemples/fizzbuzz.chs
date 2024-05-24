@@ -1,4 +1,4 @@
-# Basic FizzBuzz program
+// Basic FizzBuzz program
 
 
 1 while dup 100 < {

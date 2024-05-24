@@ -1,6 +1,6 @@
-# Finds the elememt in the array and returns its index, otherwise returns -1
+// Finds the elememt in the array and returns its index, otherwise returns -1
 
-fn find { # [any] any : int
+fn find { // [any] any : int
     peek list elem {
         0 while dup list len < {
             list over idxget

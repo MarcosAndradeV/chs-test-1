@@ -56,6 +56,7 @@ pub enum TokenKind {
     Bitand,
     Lor,
     Land,
+    Lnot,
 
     Eq,
     Neq,
@@ -189,7 +190,6 @@ impl Lexer {
         match self.current_byte() {
             b'0'..=b'9' => self.number(false),
             b'\"' => self.string(self.position),
-            b'#' => self.comment(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
             b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
             b'-' | b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' | b':' => {
@@ -202,6 +202,7 @@ impl Lexer {
             b'[' => self.make_token(TokenKind::BracketOpen),
             b']' => self.make_token(TokenKind::BracketClose),
             b';' => self.make_token(TokenKind::SemiColon),
+            b'.' => self.make_token(TokenKind::Dup),
             b'~' => self.make_token(TokenKind::Tilde),
             _ => {
                 if self.has_next() {
@@ -225,14 +226,20 @@ impl Lexer {
             },
             b'+' => self.make_token(TokenKind::Add),
             b'*' => self.make_token(TokenKind::Mul),
-            b'/' => self.make_token(TokenKind::Div),
+            b'/' => match self.next_byte() {
+                b'/' => {
+                    self.position += 2;
+                    self.comment()
+                }
+                _ => self.make_token(TokenKind::Div)
+            },
             b'=' => self.make_token(TokenKind::Eq),
             b'!' => match self.next_byte() {
                 b'=' => {
                     self.position += 2;
                     self.token(TokenKind::Neq, self.position - 2)
                 }
-                _ => Token::invalid("!".to_string(), (self.row, self.col)),
+                _ => self.make_token(TokenKind::Lnot),
             },
             b'>' => match self.next_byte() {
                 b'=' => {
@@ -279,7 +286,7 @@ impl Lexer {
                     self.position += 2;
                     self.token(TokenKind::DoubleColon, self.position - 2)
                 }
-                _ => self.make_token(TokenKind::Colon),
+                _ => self.make_token(TokenKind::Swap),
             },
             _ => self.make_token(TokenKind::Invalid),
         }

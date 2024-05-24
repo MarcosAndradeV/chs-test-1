@@ -1,4 +1,4 @@
-# Generates fibonacci numbers bellow 100
+// Generates fibonacci numbers bellow 100
 
 0 1
 while over 100 < {
