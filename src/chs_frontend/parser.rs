@@ -185,24 +185,23 @@ impl Parser {
         self.expect(TokenKind::CurlyOpen)?;
         let mut if_branch: Vec<Expr> = Vec::new();
         let mut else_branch: Vec<Expr> = Vec::new();
-        let mut has_else: bool = false;
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Else => {
-                    has_else = true;
-                }
-                _ => {
-                    if has_else {
-                        else_branch.push(self.expression(tok)?)
-                    } else {
-                        if_branch.push(self.expression(tok)?)
-                    }
-                }
+                _ => if_branch.push(self.expression(tok)?)
             }
         }
-        if has_else {
+        if TokenKind::Else == self.peek().kind {
+            self.next();
+            self.expect(TokenKind::CurlyOpen)?;
+            loop {
+                let tok = self.require()?;
+                match tok.kind {
+                    TokenKind::CurlyClose => break,
+                    _ => else_branch.push(self.expression(tok)?)
+                }
+            }
             Ok(Expr::If(Box::new(IfExpr {
                 if_branch,
                 else_branch: Some(else_branch),
