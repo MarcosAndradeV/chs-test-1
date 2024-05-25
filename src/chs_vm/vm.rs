@@ -1,7 +1,7 @@
 
 use crate::{config::STACK_CAPACITY, exeptions::VMError, vm_error};
 
-use super::{instructions::{Bytecode, Instr, Opcode}, value::Value};
+use super::{instructions::{Bytecode, Instr}, value::Value};
 
 
 
@@ -15,8 +15,14 @@ pub struct CHSVM {
     program: Bytecode,
 }
 
+pub fn jump(addr: usize, rel: isize) -> usize { (addr as isize + rel) as usize }
+pub fn jump_to(addr: usize, other: usize) -> isize { other as isize - addr as isize }
+
 impl CHSVM {
     pub fn new(program: Bytecode) -> Self {
+        //for (i, ins) in program.program.iter().enumerate() {
+        //    println!("{i} -> {:?}", ins);
+        //}
         Self {
             stack: Vec::with_capacity(STACK_CAPACITY),
             temp_stack: Vec::with_capacity(STACK_CAPACITY),
@@ -27,28 +33,20 @@ impl CHSVM {
         }
     }
     pub fn execute_instr(&mut self, instr: Instr) -> Result<(), VMError> {
-        match instr.kind {
-            Opcode::Const => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("OPERAND_NOT_PROVIDED"),
-                };
-                let val = match self.program.consts.get(addrs) {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
-                self.push_stack(val.clone())?;
+        match instr {
+            Instr::Const(v) => {
+                self.push_stack(v.clone())?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Dup => {
+            Instr::Dup => {
                 let op_1 = self.stack_pop()?;
                 self.push_stack(op_1.clone())?;
                 self.push_stack(op_1)?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Swap => {
+            Instr::Swap => {
                 // a b -> b a
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
@@ -57,7 +55,7 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Over => {
+            Instr::Over => {
                 // a b -> a b a
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
@@ -67,13 +65,13 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Pop => {
+            Instr::Pop => {
                 // a -> _
                 let _ = self.stack_pop()?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Add => {
+            Instr::Add => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
@@ -86,7 +84,7 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Minus => {
+            Instr::Minus => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
@@ -99,7 +97,7 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Mul => {
+            Instr::Mul => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
@@ -112,7 +110,7 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Div => {
+            Instr::Div => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
@@ -128,7 +126,7 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Mod => {
+            Instr::Mod => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
 
@@ -144,98 +142,90 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Shr => {
+            Instr::Shr => {
                 let op_2 = self.stack_pop_i64()?;
                 let op_1 = self.stack_pop_i64()?;
                 self.push_stack(Value::Int64(op_1 >> op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Shl => {
+            Instr::Shl => {
                 let op_2 = self.stack_pop_i64()?;
                 let op_1 = self.stack_pop_i64()?;
                 self.push_stack(Value::Int64(op_1 << op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Lor => {
+            Instr::Lor => {
                 let op_2 = self.stack_pop_bool()?;
                 let op_1 = self.stack_pop_bool()?;
                 self.push_stack(Value::Bool(op_1 || op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Land => {
+            Instr::Land => {
                 let op_2 = self.stack_pop_bool()?;
                 let op_1 = self.stack_pop_bool()?;
                 self.push_stack(Value::Bool(op_1 && op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Lnot => {
+            Instr::Lnot => {
                 let op_1 = self.stack_pop_bool()?;
                 self.push_stack(Value::Bool(!op_1))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Bitor => {
+            Instr::Bitor => {
                 let op_2 = self.stack_pop_i64()?;
                 let op_1 = self.stack_pop_i64()?;
                 self.push_stack(Value::Int64(op_1 | op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Bitand => {
+            Instr::Bitand => {
                 let op_2 = self.stack_pop_i64()?;
                 let op_1 = self.stack_pop_i64()?;
                 self.push_stack(Value::Int64(op_1 & op_2))?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Jmp => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
-                if addrs > self.program.len() {
+            Instr::Jmp(addr) => {
+                if addr > self.program.len() as isize {
                     vm_error!("Address out of bounds.")
                 }
-                self.ip = addrs;
+                self.ip = jump(self.ip, addr);
                 Ok(())
             }
-            Opcode::JmpIf => {
+            Instr::JmpIf(addr) => {
                 let op_1 = self.stack_pop_bool()?;
                 if op_1 {
                     self.ip += 1;
                     return Ok(());
                 }
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
-                if addrs > self.program.len() {
+                if addr > self.program.len() as isize {
                     vm_error!("Address out of bounds.")
                 }
 
-                self.ip = addrs;
+                self.ip = jump(self.ip, addr);
 
                 Ok(())
             }
-            Opcode::Eq => {
+            Instr::Eq => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 == op_2).into())?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Neq => {
+            Instr::Neq => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 != op_2).into())?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Gt => {
+            Instr::Gt => {
                 // a b > -> a > b
                 let op_2 = self.stack_pop()?; // b
                 let op_1 = self.stack_pop()?; // a
@@ -243,32 +233,28 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Gte => {
+            Instr::Gte => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 >= op_2).into())?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Lt => {
+            Instr::Lt => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 < op_2).into())?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Lte => {
+            Instr::Lte => {
                 let op_2 = self.stack_pop()?;
                 let op_1 = self.stack_pop()?;
                 self.push_stack(Value::Bool(op_1 <= op_2).into())?;
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Bind => {
-                let q: usize = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
+            Instr::Bind(q) => {
                 if q <= self.stack.len() {
                     for _ in 0..q {
                         let value = self.stack_pop()?;
@@ -283,11 +269,7 @@ impl CHSVM {
                     self.stack.len()
                 )
             }
-            Opcode::PushBind => {
-                let q: usize = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
+            Instr::PushBind(q) => {
                 if let Some(local) = self.temp_stack.get(q) {
                     self.push_stack(local.clone())?;
                     self.ip += 1;
@@ -296,11 +278,7 @@ impl CHSVM {
                     vm_error!("return stack underflow")
                 }
             }
-            Opcode::SetBind => {
-                let q: usize = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
+            Instr::SetBind(q) => {
                 let value = self.stack_pop()?;
                 if let Some(_) = self.temp_stack.get(q) {
                     self.temp_stack[q] = value;
@@ -309,11 +287,7 @@ impl CHSVM {
                 }
                 vm_error!("return stack underflow");
             }
-            Opcode::Unbind => {
-                let q: usize = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
+            Instr::Unbind(q) => {
                 if q > self.temp_stack.len() {
                     vm_error!("")
                 }
@@ -323,51 +297,39 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::Nop => {
+            Instr::Nop => {
                 self.ip += 1;
                 return Ok(());
             }
-            Opcode::GlobalLoad => {
-                let addrs = match instr.operands {
+            Instr::GlobalLoad(addr) => {
+                let val = match self.temp_stack.get(addr) {
                     Some(v) => v,
-                    None => vm_error!("OPERAND_NOT_PROVIDED"),
-                };
-                let val = match self.temp_stack.get(addrs) {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
+                    None => vm_error!("{:?} operand is not provided.", instr),
                 };
                 self.push_stack(val.clone())?;
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::GlobalStore => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("OPERAND_NOT_PROVIDED"),
-                };
+            Instr::GlobalStore(addr) => {
                 let value = self.stack_pop()?;
-                if addrs >= self.temp_stack.len() {
+                if addr >= self.temp_stack.len() {
                     self.temp_stack.push(value);
                     self.ip += 1;
                     return Ok(());
                 }
-                self.temp_stack[addrs] = value;
+                self.temp_stack[addr] = value;
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::CallFn => {
-                let addrs = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
-                if addrs > self.program.len() {
+            Instr::CallFn(addr) => {
+                if addr > self.program.len() {
                     vm_error!("Address out of bounds.")
                 }
                 self.return_stack.push(self.ip + 1);
-                self.ip = addrs;
+                self.ip = addr;
                 Ok(())
             }
-            Opcode::RetFn => {
+            Instr::RetFn => {
                 let addrs = match self.return_stack.pop() {
                     Some(v) => v,
                     None => vm_error!("Cannot return from outside of a block."),
@@ -378,22 +340,22 @@ impl CHSVM {
                 self.ip = addrs;
                 Ok(())
             }
-            Opcode::Debug  => {
+            Instr::Debug  => {
                 println!("Debug:\nData Stack: {:?}\nTemp Stack: {:?}", self.stack, self.temp_stack);
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Exit   => {
+            Instr::Exit   => {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Print  => {
+            Instr::Print  => {
                 let val = self.stack_pop()?;
                 print!("{val}");
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::IdxGet => {
+            Instr::IdxGet => {
                 let idx = self.stack_pop()?;
                 let val = self.stack_pop()?;
                 if !val.is_list() && !val.is_str() {
@@ -403,7 +365,7 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::IdxSet => {
+            Instr::IdxSet => {
                 let new_val = self.stack_pop()?;
                 let idx = self.stack_pop()?;
                 let val = self.stack_pop()?;
@@ -414,7 +376,7 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Len    => {
+            Instr::Len    => {
                 let val = self.stack_pop()?;
                 if !val.is_list() && !val.is_str() {
                     vm_error!("Cannot get length of {}", val)
@@ -423,7 +385,7 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Concat    => {
+            Instr::Concat    => {
                 let other = self.stack_pop()?;
                 let val = self.stack_pop()?;
                 match (&val, &other) {
@@ -435,7 +397,7 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Tail    => {
+            Instr::Tail    => {
                 let val = self.stack_pop()?;
                 if !val.is_list() && !val.is_str() {
                     vm_error!("Cannot get tail of {}", val)
@@ -444,7 +406,7 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Head    => {
+            Instr::Head    => {
                 let val = self.stack_pop()?;
                 if !val.is_list() && !val.is_str() {
                     vm_error!("Cannot get head of {}", val)
@@ -453,7 +415,7 @@ impl CHSVM {
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Call => {
+            Instr::Call => {
                 let val = self.stack_pop()?;
                 match val {
                     Value::Fn(v, _) => {
@@ -464,38 +426,29 @@ impl CHSVM {
                     v => vm_error!("Cannot call {}", v),
                 }
             }
-            Opcode::MakeList => {
-                let q = match instr.operands {
-                    Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr.kind),
-                };
+            Instr::MakeList(q) => {
                 let v = Value::Array(self.stack.split_off(self.stack.len().saturating_sub(q).into()));
                 self.push_stack(v)?;
                 self.ip += 1;
                 Ok(())
             }
-            Opcode::Halt => {
+            Instr::Halt => {
                 return Ok(());
             }
         }
     }
 
-    pub fn run(&mut self, debug: bool) {
-        if debug {
-            for (i, e) in self.program.program.iter().enumerate() {
-                println!("{} -> {}", i, e);
-            }
-        }
+    pub fn run(&mut self) {
         loop {
             if self.ip >= self.program.len() {
                 break;
             }
-            let instr = self.program.program[self.ip];
-            match self.execute_instr(instr) {
-                Ok(_) => {} // {println!("{:?} at {}", self.stack, self.ip);}
+            let instr = &self.program.program[self.ip];
+            match self.execute_instr(instr.clone()) {
+                Ok(_) => {} //{println!("{:?} at {}", self.stack, self.ip);}
                 Err(e) => {
                     eprintln!(
-                        "It's a trap: {} at {} Instr({})",
+                        "It's a trap: {} at {} Instr({:?})",
                         e, self.ip, self.program.program[self.ip]
                     );
                     break;

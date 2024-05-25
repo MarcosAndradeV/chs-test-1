@@ -1,7 +1,7 @@
 use core::fmt;
 use std::io::{self, Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Int64(i64),
     Array(Vec<Self>),

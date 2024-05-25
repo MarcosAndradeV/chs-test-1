@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
             }
         };
         let mut vm = CHSVM::new(bytecode);
-        vm.run(false);
+        vm.run();
         return Ok(());
     }else{
         println!("File not provided.");

@@ -1,12 +1,11 @@
-use core::fmt;
 
 use super::value::Value;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum Opcode {
-    Halt = 0,
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Instr {
+    Halt,
 
-    Const,
+    Const(Value),
 
     Pop,
     Dup,
@@ -26,13 +25,13 @@ pub enum Opcode {
     Land,
     Lnot,
 
-    Bind,
-    PushBind,
-    SetBind,
-    Unbind,
+    Bind(usize),
+    PushBind(usize),
+    SetBind(usize),
+    Unbind(usize),
 
-    Jmp,
-    JmpIf,
+    Jmp(isize),
+    JmpIf(isize),
 
     Eq,
     Neq,
@@ -43,10 +42,10 @@ pub enum Opcode {
 
     Nop,
 
-    GlobalStore,
-    GlobalLoad,
+    GlobalStore(usize),
+    GlobalLoad(usize),
     
-    CallFn,
+    CallFn(usize),
     RetFn,
 
     Debug,
@@ -59,12 +58,12 @@ pub enum Opcode {
     Head,
     Tail,
     Call,
-    MakeList,
+    MakeList(usize),
 }
 
 
-
-#[derive(Debug, Clone, Copy)]
+/*
+#[derive(Debug, Clone)]
 pub struct Instr {
     pub kind: Opcode,
     pub operands: Option<usize>,
@@ -85,6 +84,7 @@ impl Instr {
         Self { kind, operands }
     }
 }
+*/
 #[derive(Debug, Clone)]
 pub struct Bytecode {
     pub program: Vec<Instr>,

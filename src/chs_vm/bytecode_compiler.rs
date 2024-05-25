@@ -2,7 +2,7 @@ use std::{collections::HashMap, vec::IntoIter};
 
 use crate::{chs_frontend::ast::{Expr, FnExpr, IfExpr, ListExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, exeptions::GenericError, generic_error};
 
-use super::{instructions::{Bytecode, Instr, Opcode}, value::Value};
+use super::{instructions::{Bytecode, Instr}, value::Value};
 
 
 #[derive(Debug, PartialEq, Eq)]
@@ -64,7 +64,7 @@ impl IrParser {
         for e in expr.itens.into_iter() {
             self.expr(e)?
         }
-        self.instrs.push(Instr::new(Opcode::MakeList, Some(self.instrs.len().saturating_sub(list_init))));
+        self.instrs.push(Instr::MakeList(self.instrs.len().saturating_sub(list_init)));
         Ok(())
     }
 
@@ -84,22 +84,22 @@ impl IrParser {
             NamesDef::None => {}
         };
         let ifaddrs = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::Jmp, None));
+        self.instrs.push(Instr::Jmp(0));
         let curr_len = self.instrs.len();
         self.fn_def.insert(expr.name, curr_len);
         for e in expr.body.into_iter() {
             self.expr(e)?
         }
-        self.instrs.push(Instr::new(Opcode::RetFn, None));
+        self.instrs.push(Instr::RetFn);
         let curr_len = self.instrs.len();
         let elem = unsafe { self.instrs.get_unchecked_mut(ifaddrs) };
-        *elem = Instr::new(Opcode::Jmp, Some(curr_len));
+        *elem = Instr::Jmp( (curr_len - ifaddrs) as isize);
         Ok(())
     }
 
     fn peek_expr(&mut self, expr: PeekExpr) -> Result<(), GenericError> {
         let names_len = expr.names.len();
-        self.instrs.push(Instr::new(Opcode::Bind, Some(names_len)));
+        self.instrs.push(Instr::Bind(names_len));
         for e in expr.names.iter().rev() {
             match self.checks_def(e) {
                 NamesDef::Fn   => generic_error!("{} is already Function name.", e),
@@ -112,7 +112,7 @@ impl IrParser {
             self.expr(e)?
         }
         self.instrs
-            .push(Instr::new(Opcode::Unbind, Some(names_len)));
+            .push(Instr::Unbind(names_len));
         for _ in expr.names.iter() {
             self.peek_def.pop();
         }
@@ -132,7 +132,7 @@ impl IrParser {
             self.expr(e)?;
         }
         self.instrs
-            .push(Instr::new(Opcode::GlobalStore, Some(var_ptr)));
+            .push(Instr::GlobalStore(var_ptr));
         Ok(())
     }
 
@@ -142,38 +142,39 @@ impl IrParser {
             self.expr(e)?
         }
         let ifaddrs = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::JmpIf, None));
+        self.instrs.push(Instr::JmpIf(0));
         for e in expr.while_block.into_iter() {
             self.expr(e)?
         }
-        self.instrs.push(Instr::new(Opcode::Jmp, Some(whileaddrs)));
+        let curr_len = self.instrs.len();
+        self.instrs.push(Instr::Jmp(-((curr_len - whileaddrs) as isize)));
         let curr_len = self.instrs.len();
         let elem = unsafe { self.instrs.get_unchecked_mut(ifaddrs) };
-        *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
+        *elem = Instr::JmpIf((curr_len - ifaddrs) as isize);
         Ok(())
     }
 
     fn if_expr(&mut self, expr: IfExpr) -> Result<(), GenericError> {
         let offset = self.instrs.len();
-        self.instrs.push(Instr::new(Opcode::JmpIf, None));
+        self.instrs.push(Instr::JmpIf(0));
         for e in expr.if_branch.into_iter() {
             self.expr(e)?
         }
         if let Some(vec) = expr.else_branch {
             let offset2 = self.instrs.len();
-            self.instrs.push(Instr::new(Opcode::Jmp, None));
+            self.instrs.push(Instr::Jmp(0));
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
-            *elem = Instr::new(Opcode::JmpIf, Some(offset2 + 1));
+            *elem = Instr::JmpIf((offset2 - (offset)+1) as isize);
             for e in vec.into_iter() {
                 self.expr(e)?
             }
             let curr_len = self.instrs.len();
             let elem = unsafe { self.instrs.get_unchecked_mut(offset2) };
-            *elem = Instr::new(Opcode::Jmp, Some(curr_len));
+            *elem = Instr::Jmp((curr_len - offset2) as isize);
         } else {
             let curr_len = self.instrs.len();
             let elem = unsafe { self.instrs.get_unchecked_mut(offset) };
-            *elem = Instr::new(Opcode::JmpIf, Some(curr_len));
+            *elem = Instr::JmpIf((curr_len - offset) as isize);
         }
         Ok(())
     }
@@ -185,28 +186,25 @@ impl IrParser {
                     Ok(ok) => ok,
                     Err(e) => generic_error!("{v} {}", e),
                 };
-                self.consts.push(Value::Int64(v));
                 self.instrs
-                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                    .push(Instr::Const(Value::Int64(v)));
             }
             Expr::StrExpr(v) => {
-                self.consts.push(Value::Str(v.chars().collect()));
                 self.instrs
-                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                    .push(Instr::Const(Value::Str(v.chars().collect())));
             }
             Expr::BoolExpr(v) => {
                 if v.as_str() == "true" {
-                    self.consts.push(Value::Bool(true));
+                    self.instrs
+                    .push(Instr::Const(Value::Bool(true)));
                 } else {
-                    self.consts.push(Value::Bool(false));
+                    self.instrs
+                    .push(Instr::Const(Value::Bool(false)));
                 }
-                self.instrs
-                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
             }
             Expr::NilExpr => {
-                self.consts.push(Value::Nil);
                 self.instrs
-                    .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
+                .push(Instr::Const(Value::Nil));
             }
             // Expr::ListExpr(v) => {
             //     let mut list = vec![];
@@ -222,38 +220,38 @@ impl IrParser {
             // }
             Expr::Op(v) => {
                 match *v {
-                    Operation::Pop    => self.instrs.push(Instr::new(Opcode::Pop, None)),
-                    Operation::Dup    => self.instrs.push(Instr::new(Opcode::Dup, None)),
-                    Operation::Swap   => self.instrs.push(Instr::new(Opcode::Swap, None)),
-                    Operation::Over   => self.instrs.push(Instr::new(Opcode::Over, None)),
-                    Operation::Add    => self.instrs.push(Instr::new(Opcode::Add, None)),
-                    Operation::Minus  => self.instrs.push(Instr::new(Opcode::Minus, None)),
-                    Operation::Mul    => self.instrs.push(Instr::new(Opcode::Mul, None)),
-                    Operation::Div    => self.instrs.push(Instr::new(Opcode::Div, None)),
-                    Operation::Mod    => self.instrs.push(Instr::new(Opcode::Mod, None)),
-                    Operation::Eq     => self.instrs.push(Instr::new(Opcode::Eq, None)),
-                    Operation::Neq    => self.instrs.push(Instr::new(Opcode::Neq, None)),
-                    Operation::Gt     => self.instrs.push(Instr::new(Opcode::Gt, None)),
-                    Operation::Gte    => self.instrs.push(Instr::new(Opcode::Gte, None)),
-                    Operation::Lte    => self.instrs.push(Instr::new(Opcode::Lte, None)),
-                    Operation::Lt     => self.instrs.push(Instr::new(Opcode::Lt, None)),
-                    Operation::Land   => self.instrs.push(Instr::new(Opcode::Land, None)),
-                    Operation::Lor    => self.instrs.push(Instr::new(Opcode::Lor, None)),
-                    Operation::Lnot    => self.instrs.push(Instr::new(Opcode::Lnot, None)),
-                    Operation::Shl    => self.instrs.push(Instr::new(Opcode::Shl, None)),
-                    Operation::Shr    => self.instrs.push(Instr::new(Opcode::Shr, None)),
-                    Operation::Bitand => self.instrs.push(Instr::new(Opcode::Bitand, None)),
-                    Operation::Bitor  => self.instrs.push(Instr::new(Opcode::Bitor, None)),
-                    Operation::Debug  => self.instrs.push(Instr::new(Opcode::Debug, None)),
-                    Operation::Exit   => self.instrs.push(Instr::new(Opcode::Exit, None)),
-                    Operation::Print  => self.instrs.push(Instr::new(Opcode::Print, None)),
-                    Operation::IdxSet => self.instrs.push(Instr::new(Opcode::IdxSet, None)),
-                    Operation::IdxGet => self.instrs.push(Instr::new(Opcode::IdxGet, None)),
-                    Operation::Len    => self.instrs.push(Instr::new(Opcode::Len, None)),
-                    Operation::Concat => self.instrs.push(Instr::new(Opcode::Concat, None)),
-                    Operation::Tail   => self.instrs.push(Instr::new(Opcode::Tail, None)),
-                    Operation::Head   => self.instrs.push(Instr::new(Opcode::Head, None)),
-                    Operation::Call   => self.instrs.push(Instr::new(Opcode::Call, None)),
+                    Operation::Pop    => self.instrs.push(Instr::Pop),
+                    Operation::Dup    => self.instrs.push(Instr::Dup),
+                    Operation::Swap   => self.instrs.push(Instr::Swap),
+                    Operation::Over   => self.instrs.push(Instr::Over),
+                    Operation::Add    => self.instrs.push(Instr::Add),
+                    Operation::Minus  => self.instrs.push(Instr::Minus),
+                    Operation::Mul    => self.instrs.push(Instr::Mul),
+                    Operation::Div    => self.instrs.push(Instr::Div),
+                    Operation::Mod    => self.instrs.push(Instr::Mod),
+                    Operation::Eq     => self.instrs.push(Instr::Eq),
+                    Operation::Neq    => self.instrs.push(Instr::Neq),
+                    Operation::Gt     => self.instrs.push(Instr::Gt),
+                    Operation::Gte    => self.instrs.push(Instr::Gte),
+                    Operation::Lte    => self.instrs.push(Instr::Lte),
+                    Operation::Lt     => self.instrs.push(Instr::Lt),
+                    Operation::Land   => self.instrs.push(Instr::Land),
+                    Operation::Lor    => self.instrs.push(Instr::Lor),
+                    Operation::Lnot    => self.instrs.push(Instr::Lnot),
+                    Operation::Shl    => self.instrs.push(Instr::Shl),
+                    Operation::Shr    => self.instrs.push(Instr::Shr),
+                    Operation::Bitand => self.instrs.push(Instr::Bitand),
+                    Operation::Bitor  => self.instrs.push(Instr::Bitor),
+                    Operation::Debug  => self.instrs.push(Instr::Debug),
+                    Operation::Exit   => self.instrs.push(Instr::Exit),
+                    Operation::Print  => self.instrs.push(Instr::Print),
+                    Operation::IdxSet => self.instrs.push(Instr::IdxSet),
+                    Operation::IdxGet => self.instrs.push(Instr::IdxGet),
+                    Operation::Len    => self.instrs.push(Instr::Len),
+                    Operation::Concat => self.instrs.push(Instr::Concat),
+                    Operation::Tail   => self.instrs.push(Instr::Tail),
+                    Operation::Head   => self.instrs.push(Instr::Head),
+                    Operation::Call   => self.instrs.push(Instr::Call),
                 }
             }
             Expr::IdentExpr(val) => {
@@ -264,19 +262,19 @@ impl IrParser {
                     .rev()
                     .find(|(_, s)| s.as_str() == val.as_str())
                 {
-                    self.instrs.push(Instr::new(Opcode::PushBind, Some(v)));
+                    self.instrs.push(Instr::PushBind(v));
                 } else if let Some(addrs) = self.fn_def.get(val.as_ref())
                 {
-                    self.instrs.push(Instr::new(Opcode::CallFn, Some(*addrs)));
+                    self.instrs.push(Instr::CallFn(*addrs));
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::GlobalLoad, Some(*v)));
+                    self.instrs.push(Instr::GlobalLoad(*v));
                 } else {
                     generic_error!("{} is not defined", val.to_string())
                 }
             }
             Expr::Assigin(val) => {
                 if let Some(v) = self.var_def.get(val.as_ref()) {
-                    self.instrs.push(Instr::new(Opcode::GlobalStore, Some(*v)));
+                    self.instrs.push(Instr::GlobalStore(*v));
                 } else {
                     generic_error!(
                         "Cannot assigin a variable that's not existes {}",
