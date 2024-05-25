@@ -224,7 +224,13 @@ impl Lexer {
                 }
                 _ => self.make_token(TokenKind::Minus),
             },
-            b'+' => self.make_token(TokenKind::Add),
+            b'+' => match self.next_byte() {
+                b'+' => {
+                    self.position += 2;
+                    self.token(TokenKind::Concat, self.position - 2)
+                }
+                _ => self.make_token(TokenKind::Add),
+            },
             b'*' => self.make_token(TokenKind::Mul),
             b'/' => match self.next_byte() {
                 b'/' => {
@@ -357,46 +363,32 @@ impl Lexer {
 
         let value = self.slice_string(start, self.position);
 
-        let kind = match value.len() {
-            2 => match value.as_str() {
-                "if" => TokenKind::If,
-                "fn" => TokenKind::Fn,
-                _ => TokenKind::Identifier,
-            },
-            3 => match value.as_str() {
-                "pop" => TokenKind::Pop,
-                "dup" => TokenKind::Dup,
-                "mod" => TokenKind::Mod,
-                "var" => TokenKind::Var,
-                "len" => TokenKind::Len,
-                "nil" => TokenKind::Nil,
-                _ => TokenKind::Identifier,
-            },
-            4 => match value.as_str() {
-                "else" => TokenKind::Else,
-                "over" => TokenKind::Over,
-                "swap" => TokenKind::Swap,
-                "peek" => TokenKind::Peek,
-                "true" => TokenKind::True,
-                "exit" => TokenKind::Exit,
-                "tail" => TokenKind::Tail,
-                "head" => TokenKind::Head,
-                "call" => TokenKind::Call,
-                _ => TokenKind::Identifier,
-            },
-            5 => match value.as_str() {
-                "print" => TokenKind::Print,
-                "while" => TokenKind::Whlie,
-                "debug" => TokenKind::Debug,
-                "false" => TokenKind::False,
-                _ => TokenKind::Identifier,
-            },
-            6 => match value.as_str() {
-                "idxget" => TokenKind::IdxGet,
-                "idxset" => TokenKind::IdxSet,
-                "concat" => TokenKind::Concat,
-                _ => TokenKind::Identifier,
-            },
+        let kind = match value.as_str() {
+            "if" => TokenKind::If,
+            "fn" => TokenKind::Fn,
+            "drop" => TokenKind::Pop,
+            "pop" => TokenKind::Pop,
+            "dup" => TokenKind::Dup,
+            "mod" => TokenKind::Mod,
+            "var" => TokenKind::Var,
+            "len" => TokenKind::Len,
+            "nil" => TokenKind::Nil,
+            "else" => TokenKind::Else,
+            "over" => TokenKind::Over,
+            "swap" => TokenKind::Swap,
+            "peek" => TokenKind::Peek,
+            "true" => TokenKind::True,
+            "exit" => TokenKind::Exit,
+            "tail" => TokenKind::Tail,
+            "head" => TokenKind::Head,
+            "call" => TokenKind::Call,
+            "print" => TokenKind::Print,
+            "while" => TokenKind::Whlie,
+            "debug" => TokenKind::Debug,
+            "false" => TokenKind::False,
+            "idxget" => TokenKind::IdxGet,
+            "idxset" => TokenKind::IdxSet,
+            "concat" => TokenKind::Concat,
             _ => TokenKind::Identifier,
         };
 
