@@ -7,7 +7,7 @@ fn min {
         idx 1 -
         acc l idx idxget < if {
           acc
-          else
+          }else{
           l idx idxget
         }
       }
@@ -24,7 +24,7 @@ fn max {
         idx 1 -
         acc l idx idxget > if {
           acc
-          else
+        }else{
           l idx idxget
         }
       }
