@@ -1,9 +1,9 @@
-
 use crate::{config::STACK_CAPACITY, exeptions::VMError, vm_error};
 
-use super::{instructions::{Bytecode, Instr}, value::Value};
-
-
+use super::{
+    instructions::{Bytecode, Instr},
+    value::Value,
+};
 
 #[derive(Debug)]
 pub struct CHSVM {
@@ -15,8 +15,12 @@ pub struct CHSVM {
     program: Bytecode,
 }
 
-pub fn jump(addr: usize, rel: isize) -> usize { (addr as isize + rel) as usize }
-pub fn jump_to(addr: usize, other: usize) -> isize { other as isize - addr as isize }
+pub fn jump(addr: usize, rel: isize) -> usize {
+    (addr as isize + rel) as usize
+}
+pub fn jump_to(addr: usize, other: usize) -> isize {
+    other as isize - addr as isize
+}
 
 impl CHSVM {
     pub fn new(program: Bytecode) -> Self {
@@ -340,16 +344,19 @@ impl CHSVM {
                 self.ip = addrs;
                 Ok(())
             }
-            Instr::Debug  => {
-                println!("Debug:\nData Stack: {:?}\nTemp Stack: {:?}", self.stack, self.temp_stack);
+            Instr::Debug => {
+                println!(
+                    "Debug:\nData Stack: {:?}\nTemp Stack: {:?}",
+                    self.stack, self.temp_stack
+                );
                 self.ip += 1;
                 Ok(())
             }
-            Instr::Exit   => {
+            Instr::Exit => {
                 self.ip += 1;
                 Ok(())
             }
-            Instr::Print  => {
+            Instr::Print => {
                 let val = self.stack_pop()?;
                 print!("{val}");
                 self.ip += 1;
@@ -358,9 +365,6 @@ impl CHSVM {
             Instr::IdxGet => {
                 let idx = self.stack_pop()?;
                 let val = self.stack_pop()?;
-                if !val.is_list() && !val.is_str() {
-                    vm_error!("Cannot index {} with {}", val, idx)
-                }
                 self.push_stack(val.get_indexed(idx))?;
                 self.ip += 1;
                 Ok(())
@@ -369,48 +373,36 @@ impl CHSVM {
                 let new_val = self.stack_pop()?;
                 let idx = self.stack_pop()?;
                 let val = self.stack_pop()?;
-                if !val.is_list() {
-                    vm_error!("Cannot index {} with {}", val, idx)
-                }
                 self.push_stack(val.set_indexed(idx, new_val))?;
                 self.ip += 1;
                 Ok(())
             }
-            Instr::Len    => {
+            Instr::Len => {
                 let val = self.stack_pop()?;
-                if !val.is_list() && !val.is_str() {
-                    vm_error!("Cannot get length of {}", val)
-                }
                 self.push_stack(val.len())?;
                 self.ip += 1;
                 Ok(())
             }
-            Instr::Concat    => {
+            Instr::Concat => {
                 let other = self.stack_pop()?;
                 let val = self.stack_pop()?;
                 match (&val, &other) {
-                    (Value::Array(_), Value::Array(_)) => {},
-                    (Value::Str(_), Value::Str(_)) => {},
+                    (Value::Array(_), Value::Array(_)) => {}
+                    (Value::Str(_), Value::Str(_)) => {}
                     (v, o) => vm_error!("Cannot concat {} with {}", v, o),
                 }
                 self.push_stack(val.concat(other))?;
                 self.ip += 1;
                 Ok(())
             }
-            Instr::Tail    => {
+            Instr::Tail => {
                 let val = self.stack_pop()?;
-                if !val.is_list() && !val.is_str() {
-                    vm_error!("Cannot get tail of {}", val)
-                }
                 self.push_stack(val.tail())?;
                 self.ip += 1;
                 Ok(())
             }
-            Instr::Head    => {
+            Instr::Head => {
                 let val = self.stack_pop()?;
-                if !val.is_list() && !val.is_str() {
-                    vm_error!("Cannot get head of {}", val)
-                }
                 self.push_stack(val.head())?;
                 self.ip += 1;
                 Ok(())
@@ -422,12 +414,15 @@ impl CHSVM {
                         self.return_stack.push(self.ip + 1);
                         self.ip = v;
                         Ok(())
-                    },
+                    }
                     v => vm_error!("Cannot call {}", v),
                 }
             }
             Instr::MakeList(q) => {
-                let v = Value::Array(self.stack.split_off(self.stack.len().saturating_sub(q).into()));
+                let v = Value::Array(
+                    self.stack
+                        .split_off(self.stack.len().saturating_sub(q).into()),
+                );
                 self.push_stack(v)?;
                 self.ip += 1;
                 Ok(())
