@@ -11,6 +11,7 @@ pub enum Instr {
     Dup,
     Swap,
     Over,
+    Rot,
 
     Add,
     Minus,

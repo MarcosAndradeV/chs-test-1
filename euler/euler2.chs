@@ -1,20 +1,19 @@
-var LIMIT := 4000000;
-
-var acc := 0;
-
-var fib1 := 1;
-var fib2 := 1;
-var tmp  := 0;
-
 fn println { print "\n" print }
 
-while fib2 LIMIT < { 
-    fib2 2 mod 0 = if {
-        acc fib2 + := acc
-    }
-    fib1 fib2 + := tmp
+LIMIT := 4000000;
+
+acc  := 0;
+fib1 := 1;
+fib2 := 1;
+tmp  := 0;
+
+while (< fib2 LIMIT) {
+    (= (mod fib2 2) 0) if { (+ fib2 acc) := acc }
+    (+ fib1 fib2) 
+    := tmp
     fib2 := fib1
     tmp := fib2
 }
 
-acc println 
+
+acc println

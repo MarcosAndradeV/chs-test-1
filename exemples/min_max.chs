@@ -1,34 +1,26 @@
 fn min {
   peek l {
-    l len 1 -
-    l 0 idxget
-    while over 0 >= { 
+    (- (len l) 1)
+    (idxget l 0)
+    while (>= over 0) { 
       peek idx acc {
-        idx 1 -
-        acc l idx idxget < if {
-          acc
-          }else{
-          l idx idxget
-        }
+        (- idx 1) 
+        (< acc (idxget l idx)) if { acc } else { (idxget l idx) }
       }
-    } swap pop
+    } : drop
   }
 }
 
 fn max {
   peek l {
-    l len 1 -
-    l 0 idxget
-    while over 0 >= { 
+    (- (len l) 1)
+    (idxget l 0)
+    while (>= over 0) { 
       peek idx acc {
-        idx 1 -
-        acc l idx idxget > if {
-          acc
-        }else{
-          l idx idxget
-        }
+        (- idx 1) 
+        (> acc (idxget l idx)) if { acc } else { (idxget l idx) }
       }
-    } swap pop
+    } : drop
   }
 }
 

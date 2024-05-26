@@ -6,6 +6,8 @@ pub enum Operation {
     Dup,
     Swap,
     Over,
+    Rot,
+    Nop,
 
     Add,
     Minus,
@@ -57,6 +59,7 @@ pub struct WhileExpr {
 pub struct VarExpr {
     pub name: String,
     pub value: Expressions,
+    pub dtype: Option<String>
 }
 
 #[derive(Debug)]
@@ -72,8 +75,19 @@ pub struct FnExpr {
 }
 
 #[derive(Debug)]
+pub struct SExpr {
+    pub func: Expr,
+    pub args: Expressions,
+}
+
+#[derive(Debug)]
 pub struct ListExpr {
     pub itens: Vec<Expr>,
+}
+
+#[derive(Debug)]
+pub struct LambdaExpr {
+    pub body: Expr,
 }
 
 #[derive(Debug)]
@@ -94,6 +108,8 @@ pub enum Expr {
     Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
+    SExpr(Box<SExpr>),
+    LambdaExpr(Box<LambdaExpr>),
 }
 
 impl fmt::Display for Expr {
@@ -112,6 +128,8 @@ impl fmt::Display for Expr {
             Expr::IdentExpr(_) => write!(f, "Identifier"),
             Expr::Assigin(_) => write!(f, "Assigin"),
             Expr::Fn(_) => write!(f, "Fn"),
+            Expr::SExpr(_) => write!(f, "SExpr"),
+            Expr::LambdaExpr(_) => write!(f, "LambdaExpr"),
         }
     }
 }

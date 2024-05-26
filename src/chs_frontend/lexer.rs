@@ -34,6 +34,7 @@ pub enum TokenKind {
     True,
     False,
     Nil,
+    Rot,
 
     Print,
     Debug,
@@ -84,6 +85,7 @@ pub enum TokenKind {
     Dup,
     Over,
     Swap,
+    Nop
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -352,7 +354,7 @@ impl Lexer {
             self.advance_char();
         }
         let start = self.position;
-        while self.has_next() && self.current_byte() != b'\n' {
+        while self.has_next() && self.current_byte() != b'\n'{
             self.position += 1;
         }
         self.token(TokenKind::Comment, start)
@@ -368,11 +370,13 @@ impl Lexer {
             "fn" => TokenKind::Fn,
             "drop" => TokenKind::Pop,
             "pop" => TokenKind::Pop,
+            "nop" => TokenKind::Nop,
             "dup" => TokenKind::Dup,
             "mod" => TokenKind::Mod,
             "var" => TokenKind::Var,
             "len" => TokenKind::Len,
             "nil" => TokenKind::Nil,
+            "rot" => TokenKind::Rot,
             "else" => TokenKind::Else,
             "over" => TokenKind::Over,
             "swap" => TokenKind::Swap,

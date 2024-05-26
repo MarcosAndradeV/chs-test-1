@@ -4,7 +4,7 @@ fn println { print "\n" print }
     peek a b { a b a b } mod 0 = if {
         dup println
         swap over / swap
-        else
+        } else {
         1 +
     }
 } pop pop

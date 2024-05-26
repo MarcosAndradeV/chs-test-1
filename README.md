@@ -1,8 +1,12 @@
 # CHS (WIP)
 
-- [Introduction](#introduction)
-- [Development Milestones](#development-milestones)
-- [How to use](#how-to-use)
+- [CHS (WIP)](#chs-wip)
+  - [Introduction](#introduction)
+  - [How to use](#how-to-use)
+  - [Using CHS](#using-chs)
+  - [Development Milestones](#development-milestones)
+  - [License](#license)
+  - [References \& Inspirations](#references--inspirations)
 
 ## Introduction
 
@@ -17,8 +21,7 @@ The syntax resemble [Forth](https://en.wikipedia.org/wiki/Forth_(programming_lan
 git clone git@github.com:MarcosAndradeV/chs-lang.git
 cd chs-lang
 make chsc
-cd tmp/
-chsc run <file.chs>
+./chsc <file.chs>
 ```
 
 ## Using CHS
@@ -26,42 +29,39 @@ chsc run <file.chs>
 - Hello world
 
 ```pascal
-"Hello, world!" println
+"Hello, world!\n" print
 ```
 
 - Variables
 
 ```pascal
-var <name> := <value>;
+<name> := <value>;
 <value> := <name>
 ```
 
 ```pascal
-var interger 10;
-20 := another_interger
-
-var text := "Some text";
-var mylist := [1 2 3 4];
-
+interger := 10;
 20 := interger
-10 := another_interger
+
+text := "Some text";
 "Other text" := text
+mylist := [1 2 3 4];
 ```
 
 - if-statmets
 
 ```pascal
-if <condition> {
-  <truly-block>
-  else
+<condition> if {
+  <true-block>
+} else {
   <false-block>
 }
 ```
 
 ```c
-if 1 1 = {
+1 1 = if {
   "Everything is fine\n" print
-  else
+} else {
   "Some thing is wrong\n" print
 }
 ```
@@ -76,49 +76,48 @@ while <condition> {
 
 ```c
 0 while dup 100 < {
-  dup println
+  dup print
   1 +
 }
 ```
 
-- stack operations
+- Stack operations
 
-```python
-dup # [a] -> [a a]
-over # [a b] -> [a b a]
-pop # [a] -> []
-swap # [a b] -> [b a]
+```
+dup  |   .   # [a] -> [a a]
+pop  | drop  # [a] -> []
+swap |   :   # [a b] -> [b a]
+over         # [a b] -> [a b a]
+rot          # [a b c] -> [b c a]
 ```
 
-- logical operations
+- Logical and Comparison operations
 
-```python
-= # equal
+```
+=  # equal
 != # not equal
-< # less than
+<  # less than
 <= # less or equal than
-> # greater than
+>  # greater than
 >= # greater or equal than
-|| # Logical or
+|| # logical or
+&& # logical and
+!  # logical not
 
 ```
 
 - Bitwise operations
 
-```python
->> # right bit shift
-<< # left bit shift
-| # bit or
-& # bit and
+```
+>>  # right bit shift
+<<  # left bit shift
+|   # bit or
+&   # bit and
 ```
 
 ## Development Milestones
 
 - [X] [Turing Complete](exemples/rule110.chs)
-- [ ] Automatic memory management with Reference Counting
-- [ ] Macros Support
-- [ ] Multthred Support
-- [ ] Just-in-time
 
 ## License
 

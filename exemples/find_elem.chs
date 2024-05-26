@@ -1,19 +1,11 @@
-// Finds the elememt in the array and returns its index, otherwise returns -1
+// Finds the elememt in the array and returns its index, otherwise returns nil
 
-fn find { // [any] any : int
+fn find {
     peek list elem {
-        0 while dup list len < {
-            list over idxget
-            elem = if {
-                list len 1 +
-                else
-                1 +
-            }
-        } dup list len > if {
-            pop
-            else
-            -1
-        }
+        0 while (< dup (len list)) {
+            (= list (idxget over) elem) if { (len list) 1 + } else { 1 + }
+        } 
+        (> (len list)) if {} else { nil }
     }
 }
 

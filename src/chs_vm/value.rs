@@ -8,7 +8,7 @@ pub enum Value {
     Bool(bool),
     Str(Vec<char>),
     Char(char),
-    Fn(usize, Vec<Self>),
+    Ptr(usize),
     Nil,
 }
 
@@ -41,7 +41,7 @@ impl fmt::Display for Value {
                 write!(f, "{}", buff.to_string())
             },
             Value::Char(v) => write!(f, "{}", v),
-            Value::Fn(v, _) => write!(f, "Fn({})", v),
+            Value::Ptr(v) => write!(f, "Ptr({})", v),
             Value::Nil => write!(f, "nil"),
         }
     }
@@ -75,7 +75,7 @@ impl Value {
     }
     pub fn is_fn(&self) -> bool {
         match self {
-            Value::Fn(_, _) => true,
+            Value::Ptr(_) => true,
             _ => false,
         }
     }

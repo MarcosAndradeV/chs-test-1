@@ -1,6 +1,6 @@
 use std::{collections::HashMap, vec::IntoIter};
 
-use crate::{chs_frontend::ast::{Expr, FnExpr, IfExpr, ListExpr, Operation, PeekExpr, Program, VarExpr, WhileExpr}, exeptions::GenericError, generic_error};
+use crate::{chs_frontend::ast::{Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, VarExpr, WhileExpr}, exeptions::GenericError, generic_error};
 
 use super::{instructions::{Bytecode, Instr}, value::Value};
 
@@ -55,16 +55,52 @@ impl IrParser {
             Expr::Peek(v) => self.peek_expr(*v)?,
             Expr::Fn(v) => self.fn_expr(*v)?,
             Expr::ListExpr(v) => self.list_expr(*v)?,
+            Expr::SExpr(v) => self.s_expr(*v)?, 
+            Expr::LambdaExpr(v) => self.lambda_expr(*v)?, 
             _ => self.simple_expr(expr)?,
         })
     }
 
-    fn list_expr(&mut self, expr: ListExpr) -> Result<(), GenericError> {
-        let list_init = self.instrs.len();
-        for e in expr.itens.into_iter() {
+    fn lambda_expr(&mut self, expr: LambdaExpr) -> Result<(), GenericError> {
+        let ifaddrs = self.instrs.len();
+        self.instrs.push(Instr::Jmp(0));
+        let init_len = self.instrs.len();
+        self.expr(expr.body)?;
+        self.instrs.push(Instr::RetFn);
+        let curr_len = self.instrs.len();
+        let elem = unsafe { self.instrs.get_unchecked_mut(ifaddrs) };
+        *elem = Instr::Jmp( (curr_len - ifaddrs) as isize);
+        self.instrs.push(Instr::Const(Value::Ptr(init_len)));
+        Ok(())
+    }
+
+    fn s_expr(&mut self, expr: SExpr) -> Result<(), GenericError> {
+        for e in expr.args.into_iter(){
             self.expr(e)?
         }
-        self.instrs.push(Instr::MakeList(self.instrs.len().saturating_sub(list_init)));
+        self.expr(expr.func)?;
+        Ok(())
+    }
+
+    fn list_expr(&mut self, expr: ListExpr) -> Result<(), GenericError> {
+        let mut list_init = 0;
+        for e in expr.itens.into_iter() {
+            match e {
+                Expr::Op(ref o) => {
+                    match **o {
+                        Operation::Dup | Operation::Swap => list_init += 2,
+                        Operation::Over | Operation::Rot =>  list_init += 3,
+                        Operation::Nop | Operation::Print | Operation::Debug | Operation::Exit => {},
+                        _ => list_init += 1
+                    }
+                    self.expr(e)?
+                },
+                Expr::IntExpr(_) | Expr::StrExpr(_) | Expr::BoolExpr(_)| Expr::ListExpr(_)| Expr::NilExpr |
+                Expr::IdentExpr(_) => {list_init+=1; self.expr(e)?},
+                _ => generic_error!("Compiler Error: {e} is Not allowed inside list expresions"),
+            }
+        }
+        self.instrs.push(Instr::MakeList(list_init));
         Ok(())
     }
 
@@ -79,8 +115,8 @@ impl IrParser {
 
     fn fn_expr(&mut self, expr: FnExpr) -> Result<(), GenericError> {
         match self.checks_def(&expr.name) {
-            NamesDef::Fn   => generic_error!("{} is already Function name.", expr.name),
-            NamesDef::Var  => generic_error!("{} is already Variable name.", expr.name),
+            NamesDef::Fn   => generic_error!("Compiler Error: {} is already Function name.", expr.name),
+            NamesDef::Var  => generic_error!("Compiler Error: {} is already Variable name.", expr.name),
             NamesDef::None => {}
         };
         let ifaddrs = self.instrs.len();
@@ -102,8 +138,8 @@ impl IrParser {
         self.instrs.push(Instr::Bind(names_len));
         for e in expr.names.iter().rev() {
             match self.checks_def(e) {
-                NamesDef::Fn   => generic_error!("{} is already Function name.", e),
-                NamesDef::Var  => generic_error!("{} is already Variable name.", e),
+                NamesDef::Fn   => generic_error!("Compiler Error: {} is already Function name.", e),
+                NamesDef::Var  => generic_error!("Compiler Error: {} is already Variable name.", e),
                 NamesDef::None => {}
             };
             self.peek_def.push(e.to_string())
@@ -123,7 +159,7 @@ impl IrParser {
         let var_ptr = self.var_count;
         self.var_count += 1;
         match self.checks_def(&expr.name) {
-            NamesDef::Fn   => generic_error!("{} is already Function name.", expr.name),
+            NamesDef::Fn   => generic_error!("Compiler Error: {} is already Function name.", expr.name),
             NamesDef::Var  => {}
             NamesDef::None => {}
         };
@@ -206,18 +242,6 @@ impl IrParser {
                 self.instrs
                 .push(Instr::Const(Value::Nil));
             }
-            // Expr::ListExpr(v) => {
-            //     let mut list = vec![];
-            //     for s in *v {
-            //         match s.parse::<i64>() {
-            //             Ok(o) => list.push(Value::Int64(o)),
-            //             Err(e) => generic_error!("{}", e),
-            //         }
-            //     }
-            //     self.consts.push(Value::Array(list));
-            //     self.instrs
-            //         .push(Instr::new(Opcode::Const, Some(self.consts.len() - 1)));
-            // }
             Expr::Op(v) => {
                 match *v {
                     Operation::Pop    => self.instrs.push(Instr::Pop),
@@ -252,6 +276,8 @@ impl IrParser {
                     Operation::Tail   => self.instrs.push(Instr::Tail),
                     Operation::Head   => self.instrs.push(Instr::Head),
                     Operation::Call   => self.instrs.push(Instr::Call),
+                    Operation::Rot   => self.instrs.push(Instr::Rot),
+                    Operation::Nop   => self.instrs.push(Instr::Nop),
                 }
             }
             Expr::IdentExpr(val) => {
@@ -269,7 +295,7 @@ impl IrParser {
                 } else if let Some(v) = self.var_def.get(val.as_ref()) {
                     self.instrs.push(Instr::GlobalLoad(*v));
                 } else {
-                    generic_error!("{} is not defined", val.to_string())
+                    generic_error!("Compiler Error: {} is not defined", val.to_string())
                 }
             }
             Expr::Assigin(val) => {
@@ -277,12 +303,12 @@ impl IrParser {
                     self.instrs.push(Instr::GlobalStore(*v));
                 } else {
                     generic_error!(
-                        "Cannot assigin a variable that's not existes {}",
+                        "Compiler Error: Cannot assigin a variable that's not existes {}",
                         val.as_ref()
                     )
                 }
             }
-            e => generic_error!("{} is not simple expression", e),
+            e => generic_error!("Compiler Error: {} is not simple expression", e),
         }
         Ok(())
     }

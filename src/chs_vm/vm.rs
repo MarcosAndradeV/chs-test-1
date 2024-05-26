@@ -69,6 +69,17 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
+            Instr::Rot => {
+                // a b -> a b a
+                let op_3 = self.stack_pop()?; // c
+                let op_2 = self.stack_pop()?; // b
+                let op_1 = self.stack_pop()?; // a
+                self.push_stack(op_2)?; // b
+                self.push_stack(op_3)?; // c
+                self.push_stack(op_1)?; // a
+                self.ip += 1;
+                return Ok(());
+            }
             Instr::Pop => {
                 // a -> _
                 let _ = self.stack_pop()?;
@@ -410,7 +421,7 @@ impl CHSVM {
             Instr::Call => {
                 let val = self.stack_pop()?;
                 match val {
-                    Value::Fn(v, _) => {
+                    Value::Ptr(v) => {
                         self.return_stack.push(self.ip + 1);
                         self.ip = v;
                         Ok(())
