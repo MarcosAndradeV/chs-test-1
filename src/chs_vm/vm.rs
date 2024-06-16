@@ -43,6 +43,14 @@ impl CHSVM {
                 self.ip += 1;
                 return Ok(());
             }
+            Instr::Error(s) => {
+                vm_error!("Runtime Error: {}", *s)
+            }
+            Instr::StackSize => {
+                self.push_stack(Value::Int64(self.stack.len().try_into().unwrap()))?;
+                self.ip += 1;
+                return Ok(());
+            }
             Instr::Dup => {
                 let op_1 = self.stack_pop()?;
                 self.push_stack(op_1.clone())?;
@@ -285,7 +293,7 @@ impl CHSVM {
                 )
             }
             Instr::PushBind(q) => {
-                if let Some(local) = self.temp_stack.get(q) {
+                if let Some(local) = self.temp_stack.get(self.temp_stack.len() - 1 - q) {
                     self.push_stack(local.clone())?;
                     self.ip += 1;
                     return Ok(());
@@ -454,8 +462,7 @@ impl CHSVM {
                 Ok(_) => {} //{println!("{:?} at {}", self.stack, self.ip);}
                 Err(e) => {
                     eprintln!(
-                        "It's a trap: {} at {} Instr({:?})",
-                        e, self.ip, self.program.program[self.ip]
+                        "{e}"
                     );
                     break;
                 }
