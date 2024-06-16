@@ -136,7 +136,7 @@ impl IrParser {
     fn peek_expr(&mut self, expr: PeekExpr) -> Result<(), GenericError> {
         let names_len = expr.names.len();
         self.instrs.push(Instr::Bind(names_len));
-        for e in expr.names.iter().rev() {
+        for e in expr.names.iter() {
             match self.checks_def(e) {
                 NamesDef::Fn   => generic_error!("Compiler Error: {} is already Function name.", e),
                 NamesDef::Var  => generic_error!("Compiler Error: {} is already Variable name.", e),
@@ -242,6 +242,9 @@ impl IrParser {
                 self.instrs
                 .push(Instr::Const(Value::Nil));
             }
+            Expr::ErrorExpr(s) => {
+                self.instrs.push(Instr::Error(s))
+            }
             Expr::Op(v) => {
                 match *v {
                     Operation::Pop    => self.instrs.push(Instr::Pop),
@@ -278,6 +281,7 @@ impl IrParser {
                     Operation::Call   => self.instrs.push(Instr::Call),
                     Operation::Rot   => self.instrs.push(Instr::Rot),
                     Operation::Nop   => self.instrs.push(Instr::Nop),
+                    Operation::StackSize   => self.instrs.push(Instr::StackSize),
                 }
             }
             Expr::IdentExpr(val) => {

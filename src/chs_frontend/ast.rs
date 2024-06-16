@@ -41,6 +41,7 @@ pub enum Operation {
     Tail,
     Head,
     Call,
+    StackSize
 }
 
 #[derive(Debug)]
@@ -110,6 +111,7 @@ pub enum Expr {
     Fn(Box<FnExpr>),
     SExpr(Box<SExpr>),
     LambdaExpr(Box<LambdaExpr>),
+    ErrorExpr(Box<String>)
 }
 
 impl fmt::Display for Expr {
@@ -130,6 +132,7 @@ impl fmt::Display for Expr {
             Expr::Fn(_) => write!(f, "Fn"),
             Expr::SExpr(_) => write!(f, "SExpr"),
             Expr::LambdaExpr(_) => write!(f, "LambdaExpr"),
+            Expr::ErrorExpr(_) => write!(f, "ErrorExpr"),
         }
     }
 }

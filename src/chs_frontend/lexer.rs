@@ -35,6 +35,9 @@ pub enum TokenKind {
     False,
     Nil,
     Rot,
+    QuestionMark,
+    DollarSing,
+    Error,
 
     Print,
     Debug,
@@ -206,6 +209,8 @@ impl Lexer {
             b';' => self.make_token(TokenKind::SemiColon),
             b'.' => self.make_token(TokenKind::Dup),
             b'~' => self.make_token(TokenKind::Tilde),
+            b'?' => self.make_token(TokenKind::QuestionMark),
+            b'$' => self.make_token(TokenKind::DollarSing),
             _ => {
                 if self.has_next() {
                     self.invalid(self.position, self.position + 1)
@@ -393,6 +398,7 @@ impl Lexer {
             "idxget" => TokenKind::IdxGet,
             "idxset" => TokenKind::IdxSet,
             "concat" => TokenKind::Concat,
+            "error" => TokenKind::Error,
             _ => TokenKind::Identifier,
         };
 

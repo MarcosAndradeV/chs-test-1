@@ -76,6 +76,7 @@ impl Parser {
             TokenKind::Head => Expr::Op(Box::new(Operation::Head)),
             TokenKind::Tail => Expr::Op(Box::new(Operation::Tail)),
             TokenKind::Call => Expr::Op(Box::new(Operation::Call)),
+            TokenKind::DollarSing => Expr::Op(Box::new(Operation::StackSize)),
 
             TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
             TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
@@ -88,6 +89,9 @@ impl Parser {
                     Expr::IdentExpr(Box::new(token.value))
                 }
             },
+            TokenKind::Error => {
+                Expr::ErrorExpr(Box::new(self.expect(TokenKind::Str)?.value))
+            }
 
             TokenKind::If => self.if_expr()?,
             TokenKind::Whlie => self.while_expr()?,

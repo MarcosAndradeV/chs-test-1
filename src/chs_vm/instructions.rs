@@ -60,6 +60,8 @@ pub enum Instr {
     Tail,
     Call,
     MakeList(usize),
+    Error(Box<String>),
+    StackSize,
 }
 
 
