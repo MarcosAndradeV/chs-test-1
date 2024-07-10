@@ -15,7 +15,7 @@ board (idxset (- BOARD_SIZE 1) 1) := board
 while (< i (- BOARD_SIZE 2)) {
     0 := j
     while (< j BOARD_SIZE) {
-        (idxget " *" (idxget board j)) print
+        (idxget [" " "*"] (idxget board j)) print
         j 1 + := j
     }
     (print "\n")
