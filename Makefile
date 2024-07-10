@@ -1,15 +1,19 @@
-prog :=chsc
-
-release :=--release --bin
-target :=release
-
 build:
-	cargo build $(release) chsc
+	cargo build --bin chsc
 
-install:
-	cp target/$(target)/$(prog) ./$(prog)
+release:
+	cargo build --release --bin chsc
 
-chsc: build install
+test: build
+	./rere.py replay test.list
+
+record: build
+	./rere.py record test.list
+
+install: release
+	cp target/release/chsc ./chsc
+
+chsc: release 
 
 help:
 	@echo "usage: make $(prog)"

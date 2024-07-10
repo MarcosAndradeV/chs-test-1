@@ -1,25 +1,17 @@
-# Is Palindrome
+// Checks if a number is palindrome
+101 := Palindrome
 
-var Palindrome := 101;
+Palindrome := x
 
-var x := Palindrome;
+0 := reverse
+0 := remainder
+Palindrome := temp
 
-var reverse := 0;
-var remainder := 0;
-var temp := Palindrome;
-
-if x 0 < {
-    "False\n" print
-    else
-    while temp 0 != {
+(< x 0) if { "False\n" print } else {
+    while (!= temp 0) {
         temp 10 mod := remainder
-        reverse 10 * remainder + := reverse
+        (+ (* reverse 10) remainder) := reverse
         temp 10 / := temp
     }
-
-    if reverse x = {
-        "True\n" print
-        else
-        "False\n" print
-    }
+    (= reverse x) if { "True\n" print } else { "False\n" print }
 }

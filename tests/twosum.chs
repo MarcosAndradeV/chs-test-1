@@ -1,22 +1,23 @@
-fn main {
-    var TARGET := 9;
+// Given an array of integers nums and an integer target,
+// return indices of the two numbers such that they add up to target.
 
-    var nums := [2 7 11 15];
+9 := TARGET
 
-    var i := 0;
-    var j := 0;
-    while i nums len < {
-        0 := j
-        while j nums len < {
-            if i j != {
-                if nums i idxget nums j idxget + TARGET = {
-                    i print ", " print j print "\n" print
-                    100 := i
-                    100 := j
-                }
+[2 7 11 15] := nums
+
+0 := i 
+while (< i (len nums)) {
+    0 := j
+	while (< j (len nums)) {
+        (!= i j) if {
+            (= (+ (idxget nums i) (idxget nums j)) TARGET) 
+            if {
+                (print i) (print ", ") (print j) (print "\n")
+                (len nums) 1 + := i
+                (len nums) 1 + := j
             }
-            j 1 + := j
         }
-        i 1 + := i
-    }
+		j 1 + := j
+	}
+	i 1 + := i
 }

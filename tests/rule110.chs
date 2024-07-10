@@ -1,36 +1,30 @@
-# Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
+// Based in this code: https://gist.github.com/rexim/c595009436f87ca076e7c4a2fb92ce10
+// Generates a rule 110
 
-fn repeat {
-    if over 0 < {
-        
-        else
-        swap 1 - swap [0] concat repeat
-    }
+fn repeat { // int [any] : [any]
+    (< over 0) if {} else { : 1 - : [0] ++ repeat }
 }
 
-fn main {
-    var BOARD_SIZE := 10;
-    var board := BOARD_SIZE [] repeat;
-    board BOARD_SIZE 1 - 1 idxset := board
+10 := BOARD_SIZE
+(repeat BOARD_SIZE []) := board
+board (idxset (- BOARD_SIZE 1) 1) := board
 
-    var pattern := 0;
+0 := pattern
 
-    var i := 0;
-    var j := 0;
-    while i BOARD_SIZE 2 - < {
-        0 := j
-        while j BOARD_SIZE < {
-            " *" board j idxget idxget print
-            j 1 + := j
-        }
-        "\n" print
-        board 0 idxget 1 << board 1 idxget | := pattern
-        0 := j
-        while j BOARD_SIZE 1 - < {
-            pattern 1 << 7 & board j 1 + idxget | := pattern
-            board j 110 pattern >> 1 & idxset := board
-            j 1 + := j
-        }
-        i 1 + := i
+0 := i
+while (< i (- BOARD_SIZE 2)) {
+    0 := j
+    while (< j BOARD_SIZE) {
+        (idxget " *" (idxget board j)) print
+        j 1 + := j
     }
+    (print "\n")
+    (| (<< (idxget board 0) 1) (idxget board 1)) := pattern
+    0 := j
+    while (< j (- BOARD_SIZE 1)) {
+        (| (& (<< pattern 1) 7) (idxget board (+ j 1))) := pattern
+        (idxset board j (& (>> 110 pattern) 1)) := board
+        j 1 + := j
+    }
+    i 1 + := i
 }

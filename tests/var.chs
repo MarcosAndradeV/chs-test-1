@@ -1,5 +1,5 @@
 fn main {
-    var test := 0;
+    0 := test
     debug
     test
     debug
