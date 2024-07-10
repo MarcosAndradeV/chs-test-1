@@ -12,6 +12,12 @@ pub enum Value {
     Nil,
 }
 
+impl Default for Value {
+    fn default() -> Self {
+        Self::Nil
+    }
+}
+
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
@@ -49,10 +55,32 @@ impl fmt::Display for Value {
 
 
 impl Value {
-    pub fn is_int(&self) -> bool {
-        match self {
-            Value::Int64(_) => true,
-            _ => false,
+    pub fn int(self) -> i64 {
+        if let Self::Int64(i) = self {
+            i
+        } else {
+            panic!("Expect value int")
+        }
+    }
+    pub fn bool(self) -> bool {
+        if let Self::Bool(i) = self {
+            i
+        } else {
+            panic!("Expect value bool")
+        }
+    }
+    pub fn array(self) -> Vec<Self> {
+        if let Self::Array(i) = self {
+            i
+        } else {
+            panic!("Expect value array")
+        }
+    }
+    pub fn ptr(self) -> usize {
+        if let Self::Ptr(i) = self {
+            i
+        } else {
+            panic!("Expect value ptr")
         }
     }
     pub fn is_str(&self) -> bool {

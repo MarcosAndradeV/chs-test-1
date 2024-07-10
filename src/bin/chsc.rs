@@ -1,8 +1,7 @@
 use std::{env, fs, process};
 
 use chs::{
-    chs_frontend::parser::Parser,
-    chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM},
+    chs_frontend::parser::Parser, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm_run}
 };
 
 
@@ -25,8 +24,9 @@ fn main() -> Result<(), ()> {
                 process::exit(1);
             }
         };
-        let mut vm = CHSVM::new(bytecode);
-        vm.run();
+        //let mut vm = CHSVM::new(bytecode);
+        //vm.run();
+        vm_run(bytecode);
         return Ok(());
     }else{
         println!("File not provided.");
