@@ -1,57 +1,41 @@
 fn min {
   peek l {
-    l len 1 -
-    l 0 idxget
-    while over 0 >= { 
+    (- (len l) 1)
+    (idxget l 0)
+    while (>= over 0) { 
       peek idx acc {
-        idx 1 -
-        if
-        acc
-        l idx idxget < {
-          acc
-          else
-          l idx idxget
-        }
+        (- idx 1) 
+        (< acc (idxget l idx)) if { acc } else { (idxget l idx) }
       }
-    } swap pop
+    } : drop
   }
 }
 
 fn max {
   peek l {
-    l len 1 -
-    l 0 idxget
-    while over 0 >= { 
+    (- (len l) 1)
+    (idxget l 0)
+    while (>= over 0) { 
       peek idx acc {
-        idx 1 -
-        if
-        acc
-        l idx idxget > {
-          acc
-          else
-          l idx idxget
-        }
+        (- idx 1) 
+        (> acc (idxget l idx)) if { acc } else { (idxget l idx) }
       }
-    } swap pop
+    } : drop
   }
 }
 
 fn gcd {
   while dup 0 != {
-    peek a b {
-      b a b mod
-    }
+    (mod over rot)
   } pop
 }
 
 fn gcd_rec {
-  if dup 0 = {
-    pop
-    else
-    peek a b { b a b mod } gcd_rec
-  }
+  dup 0 = if { pop } else { (mod over rot) gcd_rec }
 }
 
-@(2 5 6 9 10) dup min swap max gcd println
-@(7 5 6 8 3) dup min swap max gcd println
-@(3 3) dup min swap max gcd println
+fn println { print (print "\n") }
+
+[2 5 6 9 10] dup min : max gcd println
+[7 5 6 8 3] dup min : max gcd println
+[3 3] dup min : max gcd println
