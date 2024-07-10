@@ -57,13 +57,6 @@ pub struct WhileExpr {
 }
 
 #[derive(Debug)]
-pub struct VarExpr {
-    pub name: String,
-    pub value: Expressions,
-    pub dtype: Option<String>
-}
-
-#[derive(Debug)]
 pub struct PeekExpr {
     pub names: Vec<String>,
     pub body: Expressions,
@@ -88,7 +81,7 @@ pub struct ListExpr {
 
 #[derive(Debug)]
 pub struct LambdaExpr {
-    pub body: Expr,
+    pub body: Vec<Expr>,
 }
 
 #[derive(Debug)]
@@ -106,7 +99,6 @@ pub enum Expr {
     
     If(Box<IfExpr>),
     Whlie(Box<WhileExpr>),
-    Var(Box<VarExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
     SExpr(Box<SExpr>),
@@ -124,7 +116,6 @@ impl fmt::Display for Expr {
             Expr::NilExpr => write!(f, "NilExpr"),
             Expr::If(_) => write!(f, "If"),
             Expr::Whlie(_) => write!(f, "Whlie"),
-            Expr::Var(_) => write!(f, "Var"),
             Expr::Peek(_) => write!(f, "Peek"),
             Expr::ListExpr(_) => write!(f, "ListExpr"),
             Expr::IdentExpr(_) => write!(f, "Identifier"),

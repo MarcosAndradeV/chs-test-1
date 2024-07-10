@@ -1,4 +1,4 @@
-use crate::{config::STACK_CAPACITY, exeptions::VMError, vm_error};
+use crate::{config::STACK_CAPACITY, utils::CHSError, chs_error};
 
 use super::{
     instructions::{Bytecode, Instr},
@@ -36,7 +36,7 @@ impl CHSVM {
             program,
         }
     }
-    pub fn execute_instr(&mut self, instr: Instr) -> Result<(), VMError> {
+    pub fn execute_instr(&mut self, instr: Instr) -> Result<(), CHSError> {
         match instr {
             Instr::Const(v) => {
                 self.push_stack(v.clone())?;
@@ -44,7 +44,7 @@ impl CHSVM {
                 return Ok(());
             }
             Instr::Error(s) => {
-                vm_error!("Runtime Error: {}", *s)
+                chs_error!("Runtime Error: {}", *s)
             }
             Instr::StackSize => {
                 self.push_stack(Value::Int64(self.stack.len().try_into().unwrap()))?;
@@ -102,7 +102,7 @@ impl CHSVM {
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v + o))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} + {}", v, o),
+                    (v, o) => chs_error!("Cannot perform {} + {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -115,7 +115,7 @@ impl CHSVM {
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v - o))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} - {}", v, o),
+                    (v, o) => chs_error!("Cannot perform {} - {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -128,7 +128,7 @@ impl CHSVM {
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v * o))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} * {}", v, o),
+                    (v, o) => chs_error!("Cannot perform {} * {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -139,12 +139,12 @@ impl CHSVM {
 
                 match (op_1, op_2) {
                     (_, Value::Int64(0)) => {
-                        vm_error!("Cannot divide by zero")
+                        chs_error!("Cannot divide by zero")
                     }
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v / o))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} / {}", v, o),
+                    (v, o) => chs_error!("Cannot perform {} / {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -155,12 +155,12 @@ impl CHSVM {
 
                 match (op_1, op_2) {
                     (_, Value::Int64(0)) => {
-                        vm_error!("Cannot divide by zero")
+                        chs_error!("Cannot divide by zero")
                     }
                     (Value::Int64(v), Value::Int64(o)) => {
                         self.push_stack(Value::Int64(v % o))?;
                     }
-                    (v, o) => vm_error!("Cannot perform {} % {}", v, o),
+                    (v, o) => chs_error!("Cannot perform {} % {}", v, o),
                 }
                 self.ip += 1;
                 return Ok(());
@@ -215,7 +215,7 @@ impl CHSVM {
             }
             Instr::Jmp(addr) => {
                 if addr > self.program.len() as isize {
-                    vm_error!("Address out of bounds.")
+                    chs_error!("Address out of bounds.")
                 }
                 self.ip = jump(self.ip, addr);
                 Ok(())
@@ -227,7 +227,7 @@ impl CHSVM {
                     return Ok(());
                 }
                 if addr > self.program.len() as isize {
-                    vm_error!("Address out of bounds.")
+                    chs_error!("Address out of bounds.")
                 }
 
                 self.ip = jump(self.ip, addr);
@@ -286,7 +286,7 @@ impl CHSVM {
                     self.ip += 1;
                     return Ok(());
                 }
-                vm_error!(
+                chs_error!(
                     "Not enough items on the data stack for bind\nNeed [{}] encountered [{}]",
                     q,
                     self.stack.len()
@@ -298,7 +298,7 @@ impl CHSVM {
                     self.ip += 1;
                     return Ok(());
                 } else {
-                    vm_error!("return stack underflow")
+                    chs_error!("return stack underflow")
                 }
             }
             Instr::SetBind(q) => {
@@ -308,11 +308,11 @@ impl CHSVM {
                     self.ip += 1;
                     return Ok(());
                 }
-                vm_error!("return stack underflow");
+                chs_error!("return stack underflow");
             }
             Instr::Unbind(q) => {
                 if q > self.temp_stack.len() {
-                    vm_error!("")
+                    chs_error!("")
                 }
                 for _ in 0..q {
                     self.temp_stack.pop();
@@ -327,7 +327,7 @@ impl CHSVM {
             Instr::GlobalLoad(addr) => {
                 let val = match self.temp_stack.get(addr) {
                     Some(v) => v,
-                    None => vm_error!("{:?} operand is not provided.", instr),
+                    None => chs_error!("{:?} operand is not provided.", instr),
                 };
                 self.push_stack(val.clone())?;
                 self.ip += 1;
@@ -346,7 +346,7 @@ impl CHSVM {
             }
             Instr::CallFn(addr) => {
                 if addr > self.program.len() {
-                    vm_error!("Address out of bounds.")
+                    chs_error!("Address out of bounds.")
                 }
                 self.return_stack.push(self.ip + 1);
                 self.ip = addr;
@@ -355,10 +355,10 @@ impl CHSVM {
             Instr::RetFn => {
                 let addrs = match self.return_stack.pop() {
                     Some(v) => v,
-                    None => vm_error!("Cannot return from outside of a block."),
+                    None => chs_error!("Cannot return from outside of a block."),
                 };
                 if addrs > self.program.len() {
-                    vm_error!("Address out of bounds.")
+                    chs_error!("Address out of bounds.")
                 }
                 self.ip = addrs;
                 Ok(())
@@ -408,7 +408,7 @@ impl CHSVM {
                 match (&val, &other) {
                     (Value::Array(_), Value::Array(_)) => {}
                     (Value::Str(_), Value::Str(_)) => {}
-                    (v, o) => vm_error!("Cannot concat {} with {}", v, o),
+                    (v, o) => chs_error!("Cannot concat {} with {}", v, o),
                 }
                 self.push_stack(val.concat(other))?;
                 self.ip += 1;
@@ -434,7 +434,7 @@ impl CHSVM {
                         self.ip = v;
                         Ok(())
                     }
-                    v => vm_error!("Cannot call {}", v),
+                    v => chs_error!("Cannot call {}", v),
                 }
             }
             Instr::MakeList(q) => {
@@ -462,7 +462,7 @@ impl CHSVM {
                 Ok(_) => {} //{println!("{:?} at {}", self.stack, self.ip);}
                 Err(e) => {
                     eprintln!(
-                        "{e}"
+                        "{e:?}"
                     );
                     break;
                 }
@@ -470,17 +470,17 @@ impl CHSVM {
         }
     }
 
-    fn stack_pop(&mut self) -> Result<Value, VMError> {
+    fn stack_pop(&mut self) -> Result<Value, CHSError> {
         if !(self.sp == 0) {
             self.sp -= 1
         }
         match self.stack.pop() {
             Some(v) => Ok(v),
-            None => vm_error!("Stack uderflow"),
+            None => chs_error!("Stack uderflow"),
         }
     }
 
-    fn stack_pop_i64(&mut self) -> Result<i64, VMError> {
+    fn stack_pop_i64(&mut self) -> Result<i64, CHSError> {
         if !(self.sp == 0) {
             self.sp -= 1
         }
@@ -489,13 +489,13 @@ impl CHSVM {
                 Value::Int64(v) => Ok(v),
                 Value::Bool(v) => Ok(v as i64),
                 Value::Nil => Ok(0),
-                a => vm_error!("{} cannot be dynanmic converted into int", a),
+                a => chs_error!("{} cannot be dynanmic converted into int", a),
             },
-            None => vm_error!("Stack uderflow"),
+            None => chs_error!("Stack uderflow"),
         }
     }
 
-    fn stack_pop_bool(&mut self) -> Result<bool, VMError> {
+    fn stack_pop_bool(&mut self) -> Result<bool, CHSError> {
         if !(self.sp == 0) {
             self.sp -= 1
         }
@@ -509,13 +509,13 @@ impl CHSVM {
                 Value::Char(v) => Ok(v != '\0'),
                 _ => Ok(false),
             },
-            None => vm_error!("Stack underflow"),
+            None => chs_error!("Stack underflow"),
         }
     }
 
-    fn push_stack(&mut self, value: Value) -> Result<(), VMError> {
+    fn push_stack(&mut self, value: Value) -> Result<(), CHSError> {
         if (self.sp + 1) > self.stack.capacity() {
-            vm_error!("Stack overflow")
+            chs_error!("Stack overflow")
         }
         self.sp += 1;
         self.stack.push(value);

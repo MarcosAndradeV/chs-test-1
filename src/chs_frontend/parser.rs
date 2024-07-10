@@ -1,11 +1,15 @@
-use crate::{exeptions::GenericError, generic_error};
+use crate::{chs_error, utils::CHSError};
 
 use super::{
-    ast::{Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, VarExpr, WhileExpr},
+    ast::{
+        Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, WhileExpr,
+    },
     lexer::{Lexer, Token, TokenKind},
 };
 
-type ResTok = Result<Token, GenericError>;
+type ResTok = Result<Token, CHSError>;
+
+
 
 pub struct Parser {
     lexer: Lexer,
@@ -23,12 +27,12 @@ impl Parser {
         }
     }
 
-    pub fn parse_to_ast(&mut self) -> Result<Program, GenericError> {
+    pub fn parse_to_ast(&mut self) -> Result<Program, CHSError> {
         let mut exprs: Vec<Expr> = Vec::new();
         loop {
             let token = self.next();
 
-            if token.kind == TokenKind::Null {
+            if token.kind == TokenKind::EOF {
                 let program = Program { exprs };
                 return Ok(program);
             }
@@ -36,7 +40,7 @@ impl Parser {
         }
     }
 
-    fn expression(&mut self, token: Token) -> Result<Expr, GenericError> {
+    fn expression(&mut self, token: Token) -> Result<Expr, CHSError> {
         let expr = match token.kind {
             TokenKind::Pop => Expr::Op(Box::new(Operation::Pop)),
             TokenKind::Dup => Expr::Op(Box::new(Operation::Dup)),
@@ -45,26 +49,26 @@ impl Parser {
             TokenKind::Rot => Expr::Op(Box::new(Operation::Rot)),
             TokenKind::Nop => Expr::Op(Box::new(Operation::Nop)),
 
-            TokenKind::Add => Expr::Op(Box::new(Operation::Add)),
+            TokenKind::Plus => Expr::Op(Box::new(Operation::Add)),
             TokenKind::Minus => Expr::Op(Box::new(Operation::Minus)),
-            TokenKind::Mul => Expr::Op(Box::new(Operation::Mul)),
-            TokenKind::Div => Expr::Op(Box::new(Operation::Div)),
-            TokenKind::Mod => Expr::Op(Box::new(Operation::Mod)),
+            TokenKind::Star => Expr::Op(Box::new(Operation::Mul)),
+            TokenKind::Slash => Expr::Op(Box::new(Operation::Div)),
+            TokenKind::Percent => Expr::Op(Box::new(Operation::Mod)),
 
             TokenKind::Eq => Expr::Op(Box::new(Operation::Eq)),
-            TokenKind::Neq => Expr::Op(Box::new(Operation::Neq)),
-            TokenKind::Gte => Expr::Op(Box::new(Operation::Gte)),
+            TokenKind::NEq => Expr::Op(Box::new(Operation::Neq)),
+            TokenKind::GtEq => Expr::Op(Box::new(Operation::Gte)),
             TokenKind::Gt => Expr::Op(Box::new(Operation::Gt)),
-            TokenKind::Lte => Expr::Op(Box::new(Operation::Lte)),
+            TokenKind::LtEq => Expr::Op(Box::new(Operation::Lte)),
             TokenKind::Lt => Expr::Op(Box::new(Operation::Lt)),
 
-            TokenKind::Shl => Expr::Op(Box::new(Operation::Shl)),
-            TokenKind::Shr => Expr::Op(Box::new(Operation::Shr)),
-            TokenKind::Bitand => Expr::Op(Box::new(Operation::Bitand)),
-            TokenKind::Bitor => Expr::Op(Box::new(Operation::Bitor)),
-            TokenKind::Land => Expr::Op(Box::new(Operation::Land)),
-            TokenKind::Lor => Expr::Op(Box::new(Operation::Lor)),
-            TokenKind::Lnot => Expr::Op(Box::new(Operation::Lnot)),
+            TokenKind::ShL => Expr::Op(Box::new(Operation::Shl)),
+            TokenKind::ShR => Expr::Op(Box::new(Operation::Shr)),
+            TokenKind::Ampersand => Expr::Op(Box::new(Operation::Bitand)),
+            TokenKind::Bor => Expr::Op(Box::new(Operation::Bitor)),
+            TokenKind::LAnd => Expr::Op(Box::new(Operation::Land)),
+            TokenKind::LOr => Expr::Op(Box::new(Operation::Lor)),
+            TokenKind::LNot => Expr::Op(Box::new(Operation::Lnot)),
 
             TokenKind::Debug => Expr::Op(Box::new(Operation::Debug)),
             TokenKind::Exit => Expr::Op(Box::new(Operation::Exit)),
@@ -78,43 +82,60 @@ impl Parser {
             TokenKind::Call => Expr::Op(Box::new(Operation::Call)),
             TokenKind::DollarSing => Expr::Op(Box::new(Operation::StackSize)),
 
-            TokenKind::Str => Expr::StrExpr(Box::new(token.value)),
-            TokenKind::Int => Expr::IntExpr(Box::new(token.value)),
+            TokenKind::String => Expr::StrExpr(Box::new(token.value)),
+            TokenKind::Interger => Expr::IntExpr(Box::new(token.value)),
             TokenKind::True | TokenKind::False => Expr::BoolExpr(Box::new(token.value)),
             TokenKind::Nil => Expr::NilExpr,
-            TokenKind::Identifier => {
-                if self.peek().kind == TokenKind::Assing {
-                    self.var_expr(token.value)?
-                } else {
-                    Expr::IdentExpr(Box::new(token.value))
-                }
-            },
-            TokenKind::Error => {
-                Expr::ErrorExpr(Box::new(self.expect(TokenKind::Str)?.value))
-            }
+            TokenKind::Ident => Expr::IdentExpr(Box::new(token.value)),
+            TokenKind::Error => Expr::ErrorExpr(Box::new(format!(
+                "{} {:?}",
+                self.expect(TokenKind::String)?.value,
+                token.loc
+            ))),
 
-            TokenKind::If => self.if_expr()?,
-            TokenKind::Whlie => self.while_expr()?,
-            //TokenKind::Var => self.var_expr()?,
-            TokenKind::Assing => self.assigin_expr()?,
+            TokenKind::KeyWord if token.val_eq("if") => self.if_expr()?,
+            //TokenKind::KeyWord if token.val_eq("let") => self.let_expr()?,
+            TokenKind::KeyWord if token.val_eq("while") => self.while_expr()?,
+            TokenKind::Assigin => self.assigin_expr()?,
             TokenKind::BracketOpen => self.list_expr()?,
-            TokenKind::Peek => self.peek_expr()?,
-            TokenKind::Fn => self.fn_expr()?,
+            TokenKind::KeyWord if token.val_eq("peek") => self.peek_expr()?,
+            TokenKind::KeyWord if token.val_eq("fn") => self.fn_expr()?,
             TokenKind::ParenOpen => self.s_expr()?,
-            TokenKind::Tilde => self.lambda_expr()?,
+            TokenKind::CurlyOpen => self.lambda_expr()?,
 
-            _ => generic_error!("Parser Error: {} is not implemeted", token),
+            _ => chs_error!("Parser Error: {} is not implemeted", token),
         };
         Ok(expr)
     }
 
-    fn lambda_expr(&mut self) -> Result<Expr, GenericError>{
-        let ftoken = self.require()?;
-        let body = self.expression(ftoken)?;
-        Ok(Expr::LambdaExpr(Box::new(LambdaExpr{body})))
+    //fn let_expr(&mut self) -> Result<Expr, CHSError> {
+    //    let name = self.expect(TokenKind::Ident)?.value;
+    //    self.expect(TokenKind::Assigin)?;
+    //    let mut value: Vec<Expr> = Vec::new();
+    //    loop {
+    //        let tok = self.require()?;
+    //        match tok.kind {
+    //            TokenKind::SemiColon => {
+    //                break Ok(Expr::Assigin(Box::new(name)));
+    //            }
+    //            _ => value.push(self.expression(tok)?),
+    //        }
+    //    }
+    //}
+
+    fn lambda_expr(&mut self) -> Result<Expr, CHSError> {
+        let mut body = vec![];
+        loop {
+            let tok = self.require()?;
+            match tok.kind {
+                TokenKind::CurlyClose => break,
+                _ => body.push(self.expression(tok)?),
+            }
+        }
+        Ok(Expr::LambdaExpr(Box::new(LambdaExpr { body })))
     }
 
-    fn s_expr(&mut self) -> Result<Expr, GenericError>{
+    fn s_expr(&mut self) -> Result<Expr, CHSError> {
         let ftoken = self.require()?;
         let func = self.expression(ftoken)?;
         let mut args = vec![];
@@ -125,19 +146,19 @@ impl Parser {
                 _ => args.push(self.expression(tok)?),
             }
         }
-        Ok(Expr::SExpr(Box::new(SExpr{func, args})))
+        Ok(Expr::SExpr(Box::new(SExpr { func, args })))
     }
 
-    fn fn_expr(&mut self) -> Result<Expr, GenericError> {
-        let name = self.expect(TokenKind::Identifier)?.value;
+    fn fn_expr(&mut self) -> Result<Expr, CHSError> {
+        let name = self.expect(TokenKind::Ident)?.value;
         let mut body = vec![];
         self.expect(TokenKind::CurlyOpen)?;
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Fn => {
-                    generic_error!("Parser Error: Cannot create {} inside peek block", tok.get_kind())
+                TokenKind::KeyWord if tok.val_eq("fn") => {
+                    chs_error!("Parser Error: Cannot create {} inside peek block", tok)
                 }
                 _ => body.push(self.expression(tok)?),
             }
@@ -145,19 +166,19 @@ impl Parser {
         Ok(Expr::Fn(Box::new(FnExpr { name, body })))
     }
 
-    fn peek_expr(&mut self) -> Result<Expr, GenericError> {
+    fn peek_expr(&mut self) -> Result<Expr, CHSError> {
         let mut names = vec![];
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyOpen => {
                     if names.len() == 0 {
-                        generic_error!("Parser Error: Peek expect at least 1 identifier.")
+                        chs_error!("Parser Error: Peek expect at least 1 identifier.")
                     }
                     break;
                 }
-                TokenKind::Identifier => names.push(tok.value),
-                _ => generic_error!(""),
+                TokenKind::Ident => names.push(tok.value),
+                _ => chs_error!(""),
             }
         }
         let mut body = vec![];
@@ -165,8 +186,8 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::Var | TokenKind::Fn => {
-                    generic_error!("Parser Error: Cannot create {} inside peek block", tok)
+                TokenKind::KeyWord if tok.val_eq("fn") => {
+                    chs_error!("Parser Error: Cannot create {} inside peek block", tok)
                 }
                 _ => body.push(self.expression(tok)?),
             }
@@ -175,49 +196,29 @@ impl Parser {
         Ok(Expr::Peek(Box::new(PeekExpr { names, body })))
     }
 
-    fn assigin_expr(&mut self) -> Result<Expr, GenericError> {
-        let name = self.expect(TokenKind::Identifier)?.value;
+    fn assigin_expr(&mut self) -> Result<Expr, CHSError> {
+        let name = self.expect(TokenKind::Ident)?.value;
         Ok(Expr::Assigin(Box::new(name)))
     }
 
-    fn list_expr(&mut self) -> Result<Expr, GenericError> {
-        let mut list = vec![];
+    fn list_expr(&mut self) -> Result<Expr, CHSError> {
+        let mut itens = vec![];
         loop {
             let token = self.require()?;
             match token.kind {
                 TokenKind::BracketClose => break,
-                TokenKind::If
-                | TokenKind::Whlie
-                | TokenKind::Fn
-                | TokenKind::Var => generic_error!(
+                TokenKind::KeyWord => chs_error!(
                     "Parser Error: {:?}({}) is not suported in List literals",
                     token.kind,
                     token.value
                 ),
-                _ => list.push(self.expression(token)?),
+                _ => itens.push(self.expression(token)?),
             }
         }
-        Ok(Expr::ListExpr(Box::new(ListExpr { itens: list })))
+        Ok(Expr::ListExpr(Box::new(ListExpr { itens })))
     }
 
-    fn var_expr(&mut self, name: String) -> Result<Expr, GenericError> {
-        self.expect(TokenKind::Assing)?;
-        let mut value: Vec<Expr> = Vec::new();
-        loop {
-            let tok = self.require()?;
-            match tok.kind {
-                TokenKind::SemiColon => {
-                    break Ok(Expr::Var(Box::new(VarExpr { name, value, dtype: None})));
-                },
-                TokenKind::DoubleColon => {
-                    break Ok(Expr::Var(Box::new(VarExpr { name, value, dtype: Some(self.expect(TokenKind::Identifier)?.value)})));
-                },
-                _ => value.push(self.expression(tok)?),
-            }
-        }
-    }
-
-    fn if_expr(&mut self) -> Result<Expr, GenericError> {
+    fn if_expr(&mut self) -> Result<Expr, CHSError> {
         self.expect(TokenKind::CurlyOpen)?;
         let mut if_branch: Vec<Expr> = Vec::new();
         let mut else_branch: Vec<Expr> = Vec::new();
@@ -225,17 +226,17 @@ impl Parser {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                _ => if_branch.push(self.expression(tok)?)
+                _ => if_branch.push(self.expression(tok)?),
             }
         }
-        if TokenKind::Else == self.peek().kind {
+        if self.peek().val_eq("else") {
             self.next();
             self.expect(TokenKind::CurlyOpen)?;
             loop {
                 let tok = self.require()?;
                 match tok.kind {
                     TokenKind::CurlyClose => break,
-                    _ => else_branch.push(self.expression(tok)?)
+                    _ => else_branch.push(self.expression(tok)?),
                 }
             }
             Ok(Expr::If(Box::new(IfExpr {
@@ -250,7 +251,7 @@ impl Parser {
         }
     }
 
-    fn while_expr(&mut self) -> Result<Expr, GenericError> {
+    fn while_expr(&mut self) -> Result<Expr, CHSError> {
         let mut cond: Vec<Expr> = Vec::new();
         loop {
             // condition
@@ -280,7 +281,7 @@ impl Parser {
             return Ok(token);
         }
 
-        generic_error!("Parser Error: Expect {:?} at {}", kind, self.pos)
+        chs_error!("Expect token {:?} at {}, but got {}", kind, token.loc, self.peek())
     }
 
     fn next(&mut self) -> Token {
@@ -289,7 +290,7 @@ impl Parser {
             let token = self
                 .peeked
                 .take()
-                .unwrap_or_else(|| self.lexer.next_token());
+                .unwrap_or_else(|| self.lexer.get_next_token());
 
             match token.kind {
                 TokenKind::Comment | TokenKind::Whitespace => {}
@@ -309,8 +310,13 @@ impl Parser {
 
     fn require(&mut self) -> ResTok {
         let tok = self.next();
-        if matches!(tok.kind, TokenKind::Invalid | TokenKind::Null) {
-            generic_error!("Parser Error: require {:?}[{}] {}", tok.kind, tok.value, self.pos);
+        if matches!(tok.kind, TokenKind::Invalid | TokenKind::EOF) {
+            chs_error!(
+                "Parser Error: require {:?}[{}] {}",
+                tok.kind,
+                tok.value,
+                self.pos
+            );
         }
         Ok(tok)
     }

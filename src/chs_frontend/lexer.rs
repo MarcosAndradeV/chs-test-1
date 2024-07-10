@@ -1,488 +1,462 @@
 use core::fmt;
-use std::{
-    fs::File,
-    io::{self, Read},
-    path::PathBuf,
-};
 
-pub fn read_file_to_bytes(filepath: PathBuf) -> io::Result<Vec<u8>> {
-    let mut file = File::open(filepath)?;
-    let mut data = vec![];
-    file.read_to_end(&mut data)?;
-    Ok(data)
-}
+use crate::utils::Loc;
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
-    Comment,
-    Whitespace,
-    Var,
-    Peek,
-    Assing,
-    Len,
-    IdxGet,
-    IdxSet,
-    Concat,
-    Head,
-    Tail,
+    Unknow,
+    EOF,
     Invalid,
-    Null,
-    Int,
-    Float,
-    Identifier,
-    Str,
-    True,
-    False,
-    Nil,
-    Rot,
-    QuestionMark,
-    DollarSing,
-    Error,
-
-    Print,
-    Debug,
-    Exit,
-    Call,
-
-    If,
-    Else,
-    Whlie,
-    Fn,
-
-    Add,
+    Whitespace,
+    Comment,
+    Ident,
+    KeyWord,
+    Interger,
+    //Float,
+    String,
+    Plus,
     Minus,
-    Mul,
-    Div,
-    Mod,
-    Shl,
-    Shr,
-    Bitor,
-    Bitand,
-    Lor,
-    Land,
-    Lnot,
-
-    Eq,
-    Neq,
-    Gt,
-    Gte,
-    Lt,
-    Lte,
-
-    CurlyOpen,
-    CurlyClose,
-
+    Star,
+    Slash,
+    Assigin,
     ParenOpen,
     ParenClose,
-
+    CurlyOpen,
+    CurlyClose,
     BracketOpen,
     BracketClose,
-
-    SemiColon,
+    Arrow,
     Colon,
     DoubleColon,
-    Arrow,
-    Tilde,
-
+    SemiColon,
+    Comma,
+    Dot,
+    Ampersand,
+    Percent,
+    Eq,
+    NEq,
+    Lt,
+    LtEq,
+    Gt,
+    GtEq,
+    LAnd,
+    LOr,
+    LNot,
+    Bor,
+    ShL,
+    ShR,
+    True,
+    False,
+    Buildin,
     Pop,
     Dup,
     Over,
     Swap,
-    Nop
+    Rot,
+    Nop,
+    Debug,
+    Exit,
+    Print,
+    IdxSet,
+    IdxGet,
+    Len,
+    Concat,
+    Head,
+    Tail,
+    Call,
+    DollarSing,
+    Nil,
+    Error,
+    Tilde,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+impl TokenKind {
+    pub fn is_simple(&self) -> bool {
+        match self {
+            TokenKind::EOF
+            | TokenKind::Whitespace
+            | TokenKind::Comment
+            | TokenKind::Plus
+            | TokenKind::Minus
+            | TokenKind::Star
+            | TokenKind::Slash
+            | TokenKind::ParenOpen
+            | TokenKind::ParenClose
+            | TokenKind::CurlyOpen
+            | TokenKind::CurlyClose
+            | TokenKind::BracketOpen
+            | TokenKind::Arrow
+            | TokenKind::Colon
+            | TokenKind::SemiColon
+            | TokenKind::Comma
+            | TokenKind::Dot
+            | TokenKind::Assigin
+            | TokenKind::Ampersand
+            | TokenKind::Percent
+            | TokenKind::Eq
+            | TokenKind::NEq
+            | TokenKind::Lt
+            | TokenKind::LtEq
+            | TokenKind::Gt
+            | TokenKind::GtEq
+            | TokenKind::LAnd
+            | TokenKind::LOr
+            | TokenKind::LNot
+            | TokenKind::Bor
+            | TokenKind::ShL
+            | TokenKind::ShR
+            | TokenKind::True
+            | TokenKind::False
+            | TokenKind::Pop
+            | TokenKind::Dup
+            | TokenKind::Over
+            | TokenKind::Swap
+            | TokenKind::Rot
+            | TokenKind::Nop
+            | TokenKind::Debug
+            | TokenKind::Exit
+            | TokenKind::Print
+            | TokenKind::IdxSet
+            | TokenKind::IdxGet
+            | TokenKind::Len
+            | TokenKind::Concat
+            | TokenKind::Head
+            | TokenKind::Tail
+            | TokenKind::Call
+            | TokenKind::DollarSing
+            | TokenKind::Nil
+            | TokenKind::Error
+            | TokenKind::Tilde
+            | TokenKind::DoubleColon
+            | TokenKind::BracketClose => true,
+            _ => false,
+        }
+    }
+}
+
+impl Default for TokenKind {
+    fn default() -> Self {
+        Self::Unknow
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: String,
-    pub loc: (usize, usize)
+    pub loc: Loc,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{} {:?} -> {}", self.loc.0, self.loc.1, self.kind, self.value)
+        if self.kind.is_simple() {
+            write!(f, "{:?} at {}", self.kind, self.loc)
+        } else {
+            write!(f, "{:?}({}) at {}", self.kind, self.value, self.loc)
+        }
     }
 }
 
 impl Token {
-    fn new(kind: TokenKind, value: String, loc: (usize, usize)) -> Self {
+    pub fn new(value: String, kind: TokenKind, loc: Loc) -> Self {
         Self { kind, value, loc }
     }
-
-    fn invalid(value: String, loc: (usize, usize)) -> Self {
-        Self::new(TokenKind::Invalid, value, loc)
+    pub fn is_eof(&self) -> bool {
+        self.kind == TokenKind::EOF
     }
-
-    fn null(loc: (usize, usize)) -> Self {
-        Self::new(TokenKind::Null, String::new(), loc)
+    pub fn is_whitespace(&self) -> bool {
+        self.kind == TokenKind::Whitespace
     }
-
-    pub fn empty() -> Self {
-        Self::new(TokenKind::Null, String::new(), (0, 0))
+    pub fn is_commet(&self) -> bool {
+        self.kind == TokenKind::Comment
     }
-
-    pub fn get_loc(&self) -> String {
-        format!("{}:{}", self.loc.0, self.loc.1)
+    pub fn is_unknow(&self) -> bool {
+        self.kind == TokenKind::Unknow
     }
-
-    pub fn get_kind(&self) -> String {
-        format!("{:?}", self.kind)
+    pub fn is_binary_operator(&self) -> bool {
+        matches!(
+            self.kind,
+            TokenKind::Plus
+                | TokenKind::Star
+                | TokenKind::Minus
+                | TokenKind::Slash
+                | TokenKind::Percent
+                | TokenKind::Eq
+                | TokenKind::NEq
+                | TokenKind::Lt
+                | TokenKind::LtEq
+                | TokenKind::Gt
+                | TokenKind::GtEq
+                | TokenKind::LAnd
+                | TokenKind::LOr //| TokenKind::LNot
+                | TokenKind::Bor
+                | TokenKind::ShL
+                | TokenKind::ShR
+                | TokenKind::Ampersand
+        )
     }
-
-    pub fn get_value(&self) -> String {
-        format!("{}", self.value)
+    pub fn val_eq(&self, value: &str) -> bool {
+        self.value == value
     }
 }
 
+#[derive(Debug)]
 pub struct Lexer {
     input: Vec<u8>,
-
-    max_position: usize,
-
-    position: usize,
-    col: usize,
-    row: usize,
+    max_pos: usize,
+    curr_pos: usize,
+    curr_loc: Loc,
 }
 
 impl Lexer {
     pub fn new(input: Vec<u8>) -> Self {
-        let max = input.len();
+        let max_pos = input.len();
         Self {
             input,
-            max_position: max,
-            position: 0,
-            col: 1,
-            row: 1,
+            curr_pos: 0,
+            max_pos,
+            curr_loc: Loc::new(1, 1),
         }
     }
 
-    pub fn next_token(&mut self) -> Token {
-        self.next_regular_token()
+    pub fn reset(&mut self) {
+        self.curr_pos = 0;
+        self.curr_loc = Loc::new(1, 1);
     }
 
-    fn current_byte(&self) -> u8 {
-        if self.has_next() {
-            self.input[self.position]
-        } else {
-            0
-        }
-    }
-
-    fn next_byte(&self) -> u8 {
-        self.peek(1)
-    }
-
-    fn peek(&self, offset: usize) -> u8 {
-        let index = self.position + offset;
-
-        if index < self.max_position {
-            self.input[index]
-        } else {
-            0
-        }
-    }
-
-    fn advance_char(&mut self) {
-        self.position += 1;
-        self.col += 1;
-    }
-
-    fn has_next(&self) -> bool {
-        self.position < self.max_position
-    }
-
-    fn next_regular_token(&mut self) -> Token {
-        match self.current_byte() {
-            b'0'..=b'9' => self.number(false),
-            b'\"' => self.string(self.position),
-            b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier_or_keyword(self.position),
-            b' ' | b'\t' | b'\r' | b'\n' => self.whitespace(),
-            b'-' | b'+' | b'*' | b'/' | b'=' | b'>' | b'<' | b'|' | b'&' | b'!' | b':' => {
-                self.operator()
+    pub fn get_next_token(&mut self) -> Token {
+        let start: usize = self.curr_pos;
+        let start_loc = self.curr_loc;
+        match self.curr_char() {
+            b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identfier(start),
+            b'0'..=b'9' => self.number(start),
+            c if c.is_ascii_whitespace() => self.whitespace(start),
+            b'\"' => self.string(start),
+            b'/' => {
+                if self.peek_char(1) == b'/' {
+                    self.curr_pos += 2;
+                    return self.comment(start);
+                }
+                self.make_token_advance(start, TokenKind::Slash)
             }
-            b'{' => self.make_token(TokenKind::CurlyOpen),
-            b'}' => self.make_token(TokenKind::CurlyClose),
-            b'(' => self.make_token(TokenKind::ParenOpen),
-            b')' => self.make_token(TokenKind::ParenClose),
-            b'[' => self.make_token(TokenKind::BracketOpen),
-            b']' => self.make_token(TokenKind::BracketClose),
-            b';' => self.make_token(TokenKind::SemiColon),
-            b'.' => self.make_token(TokenKind::Dup),
-            b'~' => self.make_token(TokenKind::Tilde),
-            b'?' => self.make_token(TokenKind::QuestionMark),
-            b'$' => self.make_token(TokenKind::DollarSing),
+            b'-' => {
+                if self.peek_char(1) == b'>' {
+                    self.curr_pos += 2;
+                    return self.make_token_advance(start, TokenKind::Arrow);
+                }
+                self.make_token_advance(start, TokenKind::Minus)
+            }
+            b'+' => {
+                if self.peek_char(1) == b'+' {
+                    self.curr_pos += 2;
+                    return self.make_token_advance(start, TokenKind::Concat);
+                }
+                self.make_token_advance(start, TokenKind::Plus)
+            }
+            b'*' => self.make_token_advance(start, TokenKind::Star),
+            b'(' => self.make_token_advance(start, TokenKind::ParenOpen),
+            b')' => self.make_token_advance(start, TokenKind::ParenClose),
+            b'{' => self.make_token_advance(start, TokenKind::CurlyOpen),
+            b'}' => self.make_token_advance(start, TokenKind::CurlyClose),
+            b'[' => self.make_token_advance(start, TokenKind::BracketOpen),
+            b']' => self.make_token_advance(start, TokenKind::BracketClose),
+            b':' => {
+                if self.peek_char(1) == b'=' {
+                    self.curr_pos += 2;
+                    return self.make_token_advance(start, TokenKind::Assigin);
+                }
+                if self.peek_char(1) == b':' {
+                    self.curr_pos += 2;
+                    return self.make_token_advance(start, TokenKind::DoubleColon);
+                }
+                self.make_token_advance(start, TokenKind::Swap)
+            }
+            b';' => self.make_token_advance(start, TokenKind::SemiColon),
+            b',' => self.make_token_advance(start, TokenKind::Comma),
+            b'.' => self.make_token_advance(start, TokenKind::Dup),
+            b'%' => self.make_token_advance(start, TokenKind::Percent),
+            b'|' => self.make_token_advance(start, TokenKind::Bor),
+            b'$' => self.make_token_advance(start, TokenKind::DollarSing),
+            b'~' => self.make_token_advance(start, TokenKind::Tilde),
+            b'=' => self.make_token_advance(start, TokenKind::Eq),
+            b'!' => {
+                if self.peek_char(1) == b'=' {
+                    self.curr_pos += 2;
+                    return self.make_token(start, TokenKind::NEq, start_loc);
+                }
+                self.make_token_advance(start, TokenKind::LNot)
+            }
+            b'>' => {
+                if self.peek_char(1) == b'=' {
+                    self.curr_pos += 2;
+                    return self.make_token(start, TokenKind::GtEq, start_loc);
+                }
+                if self.peek_char(1) == b'>' {
+                    self.curr_pos += 2;
+                    return self.make_token(start, TokenKind::ShR, start_loc);
+                }
+                self.make_token_advance(start, TokenKind::Gt)
+            }
+            b'<' => {
+                if self.peek_char(1) == b'=' {
+                    self.curr_pos += 2;
+                    return self.make_token(start, TokenKind::LtEq, start_loc);
+                }
+                if self.peek_char(1) == b'<' {
+                    self.curr_pos += 2;
+                    return self.make_token(start, TokenKind::ShL, start_loc);
+                }
+                self.make_token_advance(start, TokenKind::Lt)
+            }
+            b'&' => self.make_token_advance(start, TokenKind::Ampersand),
             _ => {
                 if self.has_next() {
-                    self.invalid(self.position, self.position + 1)
+                    self.make_token_advance(start, TokenKind::Invalid)
                 } else {
-                    self.null()
+                    Token::new(String::from("\0"), TokenKind::EOF, start_loc)
                 }
             }
         }
     }
 
-    fn operator(&mut self) -> Token {
-        match self.current_byte() {
-            b'-' => match self.next_byte() {
-                b'0'..=b'9' => self.number(true),
-                b'>' => {
-                    self.position += 2;
-                    self.token(TokenKind::Arrow, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Minus),
-            },
-            b'+' => match self.next_byte() {
-                b'+' => {
-                    self.position += 2;
-                    self.token(TokenKind::Concat, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Add),
-            },
-            b'*' => self.make_token(TokenKind::Mul),
-            b'/' => match self.next_byte() {
-                b'/' => {
-                    self.position += 2;
-                    self.comment()
-                }
-                _ => self.make_token(TokenKind::Div)
-            },
-            b'=' => self.make_token(TokenKind::Eq),
-            b'!' => match self.next_byte() {
-                b'=' => {
-                    self.position += 2;
-                    self.token(TokenKind::Neq, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Lnot),
-            },
-            b'>' => match self.next_byte() {
-                b'=' => {
-                    self.position += 2;
-                    self.token(TokenKind::Gte, self.position - 2)
-                }
-                b'>' => {
-                    self.position += 2;
-                    self.token(TokenKind::Shr, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Gt),
-            },
-            b'<' => match self.next_byte() {
-                b'=' => {
-                    self.position += 2;
-                    self.token(TokenKind::Lte, self.position - 2)
-                }
-                b'<' => {
-                    self.position += 2;
-                    self.token(TokenKind::Shl, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Lt),
-            },
-            b'|' => match self.next_byte() {
-                b'|' => {
-                    self.position += 2;
-                    self.token(TokenKind::Lor, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Bitor),
-            },
-            b'&' => match self.next_byte() {
-                b'&' => {
-                    self.position += 2;
-                    self.token(TokenKind::Land, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Bitand),
-            },
-            b':' => match self.next_byte() {
-                b'=' => {
-                    self.position += 2;
-                    self.token(TokenKind::Assing, self.position - 2)
-                }
-                b':' => {
-                    self.position += 2;
-                    self.token(TokenKind::DoubleColon, self.position - 2)
-                }
-                _ => self.make_token(TokenKind::Swap),
-            },
-            _ => self.make_token(TokenKind::Invalid),
-        }
+    fn make_token_advance(&mut self, start: usize, kind: TokenKind) -> Token {
+        let start_loc = self.curr_loc;
+        self.advance_pos();
+        self.make_token(start, kind, start_loc)
     }
 
-    fn make_token(&mut self, kind: TokenKind) -> Token {
-        self.position += 1;
-        self.token(kind, self.position - 1)
-    }
-
-    fn whitespace(&mut self) -> Token {
-        let start = self.position;
-
-        while self.has_next() {
-            match self.current_byte() {
-                b' ' | b'\t' | b'\r' => self.advance_char(),
-                b'\n' => {
-                    self.row += 1;
-                    self.advance_char();
-                }
-                _ => break,
-            }
-        }
-
-        let value = self.slice_string(start, self.position);
-
-        Token::new(TokenKind::Whitespace, value, (self.row, self.col))
-    }
-
-    fn number(&mut self, skip_first: bool) -> Token {
-        let start = self.position;
-
-        if skip_first {
-            self.position += 1;
-        }
-
-        let mut kind = TokenKind::Int;
-
+    fn whitespace(&mut self, start: usize) -> Token {
+        let start_loc = self.curr_loc;
         loop {
-            match self.current_byte() {
-                b'0'..=b'9' => {}
-                b'.' if (b'0'..=b'9').contains(&self.next_byte()) => {
-                    kind = TokenKind::Float;
-                }
-                _ => break,
-            }
-
-            self.position += 1;
-        }
-
-        self.token(kind, start)
-    }
-
-    fn comment(&mut self) -> Token {
-        self.advance_char();
-        if self.current_byte() == b' ' {
-            self.advance_char();
-        }
-        let start = self.position;
-        while self.has_next() && self.current_byte() != b'\n'{
-            self.position += 1;
-        }
-        self.token(TokenKind::Comment, start)
-    }
-
-    fn identifier_or_keyword(&mut self, start: usize) -> Token {
-        self.advance_identifier_bytes();
-
-        let value = self.slice_string(start, self.position);
-
-        let kind = match value.as_str() {
-            "if" => TokenKind::If,
-            "fn" => TokenKind::Fn,
-            "drop" => TokenKind::Pop,
-            "pop" => TokenKind::Pop,
-            "nop" => TokenKind::Nop,
-            "dup" => TokenKind::Dup,
-            "mod" => TokenKind::Mod,
-            "var" => TokenKind::Var,
-            "len" => TokenKind::Len,
-            "nil" => TokenKind::Nil,
-            "rot" => TokenKind::Rot,
-            "else" => TokenKind::Else,
-            "over" => TokenKind::Over,
-            "swap" => TokenKind::Swap,
-            "peek" => TokenKind::Peek,
-            "true" => TokenKind::True,
-            "exit" => TokenKind::Exit,
-            "tail" => TokenKind::Tail,
-            "head" => TokenKind::Head,
-            "call" => TokenKind::Call,
-            "print" => TokenKind::Print,
-            "while" => TokenKind::Whlie,
-            "debug" => TokenKind::Debug,
-            "false" => TokenKind::False,
-            "idxget" => TokenKind::IdxGet,
-            "idxset" => TokenKind::IdxSet,
-            "concat" => TokenKind::Concat,
-            "error" => TokenKind::Error,
-            _ => TokenKind::Identifier,
-        };
-
-        Token::new(kind, value, (self.row, self.col))
-    }
-
-    fn advance_identifier_bytes(&mut self) {
-        loop {
-            match self.current_byte() {
-                b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.position += 1,
-                _ => break,
-            }
-        }
-    }
-
-    fn token(&mut self, kind: TokenKind, start: usize) -> Token {
-        let value = self.slice_string(start, self.position);
-        Token::new(kind, value, (self.row, self.col))
-    }
-
-    fn slice_string(&mut self, start: usize, stop: usize) -> String {
-        String::from_utf8_lossy(&self.input[start..stop]).into_owned()
-    }
-
-    fn invalid(&mut self, start: usize, stop: usize) -> Token {
-        let value = self.slice_string(start, stop);
-
-        self.position = self.max_position;
-
-        Token::invalid(value, (self.row, self.col))
-    }
-
-    fn null(&self) -> Token {
-        Token::null((self.row, self.col))
-    }
-
-    fn string(&mut self, start: usize) -> Token {
-        let mut buffer = String::new();
-        self.advance_char();
-        loop {
-            match self.current_byte() {
-                0 => return self.invalid(start, self.position),
-                b'\"' => {
-                    self.advance_char();
-                    break;
-                }
-                b'\\' => match self.next_byte() {
-                    b'n' => {
-                        buffer.push('\n');
-                        self.advance_char();
-                        self.advance_char();
-                    }
-                    _ => {
-                        buffer.push(self.current_byte() as char);
-                        self.advance_char()
-                    }
-                },
-                b'\n' => return self.invalid(start, self.position),
-                _ => {
-                    buffer.push(self.current_byte() as char);
-                    self.advance_char()
-                }
-            }
-        }
-        Token::new(TokenKind::Str, buffer, (self.row, self.col))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::{Lexer, TokenKind};
-
-    #[test]
-    fn test() {
-        let mut lex = Lexer::new("1 1 +".to_string().into_bytes());
-        loop {
-            let tok = lex.next_token();
-            println!("{:?}", tok);
-            println!("{}", tok);
-
-            if tok.kind == TokenKind::Null {
+            self.advance_pos();
+            if !self.curr_char().is_ascii_whitespace() {
                 break;
             }
         }
+        self.make_token(start, TokenKind::Whitespace, start_loc)
+    }
+
+    fn comment(&mut self, start: usize) -> Token {
+        let start_loc = self.curr_loc;
+        loop {
+            self.advance_pos();
+            if matches!(self.curr_char(), b'\n' | b'\0') {
+                break;
+            }
+        }
+        self.make_token(start, TokenKind::Comment, start_loc)
+    }
+
+    fn string(&mut self, start: usize) -> Token {
+        let start_loc = self.curr_loc;
+        let mut buf = String::new();
+        loop {
+            self.advance_pos();
+            match self.curr_char() {
+                b'\"' => break self.advance_pos(),
+                b'\0' => return self.make_token(start, TokenKind::Invalid, start_loc),
+                b'\\' => {
+                    match self.peek_char(1) {
+                        b'n' => buf.push('\n'),
+                        b'\\' => buf.push('\\'),
+                        _ => return self.make_token_advance(start, TokenKind::Invalid),
+                    }
+                    self.advance_pos();
+                }
+                a => buf.push(a as char),
+            }
+        }
+        Token::new(buf, TokenKind::String, start_loc)
+    }
+
+    fn number(&mut self, start: usize) -> Token {
+        let start_loc = self.curr_loc;
+        loop {
+            self.advance_pos();
+            if !matches!(self.curr_char(), b'0'..=b'9' | b'.') {
+                break;
+            }
+        }
+        self.make_token(start, TokenKind::Interger, start_loc)
+    }
+
+    fn advance_pos(&mut self) {
+        if self.has_next() {
+            self.curr_pos += 1;
+            self.curr_loc = self.curr_loc.next(self.curr_char());
+        }
+    }
+
+    fn identfier(&mut self, start: usize) -> Token {
+        let start_loc = self.curr_loc;
+        loop {
+            self.advance_pos();
+            if !matches!(self.curr_char(), b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'0'..=b'9') {
+                break;
+            }
+        }
+        let value = String::from_utf8_lossy(&self.input[start..self.curr_pos]).to_string();
+        match value.as_str() {
+            "fn" | "while" | "if" | "else" | "peek" | "let" => {
+                Token::new(value, TokenKind::KeyWord, start_loc)
+            }
+            "print" => Token::new(value, TokenKind::Print, start_loc),
+            "and" => Token::new(value, TokenKind::LAnd, start_loc),
+            "or" => Token::new(value, TokenKind::LOr, start_loc),
+            "true" => Token::new(value, TokenKind::True, start_loc),
+            "false" => Token::new(value, TokenKind::False, start_loc),
+            "nil" => Token::new(value, TokenKind::Nil, start_loc),
+            "head" => Token::new(value, TokenKind::Head, start_loc),
+            "tail" => Token::new(value, TokenKind::Tail, start_loc),
+            "over" => Token::new(value, TokenKind::Over, start_loc),
+            "rot" => Token::new(value, TokenKind::Rot, start_loc),
+            "call" => Token::new(value, TokenKind::Call, start_loc),
+            "pop" | "drop" => Token::new(value, TokenKind::Pop, start_loc),
+            "error" => Token::new(value, TokenKind::Error, start_loc),
+            "debug" => Token::new(value, TokenKind::Debug, start_loc),
+            "mod" => Token::new(value, TokenKind::Percent, start_loc),
+            "idxset" => Token::new(value, TokenKind::IdxSet, start_loc),
+            "idxget" => Token::new(value, TokenKind::IdxGet, start_loc),
+            "len" => Token::new(value, TokenKind::Len, start_loc),
+            "dup" => Token::new(value, TokenKind::Dup, start_loc),
+            _ => Token::new(value, TokenKind::Ident, start_loc),
+        }
+    }
+
+    fn make_token(&self, start: usize, kind: TokenKind, start_loc: Loc) -> Token {
+        let value = String::from_utf8_lossy(&self.input[start..self.curr_pos]).to_string();
+        Token::new(value, kind, start_loc)
+    }
+
+    fn peek_char(&self, offset: usize) -> u8 {
+        if self.curr_pos + offset < self.max_pos {
+            self.input[self.curr_pos + offset]
+        } else {
+            0
+        }
+    }
+
+    fn curr_char(&self) -> u8 {
+        if self.has_next() {
+            self.input[self.curr_pos]
+        } else {
+            0
+        }
+    }
+
+    fn has_next(&self) -> bool {
+        self.curr_pos < self.max_pos
+    }
+
+    pub fn curr_loc(&self) -> Loc {
+        self.curr_loc
     }
 }
 
+/*
+for elem in &self.input {
+    println!("{} at {}", *elem as char, self.curr_pos);
+    self.curr_pos+=1;
+}
+println!("{}", self.max_pos == self.curr_pos);
+*/

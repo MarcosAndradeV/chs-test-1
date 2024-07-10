@@ -1,28 +1,27 @@
-use std::{env, io, process};
+use std::{env, fs, process};
 
 use chs::{
-    chs_frontend::{ast::Program, lexer::read_file_to_bytes, parser::Parser},
+    chs_frontend::parser::Parser,
     chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm::CHSVM},
 };
 
-fn main() -> io::Result<()> {
+
+fn main() -> Result<(), ()> {
     let mut args = env::args();
-    let chsc = args.next().expect("Program");
-    if let Some(filename) = args.next() {
-        let bytes = read_file_to_bytes(filename.into())?;
-        let mut fist_parser = Parser::new(bytes);
-        let program: Program = match fist_parser.parse_to_ast() {
-            Ok(prog) => prog,
+    let program = args.next().expect("");
+    if let Some(ref file) = args.next() {
+        let data = fs::read(file).map_err(|err| eprintln!("{err}"))?;
+        let ast = match Parser::new(data).parse_to_ast() {
+            Ok(ok) => ok,
             Err(e) => {
-                eprintln!("{e}");
-                process::exit(1);
+                eprintln!("{}",e.0);
+                return Ok(());
             }
         };
-        let mut second_parser = IrParser::new(program);
-        let bytecode: Bytecode = match second_parser.parse() {
+        let bytecode: Bytecode = match IrParser::new(ast).parse() {
             Ok(code) => code,
             Err(e) => {
-                eprintln!("{e}");
+                eprintln!("{e:?}");
                 process::exit(1);
             }
         };
@@ -31,7 +30,7 @@ fn main() -> io::Result<()> {
         return Ok(());
     }else{
         println!("File not provided.");
-        println!("Usage: {chsc} <file.chs>");
+        println!("Usage: {program} <file.chs>");
         return Ok(());
     }
 }
