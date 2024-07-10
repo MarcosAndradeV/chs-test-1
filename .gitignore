@@ -1,2 +1,5 @@
 /target
+*.bi
+__pycache__
+temp
 chsc
