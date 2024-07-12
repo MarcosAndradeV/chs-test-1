@@ -17,6 +17,7 @@ pub fn vm_run(program: Bytecode) {
     let mut tstack: Vec<Value> = Vec::with_capacity(1024);
     let mut rstack: Vec<usize> = Vec::with_capacity(1024);
     let mut ip = 0;
+    // for p in &program.program { println!("{:?}", p) }
     loop {
         if ip >= program.program.len() {break;}
         let mut next_addr = ip + 1;
@@ -114,14 +115,14 @@ pub fn vm_run(program: Bytecode) {
                 stack.push(Value::Bool(!a))
             }
             instructions::Instr::Bind(n) => {
-                for _ in 0..n {
-                    let value = stack.pop().unwrap();
-                    tstack.push(value);
-                }
-                //tstack.extend(stack.split_off((stack.len()-1)-n))
+                //for _ in 0..n {
+                //    let value = stack.pop().unwrap();
+                //    tstack.push(value);
+                //}
+                tstack.extend(stack.split_off(stack.len().saturating_sub(n)))
             }
             instructions::Instr::PushBind(n) => {
-                stack.push(tstack[(tstack.len()-1) - n].clone())
+                stack.push(tstack[tstack.len()-1 - n].clone())
             }
             instructions::Instr::SetBind(_) => todo!(),
             instructions::Instr::Unbind(n) => {

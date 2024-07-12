@@ -278,8 +278,8 @@ impl IrParser {
                 if let Some((v, _)) = self
                     .peek_def
                     .iter()
-                    .enumerate()
                     .rev()
+                    .enumerate()
                     .find(|(_, s)| s.as_str() == val.as_str())
                 {
                     self.instrs.push(Instr::PushBind(v));
