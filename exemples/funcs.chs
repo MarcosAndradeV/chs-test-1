@@ -1,24 +1,47 @@
-(print "Hello, world\n")
-
 fn println { print (print "\n") }
-fn square  { (* dup) }
+
+fn to_list { peek x { [x] } }
 
 fn foreach { : . (!= head nil) if { over over head : call tail : foreach } else { drop drop } }
 
 fn map { : . (!= head nil) if { over over head : [call] : tail rot map ++ } else { drop drop [] } }
 
-list := [2 3 4];
-
-i := 0; 
-while (< i (len list)) { 
-    list (idxget i) square println 
-    (+ i 1) := i 
+fn repeat {
+    peek ls count {
+        ls len 1 < if { nil } else {
+            ls 0 while dup count < {
+                peek ls i {
+                    ls ls head to_list ++
+                    i 1 +
+                }
+            } drop
+        }
+    }
 }
 
-"----" println
+fn show {
+    peek ls {
+        ls ls len
+        0 while over over : < {
+            peek ls ls_len i {
+                ls i idxget print
+                ls
+                ls_len
+                i 1 +
+            }
+        } drop drop drop
+    }
+}
 
-(foreach list ~(println square))
+fn dip {
+    peek elem f {
+        f call
+        elem
+    }
+}
 
-"----" println
 
-(map list ~square) println
+fn diptest {
+    3 2 1 { [+] } dip to_list : ++ [1 5] != if { error "dip test failed" }
+}
+
