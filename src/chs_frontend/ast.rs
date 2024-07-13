@@ -91,6 +91,7 @@ pub enum Expr {
     IntExpr(Box<String>),
     StrExpr(Box<String>),
     BoolExpr(Box<String>),
+    CharExpr(Box<String>),
     ListExpr(Box<ListExpr>),
     NilExpr,
 
@@ -124,6 +125,7 @@ impl fmt::Display for Expr {
             Expr::SExpr(_) => write!(f, "SExpr"),
             Expr::LambdaExpr(_) => write!(f, "LambdaExpr"),
             Expr::ErrorExpr(_) => write!(f, "ErrorExpr"),
+            Expr::CharExpr(_) => todo!(),
         }
     }
 }

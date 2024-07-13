@@ -13,6 +13,7 @@ pub enum TokenKind {
     KeyWord,
     Interger,
     //Float,
+    Char,
     String,
     Plus,
     Minus,
@@ -232,6 +233,7 @@ impl Lexer {
             b'0'..=b'9' => self.number(start),
             c if c.is_ascii_whitespace() => self.whitespace(start),
             b'\"' => self.string(start),
+            b'#' => self.char_(start),
             b'/' => {
                 if self.peek_char(1) == b'/' {
                     self.curr_pos += 2;
@@ -367,6 +369,26 @@ impl Lexer {
             }
         }
         Token::new(buf, TokenKind::String, start_loc)
+    }
+
+    fn char_(&mut self, start: usize) -> Token {
+        let start_loc = self.curr_loc;
+        let mut buf = String::new();
+        self.advance_pos();
+        match self.curr_char() {
+            b'\\' => {
+                match self.peek_char(1) {
+                    b'n' => buf.push('\n'),
+                    b'\\' => buf.push('\\'),
+                    b' ' => buf.push(' '),
+                    _ => return self.make_token_advance(start, TokenKind::Invalid),
+                }
+                self.advance_pos();
+            }
+            a => buf.push(a as char)
+        }
+        self.advance_pos();
+        Token::new(buf, TokenKind::Char, start_loc)
     }
 
     fn number(&mut self, start: usize) -> Token {

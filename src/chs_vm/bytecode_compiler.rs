@@ -105,6 +105,7 @@ impl IrParser {
                 }
                 Expr::IntExpr(_)
                 | Expr::StrExpr(_)
+                | Expr::CharExpr(_)
                 | Expr::BoolExpr(_)
                 | Expr::ListExpr(_)
                 | Expr::NilExpr
@@ -299,6 +300,12 @@ impl IrParser {
                     self.var_count += 1;
                     self.var_def.insert(*val.clone(), var_ptr);
                     self.instrs.push(Instr::GlobalStore(var_ptr));
+                }
+            }
+            Expr::CharExpr(val) => {
+                for ch in val.chars() {
+                    self.instrs.push(Instr::Const(Value::Char(ch)));
+                    break;
                 }
             }
             e => chs_error!("Compiler Error: {} is not simple expression", e),
