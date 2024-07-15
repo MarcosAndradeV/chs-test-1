@@ -10,9 +10,6 @@ test: build
 record: build
 	./rere.py record test.list
 
-install: release
-	cp target/release/chsc ./chsc
-
 chsc: release 
 
 help:

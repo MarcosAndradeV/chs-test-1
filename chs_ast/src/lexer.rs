@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::utils::Loc;
+use chs_util::Loc;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {

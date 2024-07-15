@@ -1,7 +1,7 @@
-use crate::{chs_error, utils::CHSError};
+use chs_util::{chs_error, CHSError};
 
 use super::{
-    ast::{
+    nodes::{
         Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, WhileExpr,
     },
     lexer::{Lexer, Token, TokenKind},

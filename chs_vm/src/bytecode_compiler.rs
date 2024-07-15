@@ -1,11 +1,7 @@
 use std::{collections::HashMap, vec::IntoIter};
-
-use crate::{
-    chs_error,
-    chs_frontend::ast::{
-        Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, WhileExpr,
-    },
-    utils::CHSError,
+use chs_ast::nodes::*;
+use chs_util::{
+    chs_error, CHSError,
 };
 
 use super::{

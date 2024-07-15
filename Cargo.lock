@@ -3,5 +3,33 @@
 version = 3
 
 [[package]]
-name = "chs"
+name = "chs_ast"
 version = "0.1.0"
+dependencies = [
+ "chs_util",
+]
+
+[[package]]
+name = "chs_types"
+version = "0.1.0"
+
+[[package]]
+name = "chs_util"
+version = "0.1.0"
+
+[[package]]
+name = "chs_vm"
+version = "0.1.0"
+dependencies = [
+ "chs_ast",
+ "chs_util",
+]
+
+[[package]]
+name = "chsc"
+version = "0.1.0"
+dependencies = [
+ "chs_ast",
+ "chs_util",
+ "chs_vm",
+]

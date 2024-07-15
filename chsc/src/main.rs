@@ -1,9 +1,8 @@
 use std::{env, fs, process};
 
-use chs::{
-    chs_frontend::parser::Parser, chs_vm::{bytecode_compiler::IrParser, instructions::Bytecode, vm_run}
-};
-
+use chs_ast::parser::Parser;
+use chs_vm::bytecode_compiler::IrParser;
+use chs_vm::vm_run;
 
 fn main() -> Result<(), ()> {
     let mut args = env::args();
@@ -17,7 +16,7 @@ fn main() -> Result<(), ()> {
                 return Ok(());
             }
         };
-        let bytecode: Bytecode = match IrParser::new(ast).parse() {
+        let bytecode = match IrParser::new(ast).parse() {
             Ok(code) => code,
             Err(e) => {
                 eprintln!("{e:?}");
