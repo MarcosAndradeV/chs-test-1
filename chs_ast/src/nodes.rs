@@ -130,6 +130,11 @@ impl fmt::Display for Expr {
     }
 }
 
+pub struct Module {
+    pub filesource: String,
+    pub program: Program
+}
+
 type Expressions = Vec<Expr>;
 pub struct Program {
     pub exprs: Expressions,

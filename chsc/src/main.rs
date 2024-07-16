@@ -1,6 +1,6 @@
 use std::{env, fs, process};
 
-use chs_ast::parser::Parser;
+use chs_ast::parser::parse;
 use chs_vm::bytecode_compiler::IrParser;
 use chs_vm::vm_run;
 
@@ -9,14 +9,14 @@ fn main() -> Result<(), ()> {
     let program = args.next().expect("");
     if let Some(ref file) = args.next() {
         let data = fs::read(file).map_err(|err| eprintln!("{err}"))?;
-        let ast = match Parser::new(data).parse_to_ast() {
+        let ast = match parse(file.clone(), data) {
             Ok(ok) => ok,
             Err(e) => {
                 eprintln!("{}",e.0);
                 return Ok(());
             }
         };
-        let bytecode = match IrParser::new(ast).parse() {
+        let bytecode = match IrParser::new(ast.program).parse() {
             Ok(code) => code,
             Err(e) => {
                 eprintln!("{e:?}");

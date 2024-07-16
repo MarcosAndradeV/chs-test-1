@@ -91,12 +91,13 @@ impl Instr {
 #[derive(Debug, Clone)]
 pub struct Bytecode {
     pub program: Vec<Instr>,
+    pub entry: usize,
     pub consts: Vec<Value>,
 }
 
 impl Bytecode {
     pub fn new(program: Vec<Instr>, consts: Vec<Value>) -> Self {
-        Self { program, consts }
+        Self { program, entry: 0, consts }
     }
     pub fn len(&self) -> usize {
         self.program.len()

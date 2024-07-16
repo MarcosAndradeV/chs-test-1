@@ -43,9 +43,14 @@ impl IrParser {
         while let Some(expr) = self.program.next() {
             self.expr(expr)?;
         }
+        let entry = match self.fn_def.get("main") {
+            Some(o) => *o,
+            None => chs_error!("Not main entry point found!")
+        };
 
         Ok(Bytecode {
             program: self.instrs.clone(),
+            entry,
             consts: self.consts.clone(),
         })
     }

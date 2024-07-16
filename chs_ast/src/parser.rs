@@ -1,5 +1,7 @@
 use chs_util::{chs_error, CHSError};
 
+use crate::nodes::Module;
+
 use super::{
     nodes::{
         Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, WhileExpr,
@@ -9,35 +11,39 @@ use super::{
 
 type ResTok = Result<Token, CHSError>;
 
+struct Parser {
+    pub lexer: Lexer,
+    pub pos: usize,
+    pub peeked: Option<Token>,
+}
 
+pub fn parse(filename: String, input: Vec<u8>) -> Result<Module, CHSError> {
+    let lexer = Lexer::new(input);
+    let mut parser = Parser {
+        lexer,
+        pos: 0,
+        peeked: None,
+    };
+    let mut exprs: Vec<Expr> = Vec::new();
+    loop {
+        let token = parser.next();
 
-pub struct Parser {
-    lexer: Lexer,
-    pos: usize,
-    peeked: Option<Token>,
+        if token.kind == TokenKind::EOF {
+            let program = Program { exprs };
+            return Ok(Module { filesource: filename, program });
+        }
+        exprs.push(parser.top_level_expression(token)?);
+    }
 }
 
 impl Parser {
-    pub fn new(input: Vec<u8>) -> Self {
-        let lexer = Lexer::new(input);
-        Self {
-            lexer,
-            pos: 0,
-            peeked: None,
-        }
-    }
 
-    pub fn parse_to_ast(&mut self) -> Result<Program, CHSError> {
-        let mut exprs: Vec<Expr> = Vec::new();
-        loop {
-            let token = self.next();
-
-            if token.kind == TokenKind::EOF {
-                let program = Program { exprs };
-                return Ok(program);
-            }
-            exprs.push(self.expression(token)?);
-        }
+    pub fn top_level_expression(&mut self, token: Token) -> Result<Expr, CHSError> {
+        let expr = match token.kind {
+            TokenKind::KeyWord if token.val_eq("fn") => self.fn_expr()?,
+            _ => chs_error!("Parser Error: {} is not implemeted in top level", token),
+        };
+        Ok(expr)
     }
 
     fn expression(&mut self, token: Token) -> Result<Expr, CHSError> {
@@ -100,9 +106,8 @@ impl Parser {
             TokenKind::Assigin => self.assigin_expr()?,
             TokenKind::BracketOpen => self.list_expr()?,
             TokenKind::KeyWord if token.val_eq("peek") => self.peek_expr()?,
-            TokenKind::KeyWord if token.val_eq("fn") => self.fn_expr()?,
+            TokenKind::KeyWord if token.val_eq("fn") => self.lambda_expr()?,
             TokenKind::ParenOpen => self.s_expr()?,
-            TokenKind::CurlyOpen => self.lambda_expr()?,
 
             _ => chs_error!("Parser Error: {} is not implemeted", token),
         };
@@ -125,6 +130,7 @@ impl Parser {
     //}
 
     fn lambda_expr(&mut self) -> Result<Expr, CHSError> {
+        self.expect(TokenKind::CurlyOpen)?;
         let mut body = vec![];
         loop {
             let tok = self.require()?;
@@ -152,15 +158,12 @@ impl Parser {
 
     fn fn_expr(&mut self) -> Result<Expr, CHSError> {
         let name = self.expect(TokenKind::Ident)?.value;
-        let mut body = vec![];
         self.expect(TokenKind::CurlyOpen)?;
+        let mut body = vec![];
         loop {
             let tok = self.require()?;
             match tok.kind {
                 TokenKind::CurlyClose => break,
-                TokenKind::KeyWord if tok.val_eq("fn") => {
-                    chs_error!("Parser Error: Cannot create {} inside peek block", tok)
-                }
                 _ => body.push(self.expression(tok)?),
             }
         }
@@ -313,10 +316,8 @@ impl Parser {
         let tok = self.next();
         if matches!(tok.kind, TokenKind::Invalid | TokenKind::EOF) {
             chs_error!(
-                "Parser Error: require {:?}[{}] {}",
-                tok.kind,
-                tok.value,
-                self.pos
+                "Parser Error: require Valid Token got {}",
+                tok
             );
         }
         Ok(tok)

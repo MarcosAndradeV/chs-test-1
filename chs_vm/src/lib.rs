@@ -16,7 +16,7 @@ pub fn vm_run(program: Bytecode) {
     let mut stack: Vec<Value> = Vec::with_capacity(1024);
     let mut tstack: Vec<Value> = Vec::with_capacity(1024);
     let mut rstack: Vec<usize> = Vec::with_capacity(1024);
-    let mut ip = 0;
+    let mut ip = program.entry;
     // for p in &program.program { println!("{:?}", p) }
     loop {
         if ip >= program.program.len() {break;}
@@ -184,7 +184,10 @@ pub fn vm_run(program: Bytecode) {
                 next_addr = addr;
             }
             instructions::Instr::RetFn => {
-                next_addr = rstack.pop().unwrap();
+                next_addr = match rstack.pop(){
+                    Some(o)=>o,
+                    None => break
+                };
             }
             instructions::Instr::Debug => {
                 println!(
