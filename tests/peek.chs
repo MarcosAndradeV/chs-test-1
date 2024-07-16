@@ -1,20 +1,19 @@
-fn newline {
-    "\n" print
-}
+fn println { print #\n print }
 
 
-1 2 peek a b {
+fn main {
+    1 2 peek a b {
     b peek a {
-        a print newline
-        b print newline
+        a println
+        b println
     }
-    a print newline
-    b print newline
+
+        a println
+        b println
+    }
+
+    [1 2 3] 0 1 peek list idx val {
+        list val idx idxset println
+    } 
 }
 
-
-[1 2 3] 0 1 peek list idx val {
-    list val idx idxset
-}
-
-print newline

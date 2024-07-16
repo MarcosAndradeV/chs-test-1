@@ -1,17 +1,17 @@
-fn newline {
-    "\n" print
-}
+fn println { print #\n print }
 
-1 1 = if {
-    1 print newline
-} else {
-    0 print newline
-}
-0 1 = if {
-    1 print newline
-} else {
-    0 print newline
-}
-1 1 = if {
-    10 print newline
+fn main {
+    1 1 = if {
+        1 println
+    } else {
+        0 println
+    }
+    0 1 = if {
+        1 println
+    } else {
+        0 println
+    }
+    1 1 = if {
+        10 println
+    }
 }

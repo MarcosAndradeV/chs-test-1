@@ -9,8 +9,10 @@ fn find {
     }
 }
 
-[1 5 8 2]
-8
-find
-print
-"\n" print
+fn main {
+    [1 5 8 2]
+    8
+    find
+    print
+    "\n" print
+}

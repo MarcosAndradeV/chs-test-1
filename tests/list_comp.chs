@@ -1,5 +1,7 @@
-10 := a
+fn main {
+    10 := a
 
-[a] print
+    [a] print
 
-[0 dup] print
+    [0 dup] print
+}
