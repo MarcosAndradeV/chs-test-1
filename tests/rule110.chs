@@ -18,7 +18,7 @@ fn main {
             (idxget [#\  #*] (idxget board j)) print
             j 1 + := j
         }
-        (print "\n")
+        (print #\n)
         (| (<< (idxget board 0) 1) (idxget board 1)) := pattern
         0 := j
         while (< j (- BOARD_SIZE 1)) {

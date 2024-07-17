@@ -21,5 +21,5 @@ fn is_palindrome { // int -> bool
 }
 
 fn main {
-    101 is_palindrome if { "True\n" print } else { "False\n" print }
+    101 is_palindrome if { "True\n" puts } else { "False\n" puts }
 }
