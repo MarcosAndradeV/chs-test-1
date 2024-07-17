@@ -1,20 +1,25 @@
 // Checks if a number is palindrome
 
-fn main {
-    101 := Palindrome
-
-    Palindrome := x
-
-    0 := reverse
-    0 := remainder
-    Palindrome := temp
-
-    (< x 0) if { "False\n" print } else {
-        while (!= temp 0) {
-            temp 10 mod := remainder
-            (+ (* reverse 10) remainder) := reverse
-            temp 10 / := temp
-        }
-        (= reverse x) if { "True\n" print } else { "False\n" print }
+fn is_palindrome { // int -> bool
+    := x
+    (< x 0) if {
+        false
+    } else {
+        0 // remainder
+        0 // reverse
+        x // temp
+        while (!= dup 0) {
+            peek rem rev temp {
+                temp 10 mod dup
+                (* rev 10) +
+                temp 10 /
+            }
+        } drop : drop 
+        x =
     }
+
+}
+
+fn main {
+    101 is_palindrome if { "True\n" print } else { "False\n" print }
 }
