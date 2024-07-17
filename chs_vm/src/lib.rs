@@ -199,6 +199,12 @@ pub fn vm_run(program: Bytecode) {
             instructions::Instr::Print => {
                 print!("{}", stack.pop().unwrap());
             }
+            instructions::Instr::Puts => {
+                let v = stack.pop().unwrap().array();
+                let mut buff = String::new();
+                for a in v.into_iter() { buff.push(a.char()) }
+                print!("{}", buff)
+            }
             instructions::Instr::IdxSet => {
                 let new_val = stack.pop().unwrap();
                 let idx = stack.pop().unwrap().int();

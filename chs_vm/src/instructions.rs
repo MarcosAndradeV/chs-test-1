@@ -52,6 +52,7 @@ pub enum Instr {
     Debug,
     Exit,
     Print,
+    Puts,
     IdxSet,
     IdxGet,
     Len,

@@ -225,7 +225,7 @@ impl IrParser {
             }
             Expr::StrExpr(v) => {
                 self.instrs
-                    .push(Instr::Const(Value::Str(v.chars().collect())));
+                    .push(Instr::Const(Value::Array(v.chars().map(|c| Value::Char(c)).collect())));
             }
             Expr::BoolExpr(v) => {
                 if v.as_str() == "true" {
@@ -274,6 +274,7 @@ impl IrParser {
                 Operation::Rot => self.instrs.push(Instr::Rot),
                 Operation::Nop => self.instrs.push(Instr::Nop),
                 Operation::StackSize => self.instrs.push(Instr::StackSize),
+                Operation::Puts => self.instrs.push(Instr::Puts),
             },
             Expr::IdentExpr(val) => {
                 if let Some((v, _)) = self

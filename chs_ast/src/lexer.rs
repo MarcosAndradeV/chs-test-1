@@ -58,6 +58,7 @@ pub enum TokenKind {
     Debug,
     Exit,
     Print,
+    Puts,
     IdxSet,
     IdxGet,
     Len,
@@ -423,6 +424,7 @@ impl Lexer {
                 Token::new(value, TokenKind::KeyWord, start_loc)
             }
             "print" => Token::new(value, TokenKind::Print, start_loc),
+            "puts" => Token::new(value, TokenKind::Puts, start_loc),
             "and" => Token::new(value, TokenKind::LAnd, start_loc),
             "or" => Token::new(value, TokenKind::LOr, start_loc),
             "true" => Token::new(value, TokenKind::True, start_loc),

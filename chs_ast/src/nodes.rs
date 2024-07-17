@@ -34,6 +34,7 @@ pub enum Operation {
     Debug,
     Exit,
     Print,
+    Puts,
     IdxSet,
     IdxGet,
     Len,

@@ -6,7 +6,6 @@ pub enum Value {
     Int64(i64),
     Array(Vec<Self>),
     Bool(bool),
-    Str(Vec<char>),
     Char(char),
     Ptr(usize),
     Nil,
@@ -34,11 +33,11 @@ impl fmt::Display for Value {
         match self {
             Value::Int64(v) => write!(f, "{}", v),
             Value::Bool(v) => write!(f, "{}", v),
-            Value::Str(v) => {
-                let mut buff = String::new();
-                for a in v.iter() { buff.push(*a) }
-                write!(f, "{}", buff) 
-            },
+            //Value::Str(v) => {
+            //    let mut buff = String::new();
+            //    for a in v.iter() { buff.push(*a) }
+            //    write!(f, "{}", buff) 
+            //},
             Value::Array(v) => {
                 let mut buff = String::from("[");
                 for a in v.iter() { buff.push_str(&format!("{a} ")) }
@@ -83,136 +82,11 @@ impl Value {
             panic!("Expect value ptr")
         }
     }
-    pub fn is_str(&self) -> bool {
-        match self {
-            Value::Str(_) => true,
-            _ => false,
-        }
-    }
-    pub fn is_char(&self) -> bool {
-        match self {
-            Value::Char(_) => true,
-            _ => false,
-        }
-    }
-    pub fn is_list(&self) -> bool {
-        match self {
-            Value::Array(_) => true,
-            _ => false,
-        }
-    }
-    pub fn is_fn(&self) -> bool {
-        match self {
-            Value::Ptr(_) => true,
-            _ => false,
-        }
-    }
-    pub fn to_char(self) -> Option<char> {
-        None
-    }
-    pub fn get_indexed(self, idx: Value) -> Value {
-        match (self, idx) {
-            (Value::Array(arr), Value::Int64(i)) => {
-                if i < 0 || i as usize >= arr.len() {
-                    return Value::Nil;
-                }
-                return arr[i as usize].clone();
-            }
-            (Value::Str(st), Value::Int64(i)) => {
-                if i < 0 || i as usize >= st.len() {
-                    return Value::Nil;
-                }
-                Value::Char(st[i as usize])
-            }
-            (_, _) => Value::Nil
-        }
-    }
-
-    pub fn tail(self) -> Value {
-        match self {
-            Value::Array(arr) => {
-                if let Some((_, tail)) = arr.split_first() {
-                    Value::Array(tail.to_owned())
-                } else {
-                    Value::Nil
-                }
-            }
-            Value::Str(st) => {
-                if let Some((_, tail)) = st.split_first() {
-                    Value::Str(tail.to_owned())
-                } else {
-                    Value::Nil
-                }
-            }
-            _ => Value::Nil
-        }
-    }
-
-    pub fn head(self) -> Value {
-        match self {
-            Value::Array(arr) => {
-                if let Some((head, _)) = arr.split_first() {
-                    head.to_owned()
-                } else {
-                    Value::Nil
-                }
-            }
-            Value::Str(st) => {
-                if let Some((head, _)) = st.split_first() {
-                    Value::Char(head.to_owned())
-                } else {
-                    Value::Nil
-                }
-            }
-            _ => Value::Nil
-        }
-    }
-
-    pub fn concat(self, other: Value) -> Value {
-        match (self, other) {
-            (Value::Array(mut arr), Value::Array(o)) => {
-                arr.extend(o);
-                Value::Array(arr)
-            }
-            (Value::Str(mut st), Value::Str(o)) => {
-                st.extend(o);
-                Value::Str(st)
-            }
-            (_, _) => Value::Nil
-        }
-    }
-
-    pub fn set_indexed(self, idx: Value, new_val: Value) -> Value {
-        match (self, idx) {
-            (Value::Array(mut arr), Value::Int64(i)) => {
-                if i < 0 || i as usize >= arr.len() {
-                    return Value::Nil;
-                }
-                arr[i as usize] = new_val;
-                Value::Array(arr)
-            }
-            (Value::Str(mut st), Value::Int64(i)) => {
-                if i < 0 || i as usize >= st.len() {
-                    return Value::Nil;
-                }
-                if let Some(v) = new_val.to_char() {
-                    st[i as usize] = v;
-                }
-                Value::Str(st)
-            }
-            _ => Value::Nil
-        }
-    }
-    
-    pub fn len(&self) -> Value {
-        match self {
-            Value::Array(arr) => {
-                Value::Int64(arr.len() as i64)
-            }
-            Value::Str(s) => {
-                Value::Int64(s.len() as i64)
-            }
-            _ => Value::Nil
+    pub fn char(self) -> char {
+        if let Self::Char(i) = self {
+            i
+        } else {
+            panic!("Expect value char")
         }
     }
 }

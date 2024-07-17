@@ -79,6 +79,7 @@ impl Parser {
             TokenKind::Debug => Expr::Op(Box::new(Operation::Debug)),
             TokenKind::Exit => Expr::Op(Box::new(Operation::Exit)),
             TokenKind::Print => Expr::Op(Box::new(Operation::Print)),
+            TokenKind::Puts => Expr::Op(Box::new(Operation::Puts)),
             TokenKind::IdxSet => Expr::Op(Box::new(Operation::IdxSet)),
             TokenKind::IdxGet => Expr::Op(Box::new(Operation::IdxGet)),
             TokenKind::Len => Expr::Op(Box::new(Operation::Len)),
