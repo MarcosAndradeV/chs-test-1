@@ -1,8 +1,6 @@
-use std::{collections::HashMap, vec::IntoIter};
 use chs_ast::nodes::*;
-use chs_util::{
-    chs_error, CHSError,
-};
+use chs_util::{chs_error, CHSError};
+use std::{collections::HashMap, vec::IntoIter};
 
 use super::{
     instructions::{Bytecode, Instr},
@@ -12,7 +10,6 @@ use super::{
 #[derive(Debug, PartialEq, Eq)]
 enum NamesDef {
     Fn,
-    Var,
     None,
 }
 
@@ -20,8 +17,7 @@ pub struct IrParser {
     program: IntoIter<Expr>,
     instrs: Vec<Instr>,
     consts: Vec<Value>,
-    var_def: HashMap<String, usize>,
-    var_count: usize,
+    var_def: Vec<(String, usize)>,
     peek_def: Vec<String>,
     fn_def: HashMap<String, usize>,
 }
@@ -32,8 +28,7 @@ impl IrParser {
             program: program.into_iter(),
             instrs: Vec::new(),
             consts: Vec::new(),
-            var_def: HashMap::new(),
-            var_count: 0,
+            var_def: Vec::new(),
             peek_def: Vec::new(),
             fn_def: HashMap::new(),
         }
@@ -45,7 +40,7 @@ impl IrParser {
         }
         let entry = match self.fn_def.get("main") {
             Some(o) => *o,
-            None => chs_error!("Not main entry point found!")
+            None => chs_error!("Not main entry point found!"),
         };
 
         Ok(Bytecode {
@@ -122,18 +117,16 @@ impl IrParser {
     }
 
     fn checks_def(&self, name: &str) -> NamesDef {
-        if self.var_def.get(name).is_some() {
-            return NamesDef::Var;
-        } else if self.fn_def.get(name).is_some() {
+        if self.fn_def.get(name).is_some() {
             return NamesDef::Fn;
         }
         NamesDef::None
     }
 
     fn fn_expr(&mut self, expr: FnExpr) -> Result<(), CHSError> {
+        let curr_var_len = self.var_def.len();
         match self.checks_def(&expr.name) {
             NamesDef::Fn => chs_error!("Compiler Error: {} is already Function name.", expr.name),
-            NamesDef::Var => chs_error!("Compiler Error: {} is already Variable name.", expr.name),
             NamesDef::None => {}
         };
         let ifaddrs = self.instrs.len();
@@ -142,6 +135,13 @@ impl IrParser {
         self.fn_def.insert(expr.name, curr_len);
         for e in expr.body.into_iter() {
             self.expr(e)?
+        }
+        let saturating_sub = self.var_def.len().saturating_sub(curr_var_len);
+        if saturating_sub != 0 {
+            self.instrs.push(Instr::Unbind(saturating_sub));
+            for _ in 0..saturating_sub {
+                self.var_def.pop();
+            }
         }
         self.instrs.push(Instr::RetFn);
         let curr_len = self.instrs.len();
@@ -156,7 +156,6 @@ impl IrParser {
         for e in expr.names.iter() {
             match self.checks_def(e) {
                 NamesDef::Fn => chs_error!("Compiler Error: {} is already Function name.", e),
-                NamesDef::Var => chs_error!("Compiler Error: {} is already Variable name.", e),
                 NamesDef::None => {}
             };
             self.peek_def.push(e.to_string())
@@ -287,19 +286,28 @@ impl IrParser {
                     self.instrs.push(Instr::PushBind(v));
                 } else if let Some(addrs) = self.fn_def.get(val.as_ref()) {
                     self.instrs.push(Instr::CallFn(*addrs));
-                } else if let Some(v) = self.var_def.get(val.as_ref()) {
+                } else if let Some((_, v)) = self
+                    .var_def
+                    .iter()
+                    .rev()
+                    .find(|(s, _)| s.as_str() == val.as_str())
+                {
                     self.instrs.push(Instr::GlobalLoad(*v));
                 } else {
                     chs_error!("Compiler Error: {} is not defined", val.to_string())
                 }
             }
             Expr::Assigin(val) => {
-                if let Some(v) = self.var_def.get(val.as_ref()) {
+                if let Some((_, v)) = self
+                    .var_def
+                    .iter()
+                    .rev()
+                    .find(|(s, _)| s.as_str() == val.as_str())
+                {
                     self.instrs.push(Instr::GlobalStore(*v));
                 } else {
-                    let var_ptr = self.var_count;
-                    self.var_count += 1;
-                    self.var_def.insert(*val.clone(), var_ptr);
+                    let var_ptr = self.var_def.len();
+                    self.var_def.push((*val.clone(), var_ptr));
                     self.instrs.push(Instr::GlobalStore(var_ptr));
                 }
             }
