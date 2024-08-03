@@ -1,10 +1,12 @@
 // Generates fibonacci numbers bellow 100
 fn main {
-    0 1
-    while over 100 < {
-        peek a b {
-            a print #\n print
-            b a b +
+    0 := a
+    1 := b
+    while a 100 < {
+        a peek tmp {
+            tmp  print #\n print
+            b := a
+            tmp b + := b
         }
-    } pop pop
+    }
 }

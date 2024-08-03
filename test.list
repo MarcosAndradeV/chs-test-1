@@ -1,6 +1,10 @@
+./target/debug/chsc tests/reduce.chs
 ./target/debug/chsc tests/fizzbuzz.chs
+./target/debug/chsc tests/sumavg.chs
+./target/debug/chsc tests/length.chs
+./target/debug/chsc tests/gcd.chs
 ./target/debug/chsc tests/hello.chs
 ./target/debug/chsc tests/ispalindrome.chs
-./target/debug/chsc tests/fib.chs
-./target/debug/chsc tests/gcd.chs
+./target/debug/chsc tests/range.chs
 ./target/debug/chsc tests/rule110.chs
+./target/debug/chsc tests/fib.chs

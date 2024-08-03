@@ -114,7 +114,7 @@ if __name__ == "__main__":
             print('ERROR: no test.list is provided')
             exit(1)
         test_list_path, *argv = argv
-
+        update_test_list(test_list_path)
 
         snapshots = [capture(shell.strip()) for shell in load_list(test_list_path)]
         dump_snapshots(f'{test_list_path}.bi', snapshots)
