@@ -2,7 +2,7 @@
 // Generates a rule 110
 
 fn repeat { // int [any] : [any]
-    (< over 0) if {} else { : 1 - : [0] ++ repeat }
+    (< over 0) if {} else { swap 1 - swap [0] ++ repeat }
 }
 fn main {
     10 := BOARD_SIZE

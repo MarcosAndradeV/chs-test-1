@@ -16,9 +16,9 @@ fn sum { // [int] -> int
 
 fn main {
     [1 5 8 2]
-    . sum :
+    . sum swap
     len
     /
-    
+
     debug
 }

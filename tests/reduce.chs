@@ -29,4 +29,6 @@ fn reduce { // Fn(a e -> a) a [e] -> a
 fn main {
     (reduce fn {+} 7 []) println
     (reduce fn {+} 7 [1 2]) println
+    (reduce_rec fn {+} 7 []) println
+    (reduce_rec fn {+} 7 [1 2]) println
 }

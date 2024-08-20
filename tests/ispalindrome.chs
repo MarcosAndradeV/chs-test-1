@@ -14,7 +14,7 @@ fn is_palindrome { // int -> bool
                 (* rev 10) +
                 temp 10 /
             }
-        } drop : drop 
+        } drop swap drop
         x =
     }
 

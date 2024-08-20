@@ -1,5 +1,5 @@
 ### TODOS
-- [] [Syntax] `:` -> `swap` (free `:` symbol for type check)
-- [] [Syntax]`~` address_of operator (Useful for fn PTR)
-- [] [Docs] Update README.md
+- [X] [Syntax] `:` -> `swap` (free `:` symbol for type check)
+- [X] [Syntax] Bring back `~` address_of operator (Useful for fn PTR)
 - [] [Bugs] Lambda variables are not syncing with scope
+- [] [Docs] Update README.md

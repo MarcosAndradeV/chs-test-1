@@ -3,10 +3,10 @@ use chs_util::{chs_error, CHSError};
 use crate::nodes::Module;
 
 use super::{
+    lexer::{Lexer, Token, TokenKind},
     nodes::{
         Expr, FnExpr, IfExpr, LambdaExpr, ListExpr, Operation, PeekExpr, Program, SExpr, WhileExpr,
     },
-    lexer::{Lexer, Token, TokenKind},
 };
 
 type ResTok = Result<Token, CHSError>;
@@ -30,14 +30,16 @@ pub fn parse(filename: String, input: Vec<u8>) -> Result<Module, CHSError> {
 
         if token.kind == TokenKind::EOF {
             let program = Program { exprs };
-            return Ok(Module { filesource: filename, program });
+            return Ok(Module {
+                filesource: filename,
+                program,
+            });
         }
         exprs.push(parser.top_level_expression(token)?);
     }
 }
 
 impl Parser {
-
     pub fn top_level_expression(&mut self, token: Token) -> Result<Expr, CHSError> {
         let expr = match token.kind {
             TokenKind::KeyWord if token.val_eq("fn") => self.fn_expr()?,
@@ -54,6 +56,7 @@ impl Parser {
             TokenKind::Swap => Expr::Op(Box::new(Operation::Swap)),
             TokenKind::Rot => Expr::Op(Box::new(Operation::Rot)),
             TokenKind::Nop => Expr::Op(Box::new(Operation::Nop)),
+            TokenKind::Tilde => self.addr_of_expr()?,
 
             TokenKind::Plus => Expr::Op(Box::new(Operation::Add)),
             TokenKind::Minus => Expr::Op(Box::new(Operation::Minus)),
@@ -115,20 +118,10 @@ impl Parser {
         Ok(expr)
     }
 
-    //fn let_expr(&mut self) -> Result<Expr, CHSError> {
-    //    let name = self.expect(TokenKind::Ident)?.value;
-    //    self.expect(TokenKind::Assigin)?;
-    //    let mut value: Vec<Expr> = Vec::new();
-    //    loop {
-    //        let tok = self.require()?;
-    //        match tok.kind {
-    //            TokenKind::SemiColon => {
-    //                break Ok(Expr::Assigin(Box::new(name)));
-    //            }
-    //            _ => value.push(self.expression(tok)?),
-    //        }
-    //    }
-    //}
+    fn addr_of_expr(&mut self) -> Result<Expr, CHSError> {
+        let name = self.expect(TokenKind::Ident)?.value;
+        Ok(Expr::AddrOf(name.into()))
+    }
 
     fn lambda_expr(&mut self) -> Result<Expr, CHSError> {
         self.expect(TokenKind::CurlyOpen)?;
@@ -286,7 +279,12 @@ impl Parser {
             return Ok(token);
         }
 
-        chs_error!("Expect token {:?} at {}, but got {}", kind, token.loc, self.peek())
+        chs_error!(
+            "Expect token {:?} at {}, but got {}",
+            kind,
+            token.loc,
+            self.peek()
+        )
     }
 
     fn next(&mut self) -> Token {
@@ -316,10 +314,7 @@ impl Parser {
     fn require(&mut self) -> ResTok {
         let tok = self.next();
         if matches!(tok.kind, TokenKind::Invalid | TokenKind::EOF) {
-            chs_error!(
-                "Parser Error: require Valid Token got {}",
-                tok
-            );
+            chs_error!("Parser Error: require Valid Token got {}", tok);
         }
         Ok(tok)
     }

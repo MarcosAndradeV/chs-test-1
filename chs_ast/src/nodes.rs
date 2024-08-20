@@ -42,7 +42,7 @@ pub enum Operation {
     Tail,
     Head,
     Call,
-    StackSize
+    StackSize,
 }
 
 #[derive(Debug)]
@@ -98,14 +98,15 @@ pub enum Expr {
 
     IdentExpr(Box<String>),
     Assigin(Box<String>),
-    
+
     If(Box<IfExpr>),
     Whlie(Box<WhileExpr>),
     Peek(Box<PeekExpr>),
     Fn(Box<FnExpr>),
     SExpr(Box<SExpr>),
     LambdaExpr(Box<LambdaExpr>),
-    ErrorExpr(Box<String>)
+    AddrOf(Box<String>),
+    ErrorExpr(Box<String>),
 }
 
 impl fmt::Display for Expr {
@@ -126,14 +127,14 @@ impl fmt::Display for Expr {
             Expr::SExpr(_) => write!(f, "SExpr"),
             Expr::LambdaExpr(_) => write!(f, "LambdaExpr"),
             Expr::ErrorExpr(_) => write!(f, "ErrorExpr"),
-            Expr::CharExpr(_) => todo!(),
+            _ => todo!(),
         }
     }
 }
 
 pub struct Module {
     pub filesource: String,
-    pub program: Program
+    pub program: Program,
 }
 
 type Expressions = Vec<Expr>;

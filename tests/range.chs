@@ -6,7 +6,7 @@ fn range { // int -> [int]
     := x
     [] := xs
     0 while dup x < {
-        dup to_list xs : ++ := xs
+        dup to_list xs swap ++ := xs
         1 +
     } drop
 

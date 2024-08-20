@@ -224,8 +224,9 @@ impl IrParser {
                 self.instrs.push(Instr::Const(Value::Int64(v)));
             }
             Expr::StrExpr(v) => {
-                self.instrs
-                    .push(Instr::Const(Value::Array(v.chars().map(|c| Value::Char(c)).collect())));
+                self.instrs.push(Instr::Const(Value::Array(
+                    v.chars().map(|c| Value::Char(c)).collect(),
+                )));
             }
             Expr::BoolExpr(v) => {
                 if v.as_str() == "true" {
@@ -318,6 +319,12 @@ impl IrParser {
                     break;
                 }
             }
+            Expr::AddrOf(a) => {
+                if let Some(val) = self.fn_def.get(a.as_str()) {
+                    self.instrs.push(Instr::Const(Value::Ptr(*val)));
+                }
+            }
+
             e => chs_error!("Compiler Error: {} is not simple expression", e),
         }
         Ok(())

@@ -272,7 +272,7 @@ impl Lexer {
                     self.curr_pos += 2;
                     return self.make_token_advance(start, TokenKind::DoubleColon);
                 }
-                self.make_token_advance(start, TokenKind::Swap)
+                self.make_token_advance(start, TokenKind::Colon)
             }
             b';' => self.make_token_advance(start, TokenKind::SemiColon),
             b',' => self.make_token_advance(start, TokenKind::Comma),
@@ -386,7 +386,7 @@ impl Lexer {
                 }
                 self.advance_pos();
             }
-            a => buf.push(a as char)
+            a => buf.push(a as char),
         }
         self.advance_pos();
         Token::new(buf, TokenKind::Char, start_loc)
@@ -443,6 +443,7 @@ impl Lexer {
             "idxget" => Token::new(value, TokenKind::IdxGet, start_loc),
             "len" => Token::new(value, TokenKind::Len, start_loc),
             "dup" => Token::new(value, TokenKind::Dup, start_loc),
+            "swap" => Token::new(value, TokenKind::Swap, start_loc),
             _ => Token::new(value, TokenKind::Ident, start_loc),
         }
     }
