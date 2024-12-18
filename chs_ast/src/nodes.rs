@@ -30,7 +30,6 @@ type Expressions = Vec<Expression>;
 #[derive(Debug)]
 pub enum Expression {
     Literal(Literal),
-    IdentifierExpr(IdentifierExpr),
     Group(Group),
     WhileExpr(WhileExpr),
     IfExpr(IfExpr),
@@ -42,7 +41,6 @@ impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expression::Literal(literal) => write!(f, "{literal}"),
-            Expression::IdentifierExpr(identifier) => write!(f, "{}", identifier.name),
             Expression::Group(group) => write!(f, "({})", group.value.as_ref()),
             Expression::WhileExpr(while_expr) => write!(f, "{while_expr}"),
             Expression::IfExpr(if_expr) => write!(f, "{if_expr}"),
@@ -53,12 +51,6 @@ impl fmt::Display for Expression {
 }
 
 impl Expression {
-    pub fn from_indentifier_token(value: Token) -> Self {
-        Expression::IdentifierExpr(IdentifierExpr {
-            loc: value.loc,
-            name: value.value,
-        })
-    }
 
     pub fn from_assign_token_no_type(value: Token) -> Self {
         Expression::AssignExpr(AssignExpr { loc: value.loc, name: value.value, type_: "".to_string() })
@@ -184,20 +176,6 @@ pub struct Group {
     pub value: Box<Expression>,
 }
 
-#[derive(Debug)]
-pub struct IdentifierExpr {
-    pub loc: Loc,
-    pub name: String,
-}
-
-impl IdentifierExpr {
-    pub fn from_identifier_token(token: Token) -> Self {
-        Self {
-            loc: token.loc,
-            name: token.value,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct NumberLiteral {

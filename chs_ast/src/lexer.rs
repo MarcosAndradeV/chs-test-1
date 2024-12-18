@@ -24,12 +24,9 @@ pub enum TokenKind {
 
     Interger,
     Keyword,
-    Identifier,
     Word,
 
     Assign,
-
-
     Comma,
     Semicolon,
     Colon,
@@ -41,12 +38,6 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-    fn from_identifier_or_keyword(value: &String) -> Self {
-        match value.as_str() {
-            "fn" | "if" | "else" | "while" |"true" | "false" | "nil" | "return" | "do" => Self::Keyword,
-            _ => Self::Identifier,
-        }
-    }
     fn from_word_or_keyword(value: &String) -> Self {
         match value.as_str() {
             "fn" | "if" | "else" | "while" |"true" | "false" | "nil" | "return" | "do" => Self::Keyword,
@@ -66,7 +57,6 @@ impl fmt::Display for TokenKind {
             TokenKind::Word => write!(f, "Word"),
             TokenKind::Interger => write!(f, "Interger"),
             TokenKind::Keyword => write!(f, "Keyword"),
-            TokenKind::Identifier => write!(f, "Identifier"),
             TokenKind::Assign => write!(f, "="),
             TokenKind::Comma => write!(f, ","),
             TokenKind::Semicolon => write!(f, ";"),
@@ -155,7 +145,6 @@ impl Lexer {
             b'{' => self.make_token(CurlyOpen, "{"),
             b'}' => self.make_token(CurlyClose, "}"),
             b'0'..=b'9' => self.number(),
-            b'a'..=b'z' | b'A'..=b'Z' | b'_'  => self.identifier(),
             0 => self.make_token(EOF, "\0"),
             _ => self.word(),
         }
@@ -194,25 +183,6 @@ impl Lexer {
 
         Token {
             kind: TokenKind::Interger,
-            value,
-            loc,
-        }
-    }
-
-    fn identifier(&mut self) -> Token {
-        let start_pos = self.pos;
-        let loc = self.loc.clone();
-
-        loop {
-            if !matches!(self.ch, b'a'..=b'z' | b'A'..=b'Z' | b'_') {
-                break;
-            }
-            self.read_char();
-        }
-        let value: String = String::from_utf8_lossy(&self.input[start_pos..self.pos]).into();
-
-        Token {
-            kind: TokenKind::from_identifier_or_keyword(&value),
             value,
             loc,
         }

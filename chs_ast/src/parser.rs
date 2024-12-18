@@ -51,11 +51,10 @@ impl Parser {
     fn parse_top_level_expr(&mut self, token: Token) -> Result<Expression, CHSError> {
         match token.kind {
             TokenKind::Word => Ok(Expression::from_word_token(token)?),
-            TokenKind::Identifier => Ok(Expression::from_indentifier_token(token)),
             TokenKind::Interger => Ok(Expression::from_integer_token(token)),
             TokenKind::Colon if self.peek_token().kind == TokenKind::Assign => {
                 self.next_token();
-                let token = self.expect_kind(TokenKind::Identifier)?;
+                let token = self.expect_kind(TokenKind::Word)?;
                 Ok(Expression::from_assign_token_no_type(token))
             }
             _ => chs_error!("{} Invalid token", token),
