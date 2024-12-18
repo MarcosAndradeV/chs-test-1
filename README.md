@@ -1,11 +1,5 @@
 # CHS (WIP)
 
-## TODO
-- [TODO](TODO.md)
-
-## Development Milestones
-
-- [X] [Turing Complete](test/rule110.chs)
 
 ## License
 
