@@ -30,11 +30,20 @@ pub enum TokenKind {
     Comma,
     Semicolon,
     Colon,
+    Dot,
 
     ParenOpen,
     ParenClose,
     CurlyOpen,
     CurlyClose,
+    SquareOpen,
+    SquareClose,
+}
+
+impl Default for TokenKind {
+    fn default() -> Self {
+        Self::Invalid
+    }
 }
 
 impl TokenKind {
@@ -65,11 +74,14 @@ impl fmt::Display for TokenKind {
             TokenKind::ParenClose => write!(f, ")"),
             TokenKind::CurlyOpen => write!(f, "{{"),
             TokenKind::CurlyClose => write!(f, "}}"),
+            TokenKind::SquareOpen => write!(f, "["),
+            TokenKind::SquareClose => write!(f, "]"),
+            TokenKind::Dot => write!(f, "."),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: String,
@@ -137,6 +149,7 @@ impl Lexer {
         self.skip_whitespace();
         match self.ch {
             b':' => self.make_token(Colon, ":"),
+            b'.' => self.make_token(Dot, "."),
             b'=' => self.make_token(Assign, "="),
             b',' => self.make_token(Comma, ","),
             b';' => self.make_token(Semicolon, ";"),
@@ -144,6 +157,8 @@ impl Lexer {
             b')' => self.make_token(ParenClose, ")"),
             b'{' => self.make_token(CurlyOpen, "{"),
             b'}' => self.make_token(CurlyClose, "}"),
+            b'[' => self.make_token(SquareOpen, "["),
+            b']' => self.make_token(SquareClose, "]"),
             b'0'..=b'9' => self.number(),
             0 => self.make_token(EOF, "\0"),
             _ => self.word(),
@@ -199,7 +214,9 @@ impl Lexer {
             self.read_char();
         }
         let value: String = String::from_utf8_lossy(&self.input[start_pos..self.pos]).into();
-
+        if value.is_empty() {
+            return Token::default();
+        }
         Token {
             kind: TokenKind::from_word_or_keyword(&value),
             value,

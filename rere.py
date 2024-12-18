@@ -92,13 +92,6 @@ def load_snapshots(file_path: str) -> list[dict]:
             snapshots.append(snapshot)
     return snapshots
 
-def update_test_list(test_list_path):
-    if not os.path.isdir("tests") or not os.path.isfile(test_list_path):
-        return
-    with open(test_list_path, "w") as f:
-        for name in os.listdir("tests"):
-            f.write(f"./target/debug/chsc tests/{name}\n")
-                
 if __name__ == "__main__":
     program_name, *argv = sys.argv
 
@@ -114,7 +107,6 @@ if __name__ == "__main__":
             print('ERROR: no test.list is provided')
             exit(1)
         test_list_path, *argv = argv
-        update_test_list(test_list_path)
 
         snapshots = [capture(shell.strip()) for shell in load_list(test_list_path)]
         dump_snapshots(f'{test_list_path}.bi', snapshots)
