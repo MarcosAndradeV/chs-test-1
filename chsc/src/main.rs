@@ -1,35 +1,114 @@
-use std::{env, fs, process};
 
-use chs_ast::parser::parse;
-use chs_vm::bytecode_compiler::IrParser;
-use chs_vm::vm_run;
+use chs_ast::lexer::Lexer;
+use chs_ast::parser::Parser;
+use std::{env, fs, path::Path};
 
-fn main() -> Result<(), ()> {
+fn main() {
     let mut args = env::args();
-    let program = args.next().expect("");
-    if let Some(ref file) = args.next() {
-        let data = fs::read(file).map_err(|err| eprintln!("{err}"))?;
-        let ast = match parse(file.clone(), data) {
-            Ok(ok) => ok,
-            Err(e) => {
-                eprintln!("{}",e.0);
-                return Ok(());
+    let program_path = args.next().expect("program_path");
+
+    if let Some(cmd) = args.next() {
+        match cmd.as_str() {
+            "lex" => {
+                if let Some(filepath) = args.next() {
+                    let fpath = Path::new(&filepath);
+                    if !fpath.exists() {
+                        println!("File not found.");
+                    }
+                    match fs::read(fpath) {
+                        Ok(ok) => {
+                            let mut lex = Lexer::new(filepath, ok);
+                            loop {
+                                let token = lex.next_token();
+                                if token.kind.is_eof() {
+                                    break;
+                                }
+                                println!("{token}")
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("Cannot read file {err}")
+                        }
+                    }
+                } else {
+                    println!("No file provided.");
+                }
             }
-        };
-        let bytecode = match IrParser::new(ast.program).parse() {
-            Ok(code) => code,
-            Err(e) => {
-                eprintln!("{e:?}");
-                process::exit(1);
+            "parse" => {
+                if let Some(filepath) = args.next() {
+                    let fpath = Path::new(&filepath);
+                    if !fpath.exists() {
+                        println!("File not found.");
+                    }
+                    match fs::read(fpath) {
+                        Ok(ok) => {
+                            let lex = Lexer::new(filepath, ok);
+                            let mut parser = Parser::new(lex);
+                            let ast = parser.parse();
+                            match ast {
+                                Ok(ast) => {
+                                    println!("{ast}");
+                                }
+                                Err(err) => println!("{err}")
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("Cannot read file {err}")
+                        }
+                    }
+                } else {
+                    println!("No file provided.");
+                }
             }
-        };
-        //let mut vm = CHSVM::new(bytecode);
-        //vm.run();
-        vm_run(bytecode);
-        return Ok(());
-    }else{
-        println!("File not provided.");
-        println!("Usage: {program} <file.chs>");
-        return Ok(());
+            "ast" => {
+                if let Some(filepath) = args.next() {
+                    let fpath = Path::new(&filepath);
+                    if !fpath.exists() {
+                        println!("File not found.");
+                    }
+                    match fs::read(fpath) {
+                        Ok(ok) => {
+                            let lex = Lexer::new(filepath, ok);
+                            let mut parser = Parser::new(lex);
+                            let ast = parser.parse();
+                            match ast {
+                                Ok(ast) => {
+                                    println!("{ast:#?}");
+                                }
+                                Err(err) => println!("{err}")
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("Cannot read file {err}")
+                        }
+                    }
+                } else {
+                    println!("No file provided.");
+                }
+            }
+            "version" => {
+                println!("Version: 0.0.1");
+            }
+            "help" => {
+                usage(&program_path);
+            }
+            _ => {
+                println!("Unknow command.");
+                usage(&program_path);
+            }
+        }
+    } else {
+        println!("No command provided.");
+        usage(&program_path);
     }
+}
+
+fn usage(program_path: &String) {
+    println!("Usage {program_path} <command> [options] file...");
+    println!("Command:");
+    println!("  version                Display compiler version information.");
+    println!("  lex                    Dump tokens from a file.");
+    println!("  ast                    Dump ast from a file.");
+    println!("  parse                  Parse and print ast from a file.");
+    println!("  help                   Show this message.");
 }
