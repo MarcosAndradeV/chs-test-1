@@ -1,5 +1,5 @@
 [package]
-name = "chs_ast"
+name = "chs_lexer"
 version = "0.1.0"
 edition = "2021"
 

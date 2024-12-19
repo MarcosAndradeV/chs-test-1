@@ -1,5 +1,5 @@
 
-use chs_ast::lexer::Lexer;
+use chs_lexer::Lexer;
 use std::{env, fs, path::Path};
 
 fn main() {
