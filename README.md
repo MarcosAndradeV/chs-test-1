@@ -1,5 +1,24 @@
-# CHS (WIP)
+# CHS programing language
 
+### Goals
+  - Static Typed
+
+### Example Code
+
+```
+use Io
+
+fn add a b : int, int -> int = a + b
+
+fn main := do {
+    if add(1, 2) < 4  {
+      Io:puts("Yes\n")
+    } else {
+      Io:puts("No\n")
+    }
+}
+
+```
 
 ## License
 
