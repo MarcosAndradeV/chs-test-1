@@ -1,8 +1,8 @@
 build:
-	cargo build --bin chsc
+	cargo build --bin chs
 
 release:
-	cargo build --release --bin chsc
+	cargo build --release --bin chs
 
 test: build
 	./rere.py replay test.list
@@ -10,7 +10,7 @@ test: build
 record: build
 	./rere.py record test.list
 
-chsc: release 
+chsc: release
 
 help:
 	@echo "usage: make $(prog)"
