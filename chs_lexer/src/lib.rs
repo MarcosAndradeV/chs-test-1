@@ -1,4 +1,5 @@
 use core::fmt;
+use std::path::PathBuf;
 use chs_util::Loc;
 
 
@@ -110,10 +111,10 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn get_filename(&self) -> String {
+    pub fn get_filename(&self) -> PathBuf {
         self.loc.filepath.clone()
     }
-    pub fn new(filepath: String, input: Vec<u8>) -> Self {
+    pub fn new(filepath: PathBuf, input: Vec<u8>) -> Self {
         let mut lex = Self {
             input,
             loc: Loc::new(
@@ -239,7 +240,7 @@ mod tests {
         }
         fn gen_token(&self, kind: TokenKind, value: &str) -> Token {
             Token {
-                loc: Loc::new(file!().to_string(), self.line, self.col),
+                loc: Loc::new(file!().into(), self.line, self.col),
                 kind,
                 value: value.to_string(),
             }
@@ -260,7 +261,7 @@ mod tests {
             tlex.gen_token(CurlyClose, "}"),
             tlex.gen_token(EOF, "\0"),
         ];
-        let mut lex = Lexer::new(file!().to_string(), input.into_bytes());
+        let mut lex = Lexer::new(file!().into(), input.into_bytes());
         for tt in tests {
             assert_eq!(lex.next_token().kind, tt.kind)
         }
@@ -292,7 +293,7 @@ mod tests {
             tlex.gen_token(Word, "y"),
             tlex.gen_token(Semicolon, ";"),
         ];
-        let mut lex = Lexer::new(file!().to_string(), input.into_bytes());
+        let mut lex = Lexer::new(file!().into(), input.into_bytes());
         for tt in tests {
             assert_eq!(lex.next_token().kind, tt.kind)
         }
@@ -315,7 +316,7 @@ mod tests {
             tlex.gen_token(Semicolon, ";"),
             tlex.gen_token(EOF, "\0"),
         ];
-        let mut lex = Lexer::new(file!().to_string(), input.into_bytes());
+        let mut lex = Lexer::new(file!().into(), input.into_bytes());
         for tt in tests {
             assert_eq!(lex.next_token().kind, tt.kind)
         }
@@ -336,7 +337,7 @@ mod tests {
             tlex.gen_token(Semicolon, ";"),
             tlex.gen_token(EOF, "\0"),
         ];
-        let mut lex = Lexer::new(file!().to_string(), input.into_bytes());
+        let mut lex = Lexer::new(file!().into(), input.into_bytes());
         for tt in tests {
             assert_eq!(lex.next_token().kind, tt.kind)
         }

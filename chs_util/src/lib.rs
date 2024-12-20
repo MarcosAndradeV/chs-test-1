@@ -1,4 +1,5 @@
 use core::fmt;
+use std::path::PathBuf;
 pub struct CHSError(pub String);
 
 impl fmt::Debug for CHSError {
@@ -26,19 +27,19 @@ macro_rules! chs_error {
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Default)]
 pub struct Loc {
-    pub filepath: String,
+    pub filepath: PathBuf,
     line: usize,
     col: usize,
 }
 
 impl fmt::Display for Loc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:{}", self.filepath, self.line, self.col)
+        write!(f, "{}:{}:{}", self.filepath.display(), self.line, self.col)
     }
 }
 
 impl Loc {
-    pub fn new(filepath: String, line: usize, col: usize) -> Self {
+    pub fn new(filepath: PathBuf, line: usize, col: usize) -> Self {
         Self {
             filepath,
             line,

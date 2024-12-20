@@ -1,6 +1,6 @@
 
 use chs_lexer::Lexer;
-use std::{env, fs, path::Path};
+use std::{env, fs, path::PathBuf};
 
 fn main() {
     let mut args = env::args();
@@ -10,13 +10,13 @@ fn main() {
         match cmd.as_str() {
             "lex" => {
                 if let Some(filepath) = args.next() {
-                    let fpath = Path::new(&filepath);
+                    let fpath = PathBuf::from(filepath);
                     if !fpath.exists() {
                         println!("File not found.");
                     }
-                    match fs::read(fpath) {
+                    match fs::read(fpath.as_path()) {
                         Ok(ok) => {
-                            let mut lex = Lexer::new(filepath, ok);
+                            let mut lex = Lexer::new(fpath, ok);
                             loop {
                                 let token = lex.next_token();
                                 if token.kind.is_eof() {
