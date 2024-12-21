@@ -3,13 +3,14 @@ use std::collections::HashMap;
 use chs_lexer::Token;
 use chs_util::{chs_error, CHSError, Loc};
 
-use crate::types::CHSType;
+use crate::types::{CHSType, CHSTypeId};
 
 #[derive(Debug, Default)]
 pub struct Module {
     pub top_level: Vec<Expression>,
     pub var_decls: Vec<VarDecl>,
     pub env: HashMap<String, CHSType>,
+    pub id: CHSTypeId
 }
 
 impl Module {
