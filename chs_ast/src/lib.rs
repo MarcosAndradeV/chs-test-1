@@ -1,7 +1,7 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
 use nodes::{Expression, Module, Var, VarDecl};
-use types::{generalize, infer, CHSType, CHSTypeVar};
+use types::{generalize, infer};
 
 pub mod nodes;
 pub mod types;
