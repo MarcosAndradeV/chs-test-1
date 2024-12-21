@@ -6,6 +6,7 @@ version = 3
 name = "chs"
 version = "0.1.0"
 dependencies = [
+ "chs_ast",
  "chs_lexer",
  "chs_util",
 ]
