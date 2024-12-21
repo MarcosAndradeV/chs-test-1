@@ -1,7 +1,7 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
 use nodes::{Expression, Module, Var, VarDecl};
-use types::{generalize, infer};
+use types::{generalize, infer, unify, CHSType};
 
 pub mod nodes;
 pub mod types;
@@ -34,7 +34,13 @@ impl Parser {
     fn expect_kind(&mut self, kind: TokenKind) -> Result<Token, CHSError> {
         let token = self.next();
         if token.kind != kind {
-            chs_error!("{} ERROR: Unexpected token {}({})", token.loc, token.kind, token.value)
+            chs_error!(
+                "{} Unexpected token {}({}), Expect: {}",
+                token.loc,
+                token.kind,
+                token.value,
+                kind
+            )
         }
         Ok(token)
     }
@@ -54,7 +60,7 @@ impl Parser {
                 break;
             }
             if token.kind == Invalid {
-                chs_error!("{} ERROR: Invalid token ({})", token.loc, token.value);
+                chs_error!("{} Invalid token ({})", token.loc, token.value);
             }
 
             self.parse_top_expression(token)?;
@@ -62,38 +68,41 @@ impl Parser {
         Ok(self.module)
     }
 
+    // TODO: MAKE THE TYPE INFER AFTER PARSING EVERYTHING
     fn parse_top_expression(&mut self, token: Token) -> Result<(), CHSError> {
         use chs_lexer::TokenKind::*;
         match token.kind {
             Word if self.peek().kind == Colon => {
                 self.next();
-                self.expect_kind(Assign)?;
-                // let ttoken = self.next();
-                // let _ttype = match ttoken.kind {
-                //     Word if ttoken.val_eq("int") => CHSType::Const(ttoken.value),
-                //     Word if ttoken.val_eq("bool") => CHSType::Const(ttoken.value),
-                //     Word  => CHSType::new_gen_var(1),
-                //     _ => todo!()
-                // };
-                // TODO: MAKE THE TYPE INFER AFTER PARSING EVERYTHING
-                let value = self.parse_expression()?;
-                let ty = infer(&mut self.module, &value, 1)?;
-                let generalized_ty = generalize(ty, 0);
+                let (value, ttype) = if let Some(mut ttype) = self.parse_type()? {
+                    self.expect_kind(Assign)?;
+                    let value = self.parse_expression()?;
+                    let ty = infer(&mut self.module, &value, 1)?;
+                    let mut tgen = generalize(ty, 0);
+                    unify(&mut tgen, &mut ttype)?;
+                    (value, tgen)
+                } else {
+                    let value = self.parse_expression()?;
+                    let ty = infer(&mut self.module, &value, 1)?;
+                    (value, generalize(ty, 0))
+                };
+
                 let name = token.value;
-                self.module.env.insert(name.clone(), generalized_ty.clone());
-                self.module.push_var_decl(
-                    VarDecl {
-                        loc: token.loc,
-                        name,
-                        ttype: generalized_ty,
-                        value,
-                    }
-                );
+                self.module.env.insert(name.clone(), ttype.clone());
+                self.module.push_var_decl(VarDecl {
+                    loc: token.loc,
+                    name,
+                    ttype,
+                    value,
+                });
                 Ok(())
-            },
+            }
             _ => {
                 chs_error!(
-                    "{} ERROR: Invalid Expression on top level {}({})", token.loc, token.kind, token.value
+                    "{} Invalid Expression on top level {}({})",
+                    token.loc,
+                    token.kind,
+                    token.value
                 )
             }
         }
@@ -104,14 +113,30 @@ impl Parser {
         let token = self.next();
         match token.kind {
             Interger => Ok(Expression::from_literal_token(token)?),
-            Keyword if token.val_eq("true") || token.val_eq("false") => Ok(Expression::from_literal_token(token)?),
-            Word => {
-                Ok(Expression::Var(Var {
-                    loc: token.loc,
-                    name: token.value
-                }))
-            },
-            _ => todo!()
+            Keyword if token.val_eq("true") || token.val_eq("false") => {
+                Ok(Expression::from_literal_token(token)?)
+            }
+            Word => Ok(Expression::Var(Var {
+                loc: token.loc,
+                name: token.value,
+            })),
+            _ => todo!(),
         }
+    }
+
+    fn parse_type(&mut self) -> Result<Option<CHSType>, CHSError> {
+        use chs_lexer::TokenKind::*;
+        let ttoken = self.next();
+        let ttype = match ttoken.kind {
+            Word if ttoken.val_eq("int") => Some(CHSType::Const(ttoken.value)),
+            Word if ttoken.val_eq("bool") => Some(CHSType::Const(ttoken.value)),
+            Word => {
+                self.module.id.reset_id();
+                Some(CHSType::new_var(&mut self.module.id, 0))
+            }
+            Assign => None,
+            _ => chs_error!("Type not implemnted"),
+        };
+        Ok(ttype)
     }
 }
