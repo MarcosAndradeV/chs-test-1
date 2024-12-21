@@ -1,6 +1,11 @@
-
+use chs_ast::Parser;
 use chs_lexer::Lexer;
-use std::{env, fs, path::PathBuf};
+use std::{
+    env::{self, Args},
+    fs,
+    path::PathBuf,
+    process::exit,
+};
 
 fn main() {
     let mut args = env::args();
@@ -9,28 +14,28 @@ fn main() {
     if let Some(cmd) = args.next() {
         match cmd.as_str() {
             "lex" => {
-                if let Some(filepath) = args.next() {
-                    let fpath = PathBuf::from(filepath);
-                    if !fpath.exists() {
-                        println!("File not found.");
+                let (fpath, bytes) = get_file(&mut args);
+                let mut lex = Lexer::new(fpath, bytes);
+                loop {
+                    let token = lex.next_token();
+                    if token.kind.is_eof() {
+                        break;
                     }
-                    match fs::read(fpath.as_path()) {
-                        Ok(ok) => {
-                            let mut lex = Lexer::new(fpath, ok);
-                            loop {
-                                let token = lex.next_token();
-                                if token.kind.is_eof() {
-                                    break;
-                                }
-                                println!("{token}")
-                            }
-                        }
-                        Err(err) => {
-                            eprintln!("Cannot read file {err}")
-                        }
+                    println!("{token}")
+                }
+            }
+            "parse" => {
+                let (fpath, bytes) = get_file(&mut args);
+                let lex = Lexer::new(fpath, bytes);
+                let parser = Parser::new(lex);
+                match parser.parse() {
+                    Ok(ok) => {
+                        println!("{:?}", ok);
                     }
-                } else {
-                    println!("No file provided.");
+                    Err(err) => {
+                        eprintln!("{err}");
+                        exit(1)
+                    }
                 }
             }
             "version" => {
@@ -56,4 +61,24 @@ fn usage(program_path: &String) {
     println!("  version                Display compiler version information.");
     println!("  lex                    Dump tokens from a file.");
     println!("  help                   Show this message.");
+}
+
+fn get_file(args: &mut Args) -> (PathBuf, Vec<u8>) {
+    if let Some(filepath) = args.next() {
+        let fpath = PathBuf::from(filepath);
+        if !fpath.exists() {
+            println!("File not found.");
+            exit(1)
+        }
+        match fs::read(fpath.as_path()) {
+            Ok(ok) => (fpath, ok),
+            Err(err) => {
+                eprintln!("Cannot read file {err}");
+                exit(1)
+            }
+        }
+    } else {
+        println!("No file provided.");
+        exit(1)
+    }
 }
