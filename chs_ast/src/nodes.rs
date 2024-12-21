@@ -8,16 +8,22 @@ use crate::types::{CHSType, CHSTypeId};
 #[derive(Debug, Default)]
 pub struct Module {
     pub top_level: Vec<Expression>,
-    pub var_decls: Vec<VarDecl>,
     pub env: HashMap<String, CHSType>,
     pub id: CHSTypeId
 }
 
 impl Module {
-    pub fn push_var_decl(&mut self, var: VarDecl) {
+    pub fn with_env(env: HashMap<String, CHSType>) -> Self {
+        Self { env, ..Default::default() }
+    }
+
+    pub fn push(&mut self, expr: Expression) {
         self.top_level
-            .push(Expression::VarDecl(std::ptr::from_ref(&var)));
-        self.var_decls.push(var);
+            .push(expr);
+    }
+
+    pub fn set_env(&mut self, env: HashMap<String, CHSType>) {
+        self.env = env;
     }
 }
 
@@ -25,7 +31,7 @@ pub type VarId = usize;
 
 #[derive(Debug)]
 pub enum Expression {
-    VarDecl(*const VarDecl),
+    VarDecl(Box<VarDecl>),
     Literal(Literal),
     Var(Var),
 }
@@ -56,7 +62,7 @@ impl Expression {
 
     pub fn loc(&self) -> &Loc {
         match self {
-            Expression::VarDecl(v) => unsafe { &v.as_ref().unwrap().loc },
+            Expression::VarDecl(v) => &v.loc,
             Expression::Literal(literal) => literal.loc(),
             Expression::Var(var) => &var.loc,
         }

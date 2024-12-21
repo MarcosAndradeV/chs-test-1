@@ -71,7 +71,8 @@ pub fn generalize(ty: CHSType, level: CHSTypeLevel) -> CHSType {
                 .into_iter()
                 .map(|c| generalize(c, level))
                 .collect(),
-        ).into(),
+        )
+        .into(),
         CHSType::Arrow(chstype_list, chstype) => CHSType::Arrow(
             chstype_list
                 .into_iter()
@@ -309,15 +310,11 @@ pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<C
             Literal::BooleanLiteral { .. } => return Ok(CHSType::Const("bool".into())),
         },
         Expression::VarDecl(v) => {
-            if let Some(v) = unsafe { v.as_ref() } {
-                let var_ty = infer(m, &v.value, level + 1)?;
-                let generalized_ty = generalize(var_ty, level);
-                let k = v.name.clone();
-                m.env.insert(k, generalized_ty);
-                return Ok(CHSType::Const("()".into()));
-            } else {
-                chs_error!("infer VarDecl")
-            }
+            let var_ty = infer(m, &v.value, level + 1)?;
+            let generalized_ty = generalize(var_ty, level);
+            let k = v.name.clone();
+            m.env.insert(k, generalized_ty);
+            return Ok(CHSType::Const("()".into()));
         }
         Expression::Var(Var { name, loc: _ }) => {
             if let Some(ty) = m.env.get(name) {
@@ -369,7 +366,7 @@ mod tests {
     #[test]
     fn test_name() {
         let mut m = Module::default();
-        m.push_var_decl(VarDecl {
+        m.push(Expression::VarDecl(Box::new(VarDecl {
             name: "x".into(),
             value: Expression::Literal(Literal::IntegerLiteral {
                 loc: Loc::default(),
@@ -377,7 +374,7 @@ mod tests {
             }),
             loc: Loc::default(),
             ttype: CHSType::Const("int".into()),
-        });
+        })));
         let res = infer(
             &mut m,
             &Expression::Literal(Literal::IntegerLiteral {

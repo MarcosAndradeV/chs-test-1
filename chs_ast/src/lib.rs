@@ -89,12 +89,12 @@ impl Parser {
 
                 let name = token.value;
                 self.module.env.insert(name.clone(), ttype.clone());
-                self.module.push_var_decl(VarDecl {
+                self.module.push(Expression::VarDecl(Box::new(VarDecl {
                     loc: token.loc,
                     name,
                     ttype,
                     value,
-                });
+                })));
                 Ok(())
             }
             _ => {
