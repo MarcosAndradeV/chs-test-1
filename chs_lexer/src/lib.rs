@@ -6,6 +6,7 @@ use chs_util::Loc;
 const fn is_word_separator(c: u8) -> bool{
     matches!(c,
         b':'|
+        b'='|
         b';'|
         b'.'|
         b','|
