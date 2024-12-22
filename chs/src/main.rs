@@ -30,7 +30,7 @@ fn main() {
                 let parser = Parser::new(lex);
                 match parser.parse() {
                     Ok(ok) => {
-                        println!("{:?}", ok);
+                        println!("{:?}", ok.env);
                     }
                     Err(err) => {
                         eprintln!("{err}");
