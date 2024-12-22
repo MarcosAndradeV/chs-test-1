@@ -252,7 +252,7 @@ impl Lexer {
         }
         let value: String = String::from_utf8_lossy(&self.input[start_pos..self.pos]).into();
         if value.is_empty() {
-            return Token::default();
+            return self.make_token(TokenKind::Invalid, value.as_str());
         }
         Token {
             kind: TokenKind::from_word_or_keyword(&value),
