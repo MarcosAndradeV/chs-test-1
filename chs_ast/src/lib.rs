@@ -1,7 +1,7 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
 use nodes::{Call, Expression, FnDecl, Module, Var, VarDecl};
-use types::{generalize, infer, unify, CHSType};
+use types::{generalize, infer, unify, CHSType, CHSBOOL, CHSCHAR, CHSINT, CHSSTRING, CHSVOID};
 
 pub mod nodes;
 pub mod types;
@@ -122,13 +122,21 @@ impl Parser {
                 Ok(())
             }
             _ => {
-                chs_error!(
-                    "{} Invalid Expression on top level {}('{}')",
-                    token.loc,
-                    token.kind,
-                    token.value
-                )
+                self.peeked = Some(token);
+                let expr = self.parse_expression()?;
+                self.module.push(expr);
+                Ok(())
             }
+            /*
+                _ => {
+                    chs_error!(
+                        "{} Invalid Expression on top level {}('{}')",
+                        token.loc,
+                        token.kind,
+                        token.value
+                    )
+                }
+            */
         }
     }
 
@@ -139,6 +147,10 @@ impl Parser {
             Interger => Expression::from_literal_token(token)?,
             Keyword if token.val_eq("true") || token.val_eq("false") => {
                 Expression::from_literal_token(token)?
+            }
+            Keyword if token.val_eq("print") => {
+                let expr = self.parse_expression()?;
+                Expression::Print(expr.into())
             }
             Ampersand => {
                 let expr = self.parse_expression()?;
@@ -152,6 +164,7 @@ impl Parser {
                 loc: token.loc,
                 name: token.value,
             }),
+            String => Expression::from_literal_token(token)?,
             _ => chs_error!(
                 "{} Unexpected token {}('{}')",
                 token.loc,
@@ -241,9 +254,11 @@ impl Parser {
         use chs_lexer::TokenKind::*;
         let ttoken = self.next();
         let ttype = match ttoken.kind {
-            Word if ttoken.val_eq("int") => Some(CHSType::Const(ttoken.value)),
-            Word if ttoken.val_eq("bool") => Some(CHSType::Const(ttoken.value)),
-            Word if ttoken.val_eq("void") => Some(CHSType::Const(ttoken.value)),
+            Word if ttoken.val_eq("int")  => Some(CHSINT.clone()),
+            Word if ttoken.val_eq("bool") => Some(CHSBOOL.clone()),
+            Word if ttoken.val_eq("char") => Some(CHSCHAR.clone()),
+            Word if ttoken.val_eq("void") => Some(CHSVOID.clone()),
+            Word if ttoken.val_eq("string") => Some(CHSSTRING.clone()),
             Asterisk => {
                 if let Some(ttp) = self.parse_type()? {
                     Some(CHSType::App(

@@ -6,7 +6,7 @@
 //
 //
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
 use chs_util::{chs_error, CHSError};
 
@@ -34,6 +34,12 @@ pub enum CHSType {
     Arrow(Vec<CHSType>, Box<CHSType>),
     Var(CHSTypeVar),
 }
+
+pub static CHSINT: LazyLock<CHSType>  = LazyLock::new(|| CHSType::Const("int".to_string()));
+pub static CHSBOOL: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("bool".to_string()));
+pub static CHSCHAR: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("char".to_string()));
+pub static CHSVOID: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("void".to_string()));
+pub static CHSSTRING: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("string".to_string()));
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CHSTypeVar {
@@ -346,8 +352,12 @@ let occurs_check_adjust_levels tvar_id tvar_level ty =
 pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<CHSType, CHSError> {
     match expr {
         Expression::Literal(literal) => match literal {
-            Literal::IntegerLiteral { .. } => return Ok(CHSType::Const("int".into())),
-            Literal::BooleanLiteral { .. } => return Ok(CHSType::Const("bool".into())),
+            Literal::IntegerLiteral { .. }  => return Ok(CHSINT.clone()),
+            Literal::BooleanLiteral { .. }  => return Ok(CHSBOOL.clone()),
+            Literal::StringLiteral  { .. }  => return Ok(CHSType::App(
+                CHSType::Const("pointer".to_string()).into(),
+                vec![CHSCHAR.clone()],
+            )),
         },
         Expression::VarDecl(v) => {
             let var_ty = infer(m, &v.value, level + 1)?;
@@ -400,7 +410,14 @@ pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<C
                     return Ok(e[0].clone());
                 }
             }
-            chs_error!("Deref")
+            chs_error!("Expect pointer")
+        }
+        Expression::Print(expr) => {
+            let ty = infer(m, &expr, level)?;
+            if *CHSSTRING != ty {
+                chs_error!("Expect string")
+            }
+            Ok(CHSType::Const("()".to_string()))
         }
     }
 }

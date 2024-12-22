@@ -1,26 +1,26 @@
+use chs_util::Loc;
 use core::fmt;
 use std::path::PathBuf;
-use chs_util::Loc;
 
-
-const fn is_word_separator(c: u8) -> bool{
-    matches!(c,
-        b'!'|
-        b'*'|
-        b'&'|
-        b'-'|
-        b'>'|
-        b':'|
-        b'='|
-        b';'|
-        b'.'|
-        b','|
-        b'['|
-        b']'|
-        b'{'|
-        b'}'|
-        b'('|
-        b')'
+const fn is_word_separator(c: u8) -> bool {
+    matches!(
+        c,
+        b'"' | b'!'
+            | b'*'
+            | b'&'
+            | b'-'
+            | b'>'
+            | b':'
+            | b'='
+            | b';'
+            | b'.'
+            | b','
+            | b'['
+            | b']'
+            | b'{'
+            | b'}'
+            | b'('
+            | b')'
     ) || c.is_ascii_whitespace()
 }
 
@@ -32,6 +32,7 @@ pub enum TokenKind {
     Interger,
     Keyword,
     Word,
+    String,
 
     Assign,
     Comma,
@@ -62,7 +63,9 @@ impl Default for TokenKind {
 impl TokenKind {
     fn from_word_or_keyword(value: &String) -> Self {
         match value.as_str() {
-            "fn" | "if" | "else" | "while" |"true" | "false" | "nil" | "return" | "do" => Self::Keyword,
+            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" | "print" => {
+                Self::Keyword
+            }
             _ => Self::Word,
         }
     }
@@ -96,6 +99,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Ampersand => write!(f, "Ampersand"),
             TokenKind::NotEq => write!(f, "NotEq"),
             TokenKind::Bang => write!(f, "Bang"),
+            TokenKind::String => write!(f, "String"),
         }
     }
 }
@@ -115,7 +119,12 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {:?}({})", self.loc, self.kind, self.value)
+        if self.kind == TokenKind::String {
+            write!(f, "{} {:?}(ESCAPE THE STRINGS)", self.loc, self.kind)
+        } else {
+            write!(f, "{} {:?}({})", self.loc, self.kind, self.value)
+
+        }
     }
 }
 
@@ -135,11 +144,7 @@ impl Lexer {
     pub fn new(filepath: PathBuf, input: Vec<u8>) -> Self {
         let mut lex = Self {
             input,
-            loc: Loc::new(
-                filepath,
-                1,
-                1,
-            ),
+            loc: Loc::new(filepath, 1, 1),
             ..Default::default()
         };
         lex.read_char();
@@ -196,6 +201,7 @@ impl Lexer {
             b'}' => self.make_token(CurlyClose, "}"),
             b'[' => self.make_token(SquareOpen, "["),
             b']' => self.make_token(SquareClose, "]"),
+            b'"' => self.string(),
             b'0'..=b'9' => self.number(),
             0 => self.make_token(EOF, "\0"),
             _ => self.word(),
@@ -237,6 +243,32 @@ impl Lexer {
             kind: TokenKind::Interger,
             value,
             loc,
+        }
+    }
+
+    fn string(&mut self) -> Token {
+        let start_loc = self.loc.clone();
+        let mut buf = String::new();
+        loop {
+            self.read_char();
+            match self.ch {
+                b'\"' => break self.read_char(),
+                b'\0' => return self.make_token(TokenKind::Invalid, &buf),
+                b'\\' => {
+                    match self.peek_char() {
+                        b'n' => buf.push('\n'),
+                        b'\\' => buf.push('\\'),
+                        _ => return self.make_token(TokenKind::Invalid, &buf),
+                    }
+                    self.read_char();
+                }
+                a => buf.push(a as char),
+            }
+        }
+        Token {
+            value: buf,
+            kind: TokenKind::String,
+            loc: start_loc,
         }
     }
 

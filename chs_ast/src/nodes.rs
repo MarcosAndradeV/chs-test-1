@@ -9,17 +9,19 @@ use crate::types::{CHSType, CHSTypeId};
 pub struct Module {
     pub top_level: Vec<Expression>,
     pub env: HashMap<String, CHSType>,
-    pub id: CHSTypeId
+    pub id: CHSTypeId,
 }
 
 impl Module {
     pub fn with_env(env: HashMap<String, CHSType>) -> Self {
-        Self { env, ..Default::default() }
+        Self {
+            env,
+            ..Default::default()
+        }
     }
 
     pub fn push(&mut self, expr: Expression) {
-        self.top_level
-            .push(expr);
+        self.top_level.push(expr);
     }
 
     pub fn set_env(&mut self, env: HashMap<String, CHSType>) {
@@ -38,6 +40,7 @@ pub enum Expression {
     Call(Box<Call>),
     Ref(Box<Self>),
     Deref(Box<Self>),
+    Print(Box<Self>),
 }
 
 impl Expression {
@@ -60,6 +63,10 @@ impl Expression {
                         .expect("No interger token. Probably a lexer error."),
                 }))
             }
+            String => Ok(Self::Literal(Literal::StringLiteral {
+                loc: token.loc,
+                value: token.value,
+            })),
             _ => chs_error!("{} Unsuported literal", token.loc),
         }
     }
@@ -73,6 +80,7 @@ impl Expression {
             Expression::FnDecl(fn_decl) => &fn_decl.loc,
             Expression::Ref(_expression) => todo!(),
             Expression::Deref(_expression) => todo!(),
+            _ => todo!(),
         }
     }
 }
@@ -111,6 +119,7 @@ pub struct FnDecl {
 pub enum Literal {
     IntegerLiteral { loc: Loc, value: i64 },
     BooleanLiteral { loc: Loc, value: bool },
+    StringLiteral { loc: Loc, value: String },
 }
 
 impl Literal {
@@ -118,6 +127,7 @@ impl Literal {
         match self {
             Literal::IntegerLiteral { loc, value: _ } => loc,
             Literal::BooleanLiteral { loc, value: _ } => loc,
+            Literal::StringLiteral { loc, value: _ } => loc,
         }
     }
 }
