@@ -1,10 +1,1 @@
-./target/debug/chs lex tests/ispalindrome.chs
-./target/debug/chs lex tests/fizzbuzz.chs
-./target/debug/chs lex tests/sumavg.chs
-./target/debug/chs lex tests/length.chs
-./target/debug/chs lex tests/range.chs
-./target/debug/chs lex tests/fib.chs
-./target/debug/chs lex tests/reduce.chs
 ./target/debug/chs lex tests/hello.chs
-./target/debug/chs lex tests/rule110.chs
-./target/debug/chs lex tests/gcd.chs

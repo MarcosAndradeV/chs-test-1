@@ -1,1 +1,1 @@
-fn main { "Hello, world!\n" puts }
+print "Hello, world\n"
