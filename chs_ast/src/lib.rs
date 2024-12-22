@@ -1,6 +1,6 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
-use nodes::{Expression, Module, Var, VarDecl};
+use nodes::{Call, Expression, FnDecl, Module, Var, VarDecl};
 use types::{generalize, infer, unify, CHSType};
 
 pub mod nodes;
@@ -35,7 +35,7 @@ impl Parser {
         let token = self.next();
         if token.kind != kind {
             chs_error!(
-                "{} Unexpected token {}({}), Expect: {}",
+                "{} Unexpected token '{}' of '{}', Expect: {}",
                 token.loc,
                 token.kind,
                 token.value,
@@ -54,13 +54,19 @@ impl Parser {
 
     pub fn parse(mut self) -> Result<Module, CHSError> {
         use chs_lexer::TokenKind::*;
+        let a = CHSType::Const("int".to_string());
+        self.module.env.insert(
+            "add".to_string(),
+            CHSType::Arrow(vec![a.clone(), a.clone()], a.into()),
+        );
+
         loop {
             let token = self.next();
             if token.kind.is_eof() {
                 break;
             }
             if token.kind == Invalid {
-                chs_error!("{} Invalid token ({})", token.loc, token.value);
+                chs_error!("{} Invalid token '{}'", token.loc, token.value);
             }
 
             self.parse_top_expression(token)?;
@@ -71,35 +77,53 @@ impl Parser {
     // TODO: MAKE THE TYPE INFER AFTER PARSING EVERYTHING
     fn parse_top_expression(&mut self, token: Token) -> Result<(), CHSError> {
         use chs_lexer::TokenKind::*;
+        self.module.id.reset_id();
         match token.kind {
             Word if self.peek().kind == Colon => {
                 self.next();
-                let (value, ttype) = if let Some(mut ttype) = self.parse_type()? {
+                let (value, ttype) = if let Some(ttype) = self.parse_type()? {
                     self.expect_kind(Assign)?;
                     let value = self.parse_expression()?;
                     let ty = infer(&mut self.module, &value, 1)?;
-                    let mut tgen = generalize(ty, 0);
-                    unify(&mut tgen, &mut ttype)?;
-                    (value, tgen)
+                    (value, unify(ttype, generalize(ty, 1))?)
                 } else {
                     let value = self.parse_expression()?;
                     let ty = infer(&mut self.module, &value, 1)?;
-                    (value, generalize(ty, 0))
+                    (value, generalize(ty, 1))
                 };
-
                 let name = token.value;
-                self.module.env.insert(name.clone(), ttype.clone());
-                self.module.push(Expression::VarDecl(Box::new(VarDecl {
+                let expr = Expression::VarDecl(Box::new(VarDecl {
                     loc: token.loc,
                     name,
                     ttype,
                     value,
-                })));
+                }));
+                infer(&mut self.module, &expr, 1)?;
+                self.module.push(expr);
+                Ok(())
+            }
+            Keyword if token.val_eq("fn") => {
+                let token = self.expect_kind(Word)?;
+                let name = token.value;
+                self.expect_kind(ParenOpen)?;
+                let (args, ret_type) = self.parse_fn_type_list()?;
+                self.expect_kind(Assign)?;
+                self.module.env.insert(name.clone(), ret_type.clone());
+                let body = self.parse_expression()?;
+                let expr = Expression::FnDecl(Box::new(FnDecl {
+                    loc: token.loc,
+                    name,
+                    args,
+                    ret_type,
+                    body,
+                }));
+                infer(&mut self.module, &expr, 1)?;
+                self.module.push(expr);
                 Ok(())
             }
             _ => {
                 chs_error!(
-                    "{} Invalid Expression on top level {}({})",
+                    "{} Invalid Expression on top level {}('{}')",
                     token.loc,
                     token.kind,
                     token.value
@@ -111,16 +135,105 @@ impl Parser {
     fn parse_expression(&mut self) -> Result<Expression, CHSError> {
         use chs_lexer::TokenKind::*;
         let token = self.next();
-        match token.kind {
-            Interger => Ok(Expression::from_literal_token(token)?),
+        let mut left = match token.kind {
+            Interger => Expression::from_literal_token(token)?,
             Keyword if token.val_eq("true") || token.val_eq("false") => {
-                Ok(Expression::from_literal_token(token)?)
+                Expression::from_literal_token(token)?
             }
-            Word => Ok(Expression::Var(Var {
+            Ampersand => {
+                let expr = self.parse_expression()?;
+                Expression::Ref(expr.into())
+            }
+            Asterisk => {
+                let expr = self.parse_expression()?;
+                Expression::Deref(expr.into())
+            }
+            Word => Expression::Var(Var {
                 loc: token.loc,
                 name: token.value,
-            })),
-            _ => todo!(),
+            }),
+            _ => chs_error!(
+                "{} Unexpected token {}('{}')",
+                token.loc,
+                token.kind,
+                token.value
+            ),
+        };
+        loop {
+            let ptoken = self.peek();
+            match ptoken.kind {
+                ParenOpen => {
+                    let ptoken = self.next();
+                    let args = self.parse_arg_list()?;
+                    let call = Call {
+                        loc: ptoken.loc,
+                        caller: left,
+                        args,
+                    };
+                    left = Expression::Call(Box::new(call));
+                }
+                _ => return Ok(left),
+            }
+        }
+    }
+
+    fn parse_arg_list(&mut self) -> Result<Vec<Expression>, CHSError> {
+        use chs_lexer::TokenKind::*;
+        let mut args = vec![];
+        loop {
+            let ptoken = self.peek();
+            match ptoken.kind {
+                ParenClose => {
+                    self.next();
+                    return Ok(args);
+                }
+                Comma => {
+                    self.next();
+                    continue;
+                }
+                _ => {
+                    let value = self.parse_expression()?;
+                    args.push(value);
+                }
+            }
+        }
+    }
+
+    fn parse_fn_type_list(&mut self) -> Result<(Vec<(String, CHSType)>, CHSType), CHSError> {
+        use chs_lexer::TokenKind::*;
+        let mut list = vec![];
+        let mut ret_type = CHSType::Const("()".to_string());
+        loop {
+            let ptoken = self.peek();
+            match ptoken.kind {
+                ParenClose => {
+                    self.next();
+                    let ptoken = self.peek();
+                    if ptoken.kind == Arrow {
+                        self.next();
+                        if let Some(value) = self.parse_type()? {
+                            ret_type = value;
+                        } else {
+                            return Ok((list, ret_type));
+                        }
+                    }
+                    return Ok((list, ret_type));
+                }
+                Comma => {
+                    self.next();
+                    continue;
+                }
+                Word => {
+                    let token = self.next();
+                    self.expect_kind(Colon)?;
+                    if let Some(value) = self.parse_type()? {
+                        list.push((token.value, value));
+                    } else {
+                        return Ok((list, ret_type));
+                    }
+                }
+                _ => chs_error!(""),
+            }
         }
     }
 
@@ -130,12 +243,19 @@ impl Parser {
         let ttype = match ttoken.kind {
             Word if ttoken.val_eq("int") => Some(CHSType::Const(ttoken.value)),
             Word if ttoken.val_eq("bool") => Some(CHSType::Const(ttoken.value)),
-            Word => {
-                self.module.id.reset_id();
-                Some(CHSType::new_var(&mut self.module.id, 0))
+            Word if ttoken.val_eq("void") => Some(CHSType::Const(ttoken.value)),
+            Asterisk => {
+                if let Some(ttp) = self.parse_type()? {
+                    Some(CHSType::App(
+                        CHSType::Const("pointer".to_string()).into(),
+                        vec![ttp],
+                    ))
+                } else {
+                    chs_error!("Expect type")
+                }
             }
             Assign => None,
-            _ => chs_error!("Type not implemnted"),
+            _ => chs_error!("Type not implemnted {}", ttoken),
         };
         Ok(ttype)
     }

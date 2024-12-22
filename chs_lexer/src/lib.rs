@@ -5,6 +5,11 @@ use chs_util::Loc;
 
 const fn is_word_separator(c: u8) -> bool{
     matches!(c,
+        b'!'|
+        b'*'|
+        b'&'|
+        b'-'|
+        b'>'|
         b':'|
         b'='|
         b';'|
@@ -33,6 +38,12 @@ pub enum TokenKind {
     Semicolon,
     Colon,
     Dot,
+    Asterisk,
+    Ampersand,
+    Arrow,
+    Minus,
+    NotEq,
+    Bang,
 
     ParenOpen,
     ParenClose,
@@ -68,17 +79,23 @@ impl fmt::Display for TokenKind {
             TokenKind::Word => write!(f, "Word"),
             TokenKind::Interger => write!(f, "Interger"),
             TokenKind::Keyword => write!(f, "Keyword"),
-            TokenKind::Assign => write!(f, "="),
-            TokenKind::Comma => write!(f, ","),
-            TokenKind::Semicolon => write!(f, ";"),
-            TokenKind::Colon => write!(f, ":"),
-            TokenKind::ParenOpen => write!(f, "("),
-            TokenKind::ParenClose => write!(f, ")"),
-            TokenKind::CurlyOpen => write!(f, "{{"),
-            TokenKind::CurlyClose => write!(f, "}}"),
-            TokenKind::SquareOpen => write!(f, "["),
-            TokenKind::SquareClose => write!(f, "]"),
-            TokenKind::Dot => write!(f, "."),
+            TokenKind::Assign => write!(f, "Assign"),
+            TokenKind::Comma => write!(f, "Comma"),
+            TokenKind::Semicolon => write!(f, "Semicolon"),
+            TokenKind::Colon => write!(f, "Colon"),
+            TokenKind::ParenOpen => write!(f, "ParenOpen"),
+            TokenKind::ParenClose => write!(f, "ParenClose"),
+            TokenKind::CurlyOpen => write!(f, "CurlyOpen"),
+            TokenKind::CurlyClose => write!(f, "CurlyClose"),
+            TokenKind::SquareOpen => write!(f, "SquareOpen"),
+            TokenKind::SquareClose => write!(f, "SquareClose"),
+            TokenKind::Dot => write!(f, "Dot"),
+            TokenKind::Asterisk => write!(f, "Asterisk"),
+            TokenKind::Arrow => write!(f, "Arrow"),
+            TokenKind::Minus => write!(f, "Minus"),
+            TokenKind::Ampersand => write!(f, "Ampersand"),
+            TokenKind::NotEq => write!(f, "NotEq"),
+            TokenKind::Bang => write!(f, "Bang"),
         }
     }
 }
@@ -150,9 +167,27 @@ impl Lexer {
         use TokenKind::*;
         self.skip_whitespace();
         match self.ch {
+            b'-' => {
+                if self.peek_char() == b'>' {
+                    self.read_char();
+                    self.make_token(Arrow, "->")
+                } else {
+                    self.make_token(Minus, "-")
+                }
+            }
+            b'!' => {
+                if self.peek_char() == b'=' {
+                    self.read_char();
+                    self.make_token(NotEq, "->")
+                } else {
+                    self.make_token(Bang, "!")
+                }
+            }
             b':' => self.make_token(Colon, ":"),
             b'.' => self.make_token(Dot, "."),
             b'=' => self.make_token(Assign, "="),
+            b'*' => self.make_token(Asterisk, "*"),
+            b'&' => self.make_token(Ampersand, "*"),
             b',' => self.make_token(Comma, ","),
             b';' => self.make_token(Semicolon, ";"),
             b'(' => self.make_token(ParenOpen, "("),
@@ -309,10 +344,10 @@ mod tests {
         .to_string();
         let tlex = LexTester::new();
         let tests = &[
-            tlex.gen_token(Word, "!"),
-            tlex.gen_token(Word, "-"),
+            tlex.gen_token(Bang, "!"),
+            tlex.gen_token(Minus, "-"),
             tlex.gen_token(Word, "/"),
-            tlex.gen_token(Word, "*"),
+            tlex.gen_token(Asterisk, "*"),
             tlex.gen_token(Interger, "5"),
             tlex.gen_token(Semicolon, ";"),
             tlex.gen_token(EOF, "\0"),
@@ -333,7 +368,7 @@ mod tests {
         let tlex = LexTester::new();
         let tests = &[
             tlex.gen_token(Keyword, "false"),
-            tlex.gen_token(Word, "!="),
+            tlex.gen_token(NotEq, "!="),
             tlex.gen_token(Keyword, "true"),
             tlex.gen_token(Semicolon, ";"),
             tlex.gen_token(EOF, "\0"),

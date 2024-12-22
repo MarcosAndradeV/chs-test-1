@@ -25,7 +25,7 @@ impl CHSTypeId {
     }
 }
 
-pub type CHSTypeLevel = usize;
+pub type CHSTypeLevel = isize;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CHSType {
@@ -54,6 +54,13 @@ impl CHSType {
     pub fn is_var_unbound(&self) -> bool {
         if let Self::Var(CHSTypeVar::Unbound(_, _)) = self {
             true
+        } else {
+            false
+        }
+    }
+    pub fn is_void(&self) -> bool {
+        if let Self::Const(name) = self {
+            name == "void"
         } else {
             false
         }
@@ -99,35 +106,39 @@ let rec generalize level = function
     | TVar {contents = Generic _} | TVar {contents = Unbound _} | TConst _ as ty -> ty
 */
 
-pub fn instantiate(ty: CHSType, level: CHSTypeLevel) -> CHSType {
+pub fn instantiate(
+    m: &mut Module,
+    id_var: &mut HashMap<usize, CHSType>,
+    ty: CHSType,
+    level: CHSTypeLevel,
+) -> CHSType {
     use CHSType::*;
-    let mut id_var: HashMap<usize, CHSType> = HashMap::new();
     match ty {
-        Const(_) => ty,
-        Var(CHSTypeVar::Link(ty)) => instantiate(*ty, level),
-        Var(CHSTypeVar::Generic(mut id)) => {
+        Const(_) => return ty,
+        Var(CHSTypeVar::Link(ty)) => instantiate(m, id_var, *ty, level),
+        Var(CHSTypeVar::Generic(id)) => {
             if let Some(var) = id_var.get(&id.0) {
                 var.clone()
             } else {
-                let var = CHSType::new_var(&mut id, level);
-                id_var.insert(id.0, var.clone());
+                let var = CHSType::new_var(&mut m.id, level);
+                id_var.insert(m.id.0, var.clone());
                 var
             }
         }
         Var(CHSTypeVar::Unbound(_, _)) => ty,
         App(ty, ty_arg_list) => App(
-            instantiate(*ty, level).into(),
+            instantiate(m, id_var, *ty, level).into(),
             ty_arg_list
                 .into_iter()
-                .map(|t| instantiate(t, level))
+                .map(|t| instantiate(m, id_var, t, level))
                 .collect(),
         ),
         Arrow(param_ty_list, return_ty) => Arrow(
             param_ty_list
                 .into_iter()
-                .map(|t| instantiate(t, level))
+                .map(|t| instantiate(m, id_var, t, level))
                 .collect(),
-            instantiate(*return_ty, level).into(),
+            instantiate(m, id_var, *return_ty, level).into(),
         ),
     }
 }
@@ -155,6 +166,35 @@ let instantiate level ty =
     f ty
 */
 
+pub fn match_fun_ty(
+    m: &mut Module,
+    num_params: usize,
+    ty: &mut CHSType,
+) -> Result<(Vec<CHSType>, CHSType), CHSError> {
+    use CHSType::*;
+    match ty {
+        Arrow(param_ty_list, return_ty) => {
+            if param_ty_list.len() != num_params {
+                chs_error!("unexpected number of arguments");
+            } else {
+                Ok((param_ty_list.to_vec(), *return_ty.clone()))
+            }
+        }
+        Var(CHSTypeVar::Link(ty)) => match_fun_ty(m, num_params, ty),
+        Var(CHSTypeVar::Unbound(_, level)) => {
+            let param_ty_list: Vec<CHSType> = (0..num_params)
+                .map(|_| CHSType::new_var(&mut m.id, *level))
+                .collect();
+            let return_ty = CHSType::new_var(&mut m.id, *level);
+            *ty = CHSType::Var(CHSTypeVar::Link(
+                Arrow(param_ty_list.clone(), return_ty.clone().into()).into(),
+            ));
+            Ok((param_ty_list, return_ty.into()))
+        }
+        _ => chs_error!("Expect a function"),
+    }
+}
+
 /*
 let rec match_fun_ty num_params = function
     | TArrow(param_ty_list, return_ty) ->
@@ -177,47 +217,51 @@ let rec match_fun_ty num_params = function
     | _ -> error "expected a function"
 */
 
-pub fn unify(ty1: &mut CHSType, ty2: &mut CHSType) -> Result<(), CHSError> {
+pub fn unify(ty1: CHSType, ty2: CHSType) -> Result<CHSType, CHSError> {
     use CHSType::*;
+    dbg!(&ty1, &ty2);
     if ty1 == ty2 {
-        return Ok(());
+        return Ok(ty1);
     }
-    match (ty1, ty2) {
-        (Const(n1), Const(n2)) if n1 == n2 => Ok(()),
+    let res = match (ty1, ty2) {
+        (Const(n1), Const(n2)) if n1 == n2 => Ok(CHSType::Const(n1)),
         (App(ty1, ty_arg_list1), App(ty2, ty_arg_list2)) => {
-            unify(ty1, ty2)?;
-            for (ty1, ty2) in ty_arg_list1.iter_mut().zip(ty_arg_list2.iter_mut()) {
-                unify(ty1, ty2)?;
+            let ty1 = unify(*ty1, *ty2)?;
+            let mut ty_arg_list = vec![];
+            for (ty1, ty2) in ty_arg_list1.into_iter().zip(ty_arg_list2.into_iter()) {
+                ty_arg_list.push(unify(ty1, ty2)?);
             }
-            Ok(())
+            Ok(App(ty1.into(), ty_arg_list))
         }
         (Arrow(param_list1, ret_ty1), Arrow(param_list2, ret_ty2)) => {
-            for (ty1, ty2) in param_list1.iter_mut().zip(param_list2.iter_mut()) {
-                unify(ty1, ty2)?;
+            let mut param_list = vec![];
+            for (ty1, ty2) in param_list1.into_iter().zip(param_list2.into_iter()) {
+                param_list.push(unify(ty1, ty2)?);
             }
-            unify(ret_ty1, ret_ty2)
+            let ty1 = unify(*ret_ty1, *ret_ty2)?;
+            Ok(Arrow(param_list, ty1.into()))
         }
-        (Var(CHSTypeVar::Link(ty1)), ty2) => unify(ty1, ty2),
-        (ty1, Var(CHSTypeVar::Link(ty2))) => unify(ty1, ty2),
+        (Var(CHSTypeVar::Link(ty1)), ty2) => unify(*ty1, ty2),
+        (ty1, Var(CHSTypeVar::Link(ty2))) => unify(ty1, *ty2),
         (Var(CHSTypeVar::Unbound(id1, _)), Var(CHSTypeVar::Unbound(id2, _))) if id1 == id2 => {
             chs_error!("There is only a single instance of a particular type variable.")
         }
-        (tvar, ty) if tvar.is_var_unbound() => {
-            if let Var(CHSTypeVar::Unbound(id, level)) = tvar {
-                occurs_check_adjust_levels(id, level, ty)?;
-                *tvar = Var(CHSTypeVar::Link(Box::new(ty.clone())));
+        (tvar, mut ty) if tvar.is_var_unbound() => {
+            if let Var(CHSTypeVar::Unbound(mut id, mut level)) = tvar {
+                occurs_check_adjust_levels(&mut id, &mut level, &mut ty)?;
             }
-            Ok(())
+            Ok(Var(CHSTypeVar::Link(ty.clone().into())))
         }
-        (ty, tvar) if tvar.is_var_unbound() => {
-            if let Var(CHSTypeVar::Unbound(id, level)) = tvar {
-                occurs_check_adjust_levels(id, level, ty)?;
-                *tvar = Var(CHSTypeVar::Link(Box::new(ty.clone())));
+        (mut ty, tvar) if tvar.is_var_unbound() => {
+            if let Var(CHSTypeVar::Unbound(mut id, mut level)) = tvar {
+                occurs_check_adjust_levels(&mut id, &mut level, &mut ty)?;
             }
-            Ok(())
+            Ok(Var(CHSTypeVar::Link(ty.clone().into())))
         }
         (ty1, ty2) => chs_error!("cannot unify types {:?} and {:?}", ty1, ty2),
-    }
+    };
+    dbg!(&res);
+    res
 }
 
 /*
@@ -252,27 +296,23 @@ pub fn occurs_check_adjust_levels(
         CHSType::Var(CHSTypeVar::Unbound(other_id, other_level)) => {
             if other_id == id {
                 chs_error!("recursive types")
-            } else {
-                if other_level > level {
-                    *ty = CHSType::Var(CHSTypeVar::Unbound(*other_id, *level));
-                    Ok(())
-                } else {
-                    Ok(())
-                }
-            }
-        }
-        CHSType::App(ty, vec) => {
-            occurs_check_adjust_levels(id, level, ty)?;
-            for ty in vec.iter_mut() {
-                occurs_check_adjust_levels(id, level, ty)?;
+            } else if other_level > level {
+                *ty = CHSType::Var(CHSTypeVar::Unbound(*other_id, *level));
             }
             Ok(())
         }
-        CHSType::Arrow(vec, ty) => {
-            for ty in vec.iter_mut() {
-                occurs_check_adjust_levels(id, level, ty)?;
-            }
+        CHSType::App(ty, ty_arg_list) => {
             occurs_check_adjust_levels(id, level, ty)?;
+            for ty_arg in ty_arg_list.iter_mut() {
+                occurs_check_adjust_levels(id, level, ty_arg)?;
+            }
+            Ok(())
+        }
+        CHSType::Arrow(param_ty_list, return_ty) => {
+            for param_ty in param_ty_list.iter_mut() {
+                occurs_check_adjust_levels(id, level, param_ty)?;
+            }
+            occurs_check_adjust_levels(id, level, return_ty)?;
             Ok(())
         }
         CHSType::Const(_) => Ok(()),
@@ -312,16 +352,55 @@ pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<C
         Expression::VarDecl(v) => {
             let var_ty = infer(m, &v.value, level + 1)?;
             let generalized_ty = generalize(var_ty, level);
-            let k = v.name.clone();
-            m.env.insert(k, generalized_ty);
+            m.env.insert(v.name.clone(), generalized_ty);
+            return Ok(CHSType::Const("()".into()));
+        }
+        Expression::FnDecl(fd) => {
+            let prev_env = m.env.clone();
+            m.env.extend(fd.args.clone());
+            let ret_type = unify(fd.ret_type.clone(), infer(m, &fd.body, level)?)?;
+            m.env = prev_env;
+            m.env.insert(
+                fd.name.clone(),
+                CHSType::Arrow(
+                    fd.args.clone().into_iter().map(|(_, t)| t).collect(),
+                    ret_type.into(),
+                ),
+            );
             return Ok(CHSType::Const("()".into()));
         }
         Expression::Var(Var { name, loc: _ }) => {
             if let Some(ty) = m.env.get(name) {
-                Ok(instantiate(ty.clone(), level))
+                let mut id_var = HashMap::new();
+                Ok(instantiate(m, &mut id_var, ty.clone(), level))
             } else {
                 chs_error!("variable {} not found", name)
             }
+        }
+        Expression::Call(c) => {
+            let mut ty = infer(m, &c.caller, level)?;
+            let (mut param_ty_list, return_ty) = match_fun_ty(m, c.args.len(), &mut ty)?;
+            for (param_ty, arg_expr) in param_ty_list.iter_mut().zip(c.args.iter()) {
+                let tvar = infer(m, arg_expr, level)?;
+                *param_ty = unify(param_ty.clone(), tvar)?;
+            }
+            Ok(return_ty)
+        }
+        Expression::Ref(expr) => {
+            let ty = infer(m, &expr, level)?;
+            Ok(CHSType::App(
+                CHSType::Const("pointer".to_string()).into(),
+                vec![ty],
+            ))
+        }
+        Expression::Deref(expr) => {
+            let ty = infer(m, &expr, level)?;
+            if let CHSType::App(p, e) = ty {
+                if *p == CHSType::Const("pointer".to_string()) && e.len() == 1 {
+                    return Ok(e[0].clone());
+                }
+            }
+            chs_error!("Deref")
         }
     }
 }

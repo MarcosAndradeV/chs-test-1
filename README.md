@@ -8,9 +8,10 @@
 ```
 use Io
 
-fn add a b : int, int -> int = a + b
+fn add3(a: int, b: int) -> int =
+  add(a, b)
 
-fn main := do {
+fn main() = do {
     if add(1, 2) < 4  {
       Io:puts("Yes\n")
     } else {

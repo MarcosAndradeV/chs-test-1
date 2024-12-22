@@ -32,8 +32,12 @@ pub type VarId = usize;
 #[derive(Debug)]
 pub enum Expression {
     VarDecl(Box<VarDecl>),
+    FnDecl(Box<FnDecl>),
     Literal(Literal),
     Var(Var),
+    Call(Box<Call>),
+    Ref(Box<Self>),
+    Deref(Box<Self>),
 }
 
 impl Expression {
@@ -65,8 +69,19 @@ impl Expression {
             Expression::VarDecl(v) => &v.loc,
             Expression::Literal(literal) => literal.loc(),
             Expression::Var(var) => &var.loc,
+            Expression::Call(call) => &call.loc,
+            Expression::FnDecl(fn_decl) => &fn_decl.loc,
+            Expression::Ref(_expression) => todo!(),
+            Expression::Deref(_expression) => todo!(),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Call {
+    pub loc: Loc,
+    pub caller: Expression,
+    pub args: Vec<Expression>,
 }
 
 #[derive(Debug)]
@@ -81,6 +96,15 @@ pub struct VarDecl {
     pub name: String,
     pub value: Expression,
     pub ttype: CHSType,
+}
+
+#[derive(Debug)]
+pub struct FnDecl {
+    pub loc: Loc,
+    pub name: String,
+    pub args: Vec<(String, CHSType)>,
+    pub ret_type: CHSType,
+    pub body: Expression,
 }
 
 #[derive(Debug)]
