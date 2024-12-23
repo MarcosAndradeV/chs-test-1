@@ -5,7 +5,9 @@ use std::path::PathBuf;
 const fn is_word_separator(c: u8) -> bool {
     matches!(
         c,
-        b'"' | b'!'
+        b'"'
+        | b'#'
+        | b'!'
             | b'*'
             | b'&'
             | b'-'
@@ -171,6 +173,7 @@ impl Lexer {
     pub fn next_token(&mut self) -> Token {
         use TokenKind::*;
         self.skip_whitespace();
+        self.skip_comment();
         match self.ch {
             b'-' => {
                 if self.peek_char() == b'>' {
@@ -224,6 +227,18 @@ impl Lexer {
                 break;
             }
             self.read_char();
+        }
+    }
+
+    fn skip_comment(&mut self) {
+        if self.ch == b'#' {
+            loop {
+                if self.ch.is_ascii_control() {
+                    self.read_char();
+                    break;
+                }
+                self.read_char();
+            }
         }
     }
 

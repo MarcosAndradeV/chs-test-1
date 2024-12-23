@@ -1,7 +1,7 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
 use nodes::{Call, Expression, FnDecl, Module, Var, VarDecl};
-use types::{generalize, infer, unify, CHSType, CHSBOOL, CHSCHAR, CHSINT, CHSSTRING, CHSVOID};
+use types::{CHSType, CHSBOOL, CHSCHAR, CHSINT, CHSSTRING, CHSVOID};
 
 pub mod nodes;
 pub mod types;
@@ -54,12 +54,6 @@ impl Parser {
 
     pub fn parse(mut self) -> Result<Module, CHSError> {
         use chs_lexer::TokenKind::*;
-        let a = CHSType::Const("int".to_string());
-        self.module.env.insert(
-            "add".to_string(),
-            CHSType::Arrow(vec![a.clone(), a.clone()], a.into()),
-        );
-
         loop {
             let token = self.next();
             if token.kind.is_eof() {
@@ -77,20 +71,14 @@ impl Parser {
     // TODO: MAKE THE TYPE INFER AFTER PARSING EVERYTHING
     fn parse_top_expression(&mut self, token: Token) -> Result<(), CHSError> {
         use chs_lexer::TokenKind::*;
-        self.module.id.reset_id();
         match token.kind {
             Word if self.peek().kind == Colon => {
                 self.next();
-                let (value, ttype) = if let Some(ttype) = self.parse_type()? {
+                let ttype = self.parse_type()?;
+                if ttype.is_some() {
                     self.expect_kind(Assign)?;
-                    let value = self.parse_expression()?;
-                    let ty = infer(&mut self.module, &value, 1)?;
-                    (value, unify(ttype, generalize(ty, 1))?)
-                } else {
-                    let value = self.parse_expression()?;
-                    let ty = infer(&mut self.module, &value, 1)?;
-                    (value, generalize(ty, 1))
-                };
+                }
+                let value = self.parse_expression()?;
                 let name = token.value;
                 let expr = Expression::VarDecl(Box::new(VarDecl {
                     loc: token.loc,
@@ -98,7 +86,6 @@ impl Parser {
                     ttype,
                     value,
                 }));
-                infer(&mut self.module, &expr, 1)?;
                 self.module.push(expr);
                 Ok(())
             }
@@ -108,7 +95,6 @@ impl Parser {
                 self.expect_kind(ParenOpen)?;
                 let (args, ret_type) = self.parse_fn_type_list()?;
                 self.expect_kind(Assign)?;
-                self.module.env.insert(name.clone(), ret_type.clone());
                 let body = self.parse_expression()?;
                 let expr = Expression::FnDecl(Box::new(FnDecl {
                     loc: token.loc,
@@ -117,7 +103,6 @@ impl Parser {
                     ret_type,
                     body,
                 }));
-                infer(&mut self.module, &expr, 1)?;
                 self.module.push(expr);
                 Ok(())
             }
@@ -215,7 +200,7 @@ impl Parser {
     fn parse_fn_type_list(&mut self) -> Result<(Vec<(String, CHSType)>, CHSType), CHSError> {
         use chs_lexer::TokenKind::*;
         let mut list = vec![];
-        let mut ret_type = CHSType::Const("()".to_string());
+        let mut ret_type = CHSVOID.clone();
         loop {
             let ptoken = self.peek();
             match ptoken.kind {
