@@ -1,4 +1,4 @@
-use chs_ast::Parser;
+use chs_ast::{types::{infer, InferEnv}, Parser};
 use chs_lexer::Lexer;
 use std::{
     env::{self, Args},
@@ -38,6 +38,29 @@ fn main() {
                     }
                 }
             }
+            "eval" => {
+                let (fpath, bytes) = get_file(&mut args);
+                let lex = Lexer::new(fpath, bytes);
+                let parser = Parser::new(lex);
+                match parser.parse() {
+                    Ok(ok) => {
+                        let mut env = InferEnv::default();
+                        for expr in &ok.top_level {
+                            match infer(&mut env, expr, 0) {
+                                Err(err) => {
+                                    eprintln!("{err}");
+                                    exit(1)
+                                }
+                                _ => ()
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("{err}");
+                        exit(1)
+                    }
+                }
+            }
             "version" => {
                 println!("Version: 0.0.1");
             }
@@ -60,6 +83,8 @@ fn usage(program_path: &String) {
     println!("Command:");
     println!("  version                Display compiler version information.");
     println!("  lex                    Dump tokens from a file.");
+    println!("  parse                  Dump AST from a file.");
+    println!("  eval                   Evaluate a file.");
     println!("  help                   Show this message.");
 }
 

@@ -1,32 +1,19 @@
-use std::collections::HashMap;
-
 use chs_lexer::Token;
 use chs_util::{chs_error, CHSError, Loc};
 
-use crate::types::{CHSType, CHSTypeId};
+use crate::types::CHSType;
 
 #[derive(Debug, Default)]
 pub struct Module {
     pub top_level: Vec<Expression>,
-    pub env: HashMap<String, CHSType>,
-    pub id: CHSTypeId,
 }
 
 impl Module {
-    pub fn with_env(env: HashMap<String, CHSType>) -> Self {
-        Self {
-            env,
-            ..Default::default()
-        }
-    }
 
     pub fn push(&mut self, expr: Expression) {
         self.top_level.push(expr);
     }
 
-    pub fn set_env(&mut self, env: HashMap<String, CHSType>) {
-        self.env = env;
-    }
 }
 
 pub type VarId = usize;
@@ -103,7 +90,7 @@ pub struct VarDecl {
     pub loc: Loc,
     pub name: String,
     pub value: Expression,
-    pub ttype: CHSType,
+    pub ttype: Option<CHSType>,
 }
 
 #[derive(Debug)]

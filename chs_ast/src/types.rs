@@ -10,7 +10,7 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use chs_util::{chs_error, CHSError};
 
-use crate::nodes::{Expression, Literal, Module, Var};
+use crate::nodes::{Expression, Literal, Var};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct CHSTypeId(usize);
@@ -73,7 +73,7 @@ impl CHSType {
     }
 }
 
-pub fn generalize(ty: CHSType, level: CHSTypeLevel) -> CHSType {
+fn generalize(ty: CHSType, level: CHSTypeLevel) -> CHSType {
     match ty {
         CHSType::Var(CHSTypeVar::Unbound(mut id, other_level)) if other_level > level => {
             CHSType::new_gen_var(&mut id)
@@ -112,8 +112,8 @@ let rec generalize level = function
     | TVar {contents = Generic _} | TVar {contents = Unbound _} | TConst _ as ty -> ty
 */
 
-pub fn instantiate(
-    m: &mut Module,
+fn instantiate(
+    m: &mut InferEnv,
     id_var: &mut HashMap<usize, CHSType>,
     ty: CHSType,
     level: CHSTypeLevel,
@@ -172,8 +172,8 @@ let instantiate level ty =
     f ty
 */
 
-pub fn match_fun_ty(
-    m: &mut Module,
+fn match_fun_ty(
+    m: &mut InferEnv,
     num_params: usize,
     ty: &mut CHSType,
 ) -> Result<(Vec<CHSType>, CHSType), CHSError> {
@@ -223,13 +223,12 @@ let rec match_fun_ty num_params = function
     | _ -> error "expected a function"
 */
 
-pub fn unify(ty1: CHSType, ty2: CHSType) -> Result<CHSType, CHSError> {
+fn unify(ty1: CHSType, ty2: CHSType) -> Result<CHSType, CHSError> {
     use CHSType::*;
-    dbg!(&ty1, &ty2);
     if ty1 == ty2 {
         return Ok(ty1);
     }
-    let res = match (ty1, ty2) {
+    match (ty1, ty2) {
         (Const(n1), Const(n2)) if n1 == n2 => Ok(CHSType::Const(n1)),
         (App(ty1, ty_arg_list1), App(ty2, ty_arg_list2)) => {
             let ty1 = unify(*ty1, *ty2)?;
@@ -265,9 +264,7 @@ pub fn unify(ty1: CHSType, ty2: CHSType) -> Result<CHSType, CHSError> {
             Ok(Var(CHSTypeVar::Link(ty.clone().into())))
         }
         (ty1, ty2) => chs_error!("cannot unify types {:?} and {:?}", ty1, ty2),
-    };
-    dbg!(&res);
-    res
+    }
 }
 
 /*
@@ -291,7 +288,7 @@ let rec unify ty1 ty2 =
         | _, _ -> error ("cannot unify types " ^ string_of_ty ty1 ^ " and " ^ string_of_ty ty2)
 */
 
-pub fn occurs_check_adjust_levels(
+fn occurs_check_adjust_levels(
     id: &mut CHSTypeId,
     level: &mut CHSTypeLevel,
     ty: &mut CHSType,
@@ -349,7 +346,13 @@ let occurs_check_adjust_levels tvar_id tvar_level ty =
     f ty
 */
 
-pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<CHSType, CHSError> {
+#[derive(Debug, Default, Clone)]
+pub struct InferEnv {
+    pub env: HashMap<String, CHSType>,
+    pub id: CHSTypeId,
+}
+
+pub fn infer(m: &mut InferEnv, expr: &Expression, level: CHSTypeLevel) -> Result<CHSType, CHSError> {
     match expr {
         Expression::Literal(literal) => match literal {
             Literal::IntegerLiteral { .. }  => return Ok(CHSINT.clone()),
@@ -363,21 +366,18 @@ pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<C
             let var_ty = infer(m, &v.value, level + 1)?;
             let generalized_ty = generalize(var_ty, level);
             m.env.insert(v.name.clone(), generalized_ty);
-            return Ok(CHSType::Const("()".into()));
+            return Ok(CHSVOID.clone());
         }
         Expression::FnDecl(fd) => {
-            let prev_env = m.env.clone();
-            m.env.extend(fd.args.clone());
-            let ret_type = unify(fd.ret_type.clone(), infer(m, &fd.body, level)?)?;
-            m.env = prev_env;
-            m.env.insert(
-                fd.name.clone(),
-                CHSType::Arrow(
-                    fd.args.clone().into_iter().map(|(_, t)| t).collect(),
-                    ret_type.into(),
-                ),
-            );
-            return Ok(CHSType::Const("()".into()));
+            let mut fn_env = m.clone();
+            fn_env.env.extend(fd.args.clone());
+            fn_env.env.insert(fd.name.clone(), CHSType::Arrow(
+                fd.args.clone().into_iter().map(|(_, t)| t).collect(),
+                fd.ret_type.clone().into(),
+            ));
+            unify(fd.ret_type.clone(), infer(&mut fn_env, &fd.body, level)?)?;
+            m.env.insert(fd.name.clone(), fn_env.env.get(&fd.name).cloned().unwrap());
+            return Ok(CHSVOID.clone());
         }
         Expression::Var(Var { name, loc: _ }) => {
             if let Some(ty) = m.env.get(name) {
@@ -419,66 +419,5 @@ pub fn infer(m: &mut Module, expr: &Expression, level: CHSTypeLevel) -> Result<C
             }
             Ok(CHSType::Const("()".to_string()))
         }
-    }
-}
-
-/*
-    | Var name -> begin
-            try
-                instantiate level (Env.lookup env name)
-            with Not_found -> error ("variable " ^ name ^ " not found")
-        end
-    | Fun(param_list, body_expr) ->
-            let param_ty_list = List.map (fun _ -> new_var level) param_list in
-            let fn_env = List.fold_left2
-                (fun env param_name param_ty -> Env.extend env param_name param_ty)
-                env param_list param_ty_list
-            in
-            let return_ty = infer fn_env level body_expr in
-            TArrow(param_ty_list, return_ty)
-    | Let(var_name, value_expr, body_expr) ->
-            let var_ty = infer env (level + 1) value_expr in
-            let generalized_ty = generalize level var_ty in
-            infer (Env.extend env var_name generalized_ty) level body_expr
-    | Call(fn_expr, arg_list) ->
-            let param_ty_list, return_ty =
-                match_fun_ty (List.length arg_list) (infer env level fn_expr)
-            in
-            List.iter2
-                (fun param_ty arg_expr -> unify param_ty (infer env level arg_expr))
-                param_ty_list arg_list
-            ;
-            return_ty
-*/
-
-#[cfg(test)]
-mod tests {
-    use chs_util::Loc;
-
-    use crate::nodes::VarDecl;
-
-    use super::*;
-
-    #[test]
-    fn test_name() {
-        let mut m = Module::default();
-        m.push(Expression::VarDecl(Box::new(VarDecl {
-            name: "x".into(),
-            value: Expression::Literal(Literal::IntegerLiteral {
-                loc: Loc::default(),
-                value: 10,
-            }),
-            loc: Loc::default(),
-            ttype: CHSType::Const("int".into()),
-        })));
-        let res = infer(
-            &mut m,
-            &Expression::Literal(Literal::IntegerLiteral {
-                loc: Loc::default(),
-                value: 10,
-            }),
-            1,
-        );
-        assert!(res.is_ok())
     }
 }
