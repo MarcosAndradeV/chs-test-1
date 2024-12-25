@@ -357,24 +357,25 @@ pub fn infer(m: &mut InferEnv, expr: &Expression, level: CHSTypeLevel) -> Result
         Expression::Literal(literal) => match literal {
             Literal::IntegerLiteral { .. }  => return Ok(CHSINT.clone()),
             Literal::BooleanLiteral { .. }  => return Ok(CHSBOOL.clone()),
-            Literal::StringLiteral  { .. }  => return Ok(CHSType::App(
-                CHSType::Const("pointer".to_string()).into(),
-                vec![CHSCHAR.clone()],
-            )),
+            Literal::StringLiteral  { .. }  => return Ok(CHSSTRING.clone()),
         },
         Expression::VarDecl(v) => {
             let var_ty = infer(m, &v.value, level + 1)?;
             let generalized_ty = generalize(var_ty, level);
-            m.env.insert(v.name.clone(), generalized_ty);
+            if m.env.insert(v.name.clone(), generalized_ty).is_some() {
+                chs_error!("Redeclaration of {}", v.name)
+            }
             return Ok(CHSVOID.clone());
         }
         Expression::FnDecl(fd) => {
             let mut fn_env = m.clone();
             fn_env.env.extend(fd.args.clone());
-            fn_env.env.insert(fd.name.clone(), CHSType::Arrow(
+            if fn_env.env.insert(fd.name.clone(), CHSType::Arrow(
                 fd.args.clone().into_iter().map(|(_, t)| t).collect(),
                 fd.ret_type.clone().into(),
-            ));
+            )).is_some() {
+                chs_error!("Redeclaration of {}", fd.name)
+            }
             unify(fd.ret_type.clone(), infer(&mut fn_env, &fd.body, level)?)?;
             m.env.insert(fd.name.clone(), fn_env.env.get(&fd.name).cloned().unwrap());
             return Ok(CHSVOID.clone());
@@ -412,12 +413,12 @@ pub fn infer(m: &mut InferEnv, expr: &Expression, level: CHSTypeLevel) -> Result
             }
             chs_error!("Expect pointer")
         }
-        Expression::Print(expr) => {
-            let ty = infer(m, &expr, level)?;
-            if *CHSSTRING != ty {
-                chs_error!("Expect string")
+        Expression::ExprList(exprs) => {
+            let mut ty = CHSVOID.clone(); 
+            for expr in exprs.iter() {
+                ty = infer(m, expr, level)?;
             }
-            Ok(CHSType::Const("()".to_string()))
-        }
+            Ok(ty)
+        },
     }
 }

@@ -2,30 +2,6 @@ use chs_util::Loc;
 use core::fmt;
 use std::path::PathBuf;
 
-const fn is_word_separator(c: u8) -> bool {
-    matches!(
-        c,
-        b'"'
-        | b'#'
-        | b'!'
-            | b'*'
-            | b'&'
-            | b'-'
-            | b'>'
-            | b':'
-            | b'='
-            | b';'
-            | b'.'
-            | b','
-            | b'['
-            | b']'
-            | b'{'
-            | b'}'
-            | b'('
-            | b')'
-    ) || c.is_ascii_whitespace()
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
     Invalid,
@@ -33,7 +9,7 @@ pub enum TokenKind {
 
     Interger,
     Keyword,
-    Word,
+    Ident,
     String,
 
     Assign,
@@ -65,10 +41,8 @@ impl Default for TokenKind {
 impl TokenKind {
     fn from_word_or_keyword(value: &String) -> Self {
         match value.as_str() {
-            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" | "print" => {
-                Self::Keyword
-            }
-            _ => Self::Word,
+            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" => Self::Keyword,
+            _ => Self::Ident,
         }
     }
     pub fn is_eof(&self) -> bool {
@@ -81,7 +55,7 @@ impl fmt::Display for TokenKind {
         match self {
             TokenKind::Invalid => write!(f, "Invalid"),
             TokenKind::EOF => write!(f, "EOF"),
-            TokenKind::Word => write!(f, "Word"),
+            TokenKind::Ident => write!(f, "Ident"),
             TokenKind::Interger => write!(f, "Interger"),
             TokenKind::Keyword => write!(f, "Keyword"),
             TokenKind::Assign => write!(f, "Assign"),
@@ -125,7 +99,6 @@ impl fmt::Display for Token {
             write!(f, "{} {:?}(ESCAPE THE STRINGS)", self.loc, self.kind)
         } else {
             write!(f, "{} {:?}({})", self.loc, self.kind, self.value)
-
         }
     }
 }
@@ -162,7 +135,7 @@ impl Lexer {
         self.read_pos += 1;
         self.loc.next(self.ch);
     }
-    #[allow(dead_code)]
+
     fn peek_char(&mut self) -> u8 {
         if self.pos >= self.input.len() {
             0
@@ -204,10 +177,11 @@ impl Lexer {
             b'}' => self.make_token(CurlyClose, "}"),
             b'[' => self.make_token(SquareOpen, "["),
             b']' => self.make_token(SquareClose, "]"),
+            b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.word(),
             b'"' => self.string(),
             b'0'..=b'9' => self.number(),
             0 => self.make_token(EOF, "\0"),
-            _ => self.word(),
+            _ => self.make_token(Invalid, "")
         }
     }
 
@@ -292,15 +266,12 @@ impl Lexer {
         let loc = self.loc.clone();
 
         loop {
-            if is_word_separator(self.ch) {
+            if !matches!(self.ch, b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'0'..=b'9') {
                 break;
             }
             self.read_char();
         }
         let value: String = String::from_utf8_lossy(&self.input[start_pos..self.pos]).into();
-        if value.is_empty() {
-            return self.make_token(TokenKind::Invalid, value.as_str());
-        }
         Token {
             kind: TokenKind::from_word_or_keyword(&value),
             value,
@@ -337,7 +308,7 @@ mod tests {
         let tlex = LexTester::new();
         let tests = &[
             tlex.gen_token(Assign, "="),
-            tlex.gen_token(Word, "+"),
+            tlex.gen_token(Ident, "+"),
             tlex.gen_token(ParenOpen, "("),
             tlex.gen_token(ParenClose, ")"),
             tlex.gen_token(CurlyOpen, "{"),
@@ -361,19 +332,19 @@ mod tests {
         .to_string();
         let tlex = LexTester::new();
         let tests = &[
-            tlex.gen_token(Word, "x"),
+            tlex.gen_token(Ident, "x"),
             tlex.gen_token(Colon, ":"),
             tlex.gen_token(Assign, "="),
             tlex.gen_token(Interger, "5"),
             tlex.gen_token(Semicolon, ";"),
-            tlex.gen_token(Word, "y"),
+            tlex.gen_token(Ident, "y"),
             tlex.gen_token(Colon, ":"),
             tlex.gen_token(Assign, "="),
             tlex.gen_token(Interger, "5"),
             tlex.gen_token(Semicolon, ";"),
-            tlex.gen_token(Word, "x"),
-            tlex.gen_token(Word, "+"),
-            tlex.gen_token(Word, "y"),
+            tlex.gen_token(Ident, "x"),
+            tlex.gen_token(Ident, "+"),
+            tlex.gen_token(Ident, "y"),
             tlex.gen_token(Semicolon, ";"),
         ];
         let mut lex = Lexer::new(file!().into(), input.into_bytes());
@@ -393,7 +364,7 @@ mod tests {
         let tests = &[
             tlex.gen_token(Bang, "!"),
             tlex.gen_token(Minus, "-"),
-            tlex.gen_token(Word, "/"),
+            tlex.gen_token(Ident, "/"),
             tlex.gen_token(Asterisk, "*"),
             tlex.gen_token(Interger, "5"),
             tlex.gen_token(Semicolon, ";"),

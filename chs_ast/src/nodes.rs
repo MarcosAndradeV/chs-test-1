@@ -1,3 +1,7 @@
+
+
+use std::slice::Iter;
+
 use chs_lexer::Token;
 use chs_util::{chs_error, CHSError, Loc};
 
@@ -27,7 +31,7 @@ pub enum Expression {
     Call(Box<Call>),
     Ref(Box<Self>),
     Deref(Box<Self>),
-    Print(Box<Self>),
+    ExprList(Vec<Expression>)
 }
 
 impl Expression {
@@ -70,13 +74,37 @@ impl Expression {
             _ => todo!(),
         }
     }
+
+    pub fn len(&self) -> usize {
+        if let Expression::ExprList(v) = self {
+            v.len()
+        } else {
+            1
+        }
+    }
+
+    pub fn iter(&self) -> Iter<'_, Expression> {
+        if let Expression::ExprList(ls) = self {
+            ls.iter()
+        } else {
+            unreachable!("aaaaa")
+        }
+    }
+
+    pub fn to_list(self) -> Expression {
+        if let Expression::ExprList(_) = self {
+            self
+        } else {
+            Expression::ExprList(vec![self])
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct Call {
     pub loc: Loc,
     pub caller: Expression,
-    pub args: Vec<Expression>,
+    pub args: Expression,
 }
 
 #[derive(Debug)]
