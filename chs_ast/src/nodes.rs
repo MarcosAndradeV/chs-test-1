@@ -90,14 +90,6 @@ impl Expression {
             unreachable!("aaaaa")
         }
     }
-
-    pub fn to_list(self) -> Expression {
-        if let Expression::ExprList(_) = self {
-            self
-        } else {
-            Expression::ExprList(vec![self])
-        }
-    }
 }
 
 #[derive(Debug)]

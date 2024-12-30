@@ -1,6 +1,7 @@
 use core::fmt;
 use std::path::PathBuf;
 pub struct CHSError(pub String);
+pub type CHSResult<T> = Result<T, CHSError>;
 
 impl fmt::Debug for CHSError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
