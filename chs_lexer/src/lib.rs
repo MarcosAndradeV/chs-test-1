@@ -20,6 +20,8 @@ pub enum TokenKind {
     Asterisk,
     Ampersand,
     Arrow,
+    Plus,
+    Slash,
     Minus,
     NotEq,
     Bang,
@@ -76,6 +78,8 @@ impl fmt::Display for TokenKind {
             TokenKind::NotEq => write!(f, "NotEq"),
             TokenKind::Bang => write!(f, "Bang"),
             TokenKind::String => write!(f, "String"),
+            TokenKind::Plus => write!(f, "Plus"),
+            TokenKind::Slash => write!(f, "Slash"),
         }
     }
 }
@@ -168,7 +172,9 @@ impl Lexer {
             b'.' => self.make_token(Dot, "."),
             b'=' => self.make_token(Assign, "="),
             b'*' => self.make_token(Asterisk, "*"),
-            b'&' => self.make_token(Ampersand, "*"),
+            b'/' => self.make_token(Slash, "/"),
+            b'+' => self.make_token(Plus, "+"),
+            b'&' => self.make_token(Ampersand, "&"),
             b',' => self.make_token(Comma, ","),
             b';' => self.make_token(Semicolon, ";"),
             b'(' => self.make_token(ParenOpen, "("),
@@ -308,7 +314,7 @@ mod tests {
         let tlex = LexTester::new();
         let tests = &[
             tlex.gen_token(Assign, "="),
-            tlex.gen_token(Ident, "+"),
+            tlex.gen_token(Plus, "+"),
             tlex.gen_token(ParenOpen, "("),
             tlex.gen_token(ParenClose, ")"),
             tlex.gen_token(CurlyOpen, "{"),
@@ -343,7 +349,7 @@ mod tests {
             tlex.gen_token(Interger, "5"),
             tlex.gen_token(Semicolon, ";"),
             tlex.gen_token(Ident, "x"),
-            tlex.gen_token(Ident, "+"),
+            tlex.gen_token(Plus, "+"),
             tlex.gen_token(Ident, "y"),
             tlex.gen_token(Semicolon, ";"),
         ];
@@ -364,7 +370,7 @@ mod tests {
         let tests = &[
             tlex.gen_token(Bang, "!"),
             tlex.gen_token(Minus, "-"),
-            tlex.gen_token(Ident, "/"),
+            tlex.gen_token(Slash, "/"),
             tlex.gen_token(Asterisk, "*"),
             tlex.gen_token(Interger, "5"),
             tlex.gen_token(Semicolon, ";"),
