@@ -25,11 +25,16 @@ impl Parser {
     }
 
     fn next(&mut self) -> Token {
-        let token = self
-            .peeked
-            .take()
-            .unwrap_or_else(|| self.lexer.next_token());
-        return token;
+        loop {
+            let token = self
+                .peeked
+                .take()
+                .unwrap_or_else(|| self.lexer.next_token());
+            if token.kind == TokenKind::Comment {
+                continue;
+            }
+            return token;
+        }
     }
 
     fn expect_kind(&mut self, kind: TokenKind) -> Result<Token, CHSError> {

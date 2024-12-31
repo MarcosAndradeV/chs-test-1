@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub enum TokenKind {
     Invalid,
     EOF,
+    Comment,
 
     Interger,
     Keyword,
@@ -44,7 +45,9 @@ impl Default for TokenKind {
 impl TokenKind {
     fn from_word_or_keyword(value: &String) -> Self {
         match value.as_str() {
-            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" => Self::Keyword,
+            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" => {
+                Self::Keyword
+            }
             _ => Self::Ident,
         }
     }
@@ -82,6 +85,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Plus => write!(f, "Plus"),
             TokenKind::Slash => write!(f, "Slash"),
             TokenKind::Eq => write!(f, "Eq"),
+            TokenKind::Comment => write!(f, "Comment"),
         }
     }
 }
@@ -152,8 +156,11 @@ impl Lexer {
     pub fn next_token(&mut self) -> Token {
         use TokenKind::*;
         self.skip_whitespace();
-        self.skip_comment();
         match self.ch {
+            b'#' => {
+                self.skip_comment();
+                self.make_token(Comment, "")
+            }
             b'-' => {
                 if self.peek_char() == b'>' {
                     self.read_char();
@@ -196,7 +203,7 @@ impl Lexer {
             b'"' => self.string(),
             b'0'..=b'9' => self.number(),
             0 => self.make_token(EOF, "\0"),
-            _ => self.make_token(Invalid, "")
+            _ => self.make_token(Invalid, ""),
         }
     }
 
@@ -220,13 +227,10 @@ impl Lexer {
     }
 
     fn skip_comment(&mut self) {
-        if self.ch == b'#' {
-            loop {
-                if self.ch.is_ascii_control() {
-                    self.read_char();
-                    break;
-                }
-                self.read_char();
+        loop {
+            self.read_char();
+            if matches!(self.ch, b'\n' | b'\0') {
+                break;
             }
         }
     }
