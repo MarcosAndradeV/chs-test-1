@@ -6,11 +6,11 @@
 //
 //
 
-use std::{collections::HashMap, sync::LazyLock};
+use std::{collections::HashMap, fmt, sync::LazyLock};
 
 use chs_util::{chs_error, CHSError};
 
-use crate::nodes::{Expression, Literal, Var};
+use crate::nodes::{Expression, Literal, TopLevelExpression, Var};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct CHSTypeId(usize);
@@ -35,7 +35,26 @@ pub enum CHSType {
     Var(CHSTypeVar),
 }
 
-pub static CHSINT: LazyLock<CHSType>  = LazyLock::new(|| CHSType::Const("int".to_string()));
+impl fmt::Display for CHSType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CHSType::Const(n) => write!(f, "{n}"),
+            CHSType::App(a, b) => {
+                write!(f, "{a} -> [")?;
+                for (i, item) in b.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", item)?;
+                }
+                write!(f, "]")
+            },
+            _ => todo!(),
+        }
+    }
+}
+
+pub static CHSINT: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("int".to_string()));
 pub static CHSBOOL: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("bool".to_string()));
 pub static CHSCHAR: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("char".to_string()));
 pub static CHSVOID: LazyLock<CHSType> = LazyLock::new(|| CHSType::Const("void".to_string()));
@@ -352,12 +371,46 @@ pub struct InferEnv {
     pub id: CHSTypeId,
 }
 
-pub fn infer(m: &mut InferEnv, expr: &Expression, level: CHSTypeLevel) -> Result<CHSType, CHSError> {
+pub fn infer_top_level(
+    m: &mut InferEnv,
+    expr: &TopLevelExpression,
+    level: CHSTypeLevel,
+) -> Result<CHSType, CHSError> {
+    match expr {
+        TopLevelExpression::FnDecl(fd) => {
+            let mut fn_env = m.clone();
+            fn_env.env.extend(fd.args.clone());
+            if fn_env
+                .env
+                .insert(
+                    fd.name.clone(),
+                    CHSType::Arrow(
+                        fd.args.clone().into_iter().map(|(_, t)| t).collect(),
+                        fd.ret_type.clone().into(),
+                    ),
+                )
+                .is_some()
+            {
+                chs_error!("Redeclaration of {}", fd.name)
+            }
+            unify(fd.ret_type.clone(), infer(&mut fn_env, &fd.body, level)?)?;
+            m.env
+                .insert(fd.name.clone(), fn_env.env.get(&fd.name).cloned().unwrap());
+            return Ok(CHSVOID.clone());
+        }
+    }
+}
+
+pub fn infer(
+    m: &mut InferEnv,
+    expr: &Expression,
+    level: CHSTypeLevel,
+) -> Result<CHSType, CHSError> {
     match expr {
         Expression::Literal(literal) => match literal {
-            Literal::IntegerLiteral { .. }  => return Ok(CHSINT.clone()),
-            Literal::BooleanLiteral { .. }  => return Ok(CHSBOOL.clone()),
-            Literal::StringLiteral  { .. }  => return Ok(CHSSTRING.clone()),
+            Literal::IntegerLiteral { .. } => return Ok(CHSINT.clone()),
+            Literal::BooleanLiteral { .. } => return Ok(CHSBOOL.clone()),
+            Literal::StringLiteral { .. } => return Ok(CHSSTRING.clone()),
         },
         Expression::VarDecl(v) => {
             let var_ty = infer(m, &v.value, level + 1)?;
@@ -365,19 +418,6 @@ pub fn infer(m: &mut InferEnv, expr: &Expression, level: CHSTypeLevel) -> Result
             if m.env.insert(v.name.clone(), generalized_ty).is_some() {
                 chs_error!("Redeclaration of {}", v.name)
             }
-            return Ok(CHSVOID.clone());
-        }
-        Expression::FnDecl(fd) => {
-            let mut fn_env = m.clone();
-            fn_env.env.extend(fd.args.clone());
-            if fn_env.env.insert(fd.name.clone(), CHSType::Arrow(
-                fd.args.clone().into_iter().map(|(_, t)| t).collect(),
-                fd.ret_type.clone().into(),
-            )).is_some() {
-                chs_error!("Redeclaration of {}", fd.name)
-            }
-            unify(fd.ret_type.clone(), infer(&mut fn_env, &fd.body, level)?)?;
-            m.env.insert(fd.name.clone(), fn_env.env.get(&fd.name).cloned().unwrap());
             return Ok(CHSVOID.clone());
         }
         Expression::Var(Var { name, loc: _ }) => {
@@ -414,11 +454,29 @@ pub fn infer(m: &mut InferEnv, expr: &Expression, level: CHSTypeLevel) -> Result
             chs_error!("Expect pointer")
         }
         Expression::ExprList(exprs) => {
-            let mut ty = CHSVOID.clone(); 
+            let mut ty = CHSVOID.clone();
             for expr in exprs.iter() {
                 ty = infer(m, expr, level)?;
             }
             Ok(ty)
-        },
+        }
+        Expression::Binop(b) => {
+            if b.op.is_logical() {
+                let tleft = infer(m, &b.left, level)?;
+                let tright = infer(m, &b.right, level)?;
+                unify(CHSBOOL.clone(), tleft)?;
+                unify(CHSBOOL.clone(), tright)?;
+                Ok(CHSBOOL.clone())
+            } else {
+                let tleft = infer(m, &b.left, level)?;
+                let tright = infer(m, &b.right, level)?;
+                unify(CHSINT.clone(), tleft)?;
+                unify(CHSINT.clone(), tright)?;
+                Ok(CHSINT.clone())
+            }
+        }
+        Expression::Group(v) => {
+            infer(m, &v, level)
+        }
     }
 }

@@ -23,6 +23,7 @@ pub enum TokenKind {
     Plus,
     Slash,
     Minus,
+    Eq,
     NotEq,
     Bang,
 
@@ -80,6 +81,7 @@ impl fmt::Display for TokenKind {
             TokenKind::String => write!(f, "String"),
             TokenKind::Plus => write!(f, "Plus"),
             TokenKind::Slash => write!(f, "Slash"),
+            TokenKind::Eq => write!(f, "Eq"),
         }
     }
 }
@@ -163,14 +165,21 @@ impl Lexer {
             b'!' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
-                    self.make_token(NotEq, "->")
+                    self.make_token(NotEq, "!=")
                 } else {
                     self.make_token(Bang, "!")
                 }
             }
             b':' => self.make_token(Colon, ":"),
             b'.' => self.make_token(Dot, "."),
-            b'=' => self.make_token(Assign, "="),
+            b'=' => {
+                if self.peek_char() == b'=' {
+                    self.read_char();
+                    self.make_token(Eq, "==")
+                } else {
+                    self.make_token(Assign, "=")
+                }
+            }
             b'*' => self.make_token(Asterisk, "*"),
             b'/' => self.make_token(Slash, "/"),
             b'+' => self.make_token(Plus, "+"),

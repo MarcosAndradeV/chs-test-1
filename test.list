@@ -1,1 +1,2 @@
-./target/debug/chs lex tests/hello.chs
+./target/debug/chs tests/hello.chs
+./target/debug/chs tests/infix_ops.chs

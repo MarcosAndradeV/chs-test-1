@@ -1,13 +1,14 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
-use nodes::{Call, Expression, FnDecl, Module, Var, VarDecl};
+use nodes::{
+    Binop, Call, Expression, FnDecl, Module, Operator, Precedence, TopLevelExpression, Var, VarDecl,
+};
 use types::{CHSType, CHSBOOL, CHSCHAR, CHSINT, CHSSTRING, CHSVOID};
 
 pub mod nodes;
 pub mod types;
 
-// [Token] -> Module
-
+/// [Token] -> [Module]
 #[derive(Default)]
 pub struct Parser {
     lexer: Lexer,
@@ -77,7 +78,7 @@ impl Parser {
                 self.expect_kind(ParenOpen)?;
                 let (args, ret_type) = self.parse_fn_type()?;
                 let body = self.parse_expr_list(|tk| tk.val_eq("end"))?;
-                let expr = Expression::FnDecl(Box::new(FnDecl {
+                let expr = TopLevelExpression::FnDecl(Box::new(FnDecl {
                     loc: token.loc,
                     name,
                     args,
@@ -88,24 +89,17 @@ impl Parser {
                 Ok(())
             }
             _ => {
-                self.peeked = Some(token);
-                let expr = self.parse_expression()?;
-                self.module.push(expr);
-                Ok(())
-            } /*
-                  _ => {
-                      chs_error!(
-                          "{} Invalid Expression on top level {}('{}')",
-                          token.loc,
-                          token.kind,
-                          token.value
-                      )
-                  }
-              */
+                chs_error!(
+                    "{} Invalid Expression on top level {}('{}')",
+                    token.loc,
+                    token.kind,
+                    token.value
+                )
+            }
         }
     }
 
-    fn parse_expression(&mut self) -> Result<Expression, CHSError> {
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, CHSError> {
         use chs_lexer::TokenKind::*;
         let token = self.next();
         let mut left: Expression = match token.kind {
@@ -115,7 +109,7 @@ impl Parser {
                 if ttype.is_some() {
                     self.expect_kind(Assign)?;
                 }
-                let value = self.parse_expression()?;
+                let value = self.parse_expression(Precedence::Lowest)?;
                 let name = token.value;
                 Expression::VarDecl(Box::new(VarDecl {
                     loc: token.loc,
@@ -129,11 +123,11 @@ impl Parser {
                 Expression::from_literal_token(token)?
             }
             Ampersand => {
-                let expr = self.parse_expression()?;
+                let expr = self.parse_expression(Precedence::Prefix)?;
                 Expression::Ref(expr.into())
             }
             Asterisk => {
-                let expr = self.parse_expression()?;
+                let expr = self.parse_expression(Precedence::Prefix)?;
                 Expression::Deref(expr.into())
             }
             Ident => Expression::Var(Var {
@@ -141,6 +135,11 @@ impl Parser {
                 name: token.value,
             }),
             String => Expression::from_literal_token(token)?,
+            ParenOpen => {
+                let expr = self.parse_expression(Precedence::Lowest)?;
+                self.expect_kind(ParenClose)?;
+                Expression::Group(expr.into())
+            }
             _ => chs_error!(
                 "{} Unexpected token {}('{}')",
                 token.loc,
@@ -154,20 +153,51 @@ impl Parser {
                 ParenOpen => {
                     let ptoken = self.next();
                     let args = self.parse_expr_list(|tk| tk.kind == ParenClose)?;
-                    let call = Expression::Call(Call {
-                        loc: ptoken.loc,
-                        caller: left,
-                        args,
-                    }.into());
+                    let call = Expression::Call(
+                        Call {
+                            loc: ptoken.loc,
+                            caller: left,
+                            args,
+                        }
+                        .into(),
+                    );
                     left = call;
+                    return Ok(left);
+                }
+                Plus | Asterisk | Slash | Minus | Eq | NotEq => {
+                    if precedence < Operator::from_token(&ptoken)?.precedence() {
+                        let token = self.next();
+                        let infix = self.parse_infix_expression(token, left)?;
+                        left = infix
+                    } else {
+                        return Ok(left);
+                    }
                 }
                 _ => return Ok(left),
             }
         }
     }
 
-    fn parse_expr_list<F>(&mut self, pred: F) -> Result<Expression, CHSError> where
-    F: Fn(&Token) -> bool
+    fn parse_infix_expression(
+        &mut self,
+        token: Token,
+        left: Expression,
+    ) -> Result<Expression, CHSError> {
+        let right = self.parse_expression(Operator::from_token(&token)?.precedence())?;
+        Ok(Expression::Binop(
+            Binop {
+                op: Operator::from_token(&token)?,
+                loc: token.loc,
+                right,
+                left,
+            }
+            .into(),
+        ))
+    }
+
+    fn parse_expr_list<F>(&mut self, pred: F) -> Result<Expression, CHSError>
+    where
+        F: Fn(&Token) -> bool,
     {
         use chs_lexer::TokenKind::*;
         let mut args = vec![];
@@ -183,7 +213,7 @@ impl Parser {
                     continue;
                 }
                 _ => {
-                    let value = self.parse_expression()?;
+                    let value = self.parse_expression(Precedence::Lowest)?;
                     args.push(value);
                 }
             }

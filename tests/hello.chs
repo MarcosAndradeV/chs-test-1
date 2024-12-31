@@ -1,1 +1,3 @@
-print "Hello, world\n"
+fn main()
+    print("Hello, world\n")
+end
