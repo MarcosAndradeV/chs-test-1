@@ -18,8 +18,10 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(lexer: Lexer) -> Self {
+        let modname = lexer.get_filename().with_extension("").to_string_lossy().to_string().replace("/", ".");
         Self {
             lexer,
+            module: Module { name: modname, ..Default::default() },
             ..Default::default()
         }
     }

@@ -8,19 +8,20 @@ use crate::types::CHSType;
 
 #[derive(Debug, Default)]
 pub struct Module {
-    pub top_level: Vec<TopLevelExpression>,
+    pub name: String,
+    pub expressions: Vec<TopLevelExpression>,
 }
 
 impl Module {
     pub fn push(&mut self, expr: TopLevelExpression) {
-        self.top_level.push(expr);
+        self.expressions.push(expr);
     }
 }
 
 impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Module")?;
-        for expr in &self.top_level {
+        writeln!(f, "Module: {}", self.name)?;
+        for expr in &self.expressions {
             writeln!(f, " {expr} ")?;
         }
         Ok(())
