@@ -3,7 +3,7 @@ use chs_util::{chs_error, CHSError};
 use nodes::{
     Binop, Call, Expression, FnDecl, Module, Operator, Precedence, TopLevelExpression, Var, VarDecl,
 };
-use types::{CHSType, CHSBOOL, CHSCHAR, CHSINT, CHSSTRING, CHSVOID};
+use types::CHSType;
 
 pub mod nodes;
 pub mod types;
@@ -230,7 +230,7 @@ impl Parser {
     fn parse_fn_type(&mut self) -> Result<(Vec<(String, CHSType)>, CHSType), CHSError> {
         use chs_lexer::TokenKind::*;
         let mut list = vec![];
-        let mut ret_type = CHSVOID.clone();
+        let mut ret_type = CHSType::void();
         loop {
             let ptoken = self.peek();
             match ptoken.kind {
@@ -267,17 +267,13 @@ impl Parser {
         use chs_lexer::TokenKind::*;
         let ttoken = self.next();
         let ttype = match ttoken.kind {
-            Ident if ttoken.val_eq("int") => Some(CHSINT.clone()),
-            Ident if ttoken.val_eq("bool") => Some(CHSBOOL.clone()),
-            Ident if ttoken.val_eq("char") => Some(CHSCHAR.clone()),
-            Ident if ttoken.val_eq("void") => Some(CHSVOID.clone()),
-            Ident if ttoken.val_eq("string") => Some(CHSSTRING.clone()),
+            Ident if ttoken.val_eq("int")    => Some(CHSType::int()),
+            Ident if ttoken.val_eq("bool")   => Some(CHSType::bool()),
+            Ident if ttoken.val_eq("char")   => Some(CHSType::char()),
+            Ident if ttoken.val_eq("void")   => Some(CHSType::void()),
             Asterisk => {
                 if let Some(ttp) = self.parse_type()? {
-                    Some(CHSType::App(
-                        CHSType::Const("pointer".to_string()).into(),
-                        vec![ttp],
-                    ))
+                    Some(CHSType::Pointer(ttp.into()))
                 } else {
                     chs_error!("Expect type")
                 }
