@@ -1,89 +1,81 @@
 #[derive(Debug, Default, Clone, Copy)]
-enum Instruction {
+pub enum Instruction {
     #[default]
-    Nop,
+    Halt,
     PushConst(i64),
     Drop(usize),
-
-    AllocLocal(usize),
-    DeallocLocal(usize),
-    SetLocal(usize),
-    ISetLocal(usize, i64),
-    GetLocal(usize),
-    RefLocal(usize),
-    Deref,
-
-    Call(isize),
-    Ret,
+    Add,
+    Sub,
 }
 
-#[derive(Debug, Default)]
-struct VM {
-    stack: Vec<i64>,
-    local_stack: Vec<i64>,
-    call_stack: Vec<usize>,
-    program: Vec<Instruction>,
+pub struct MainStack {
+    inner: Vec<i64>,
+}
+
+impl MainStack {
+    pub fn new(size: usize) -> Self {
+        Self {
+            inner: Vec::with_capacity(size),
+        }
+    }
+    pub fn push(&mut self, value: i64) {
+        self.inner.push(value);
+    }
+    pub fn pop(&mut self) -> Option<i64> {
+        self.inner.pop()
+    }
+    pub fn drop(&mut self, n: usize) {
+        let n = self.inner.len() - n;
+        self.inner.truncate(n);
+    }
+}
+
+pub struct VM {
+    stack: MainStack,
     ip: usize,
-}
-
-fn jump(addr: usize, rel: isize) -> usize {
-    (addr as isize + rel) as usize
-}
-fn jump_to(addr: usize, other: usize) -> isize {
-    other as isize - addr as isize
+    program: Vec<Instruction>
 }
 
 impl VM {
-    #[inline]
-    fn exec_instr(&mut self, instr: Instruction) {
-        dbg!(&self);
-        match instr {
-            Instruction::Nop => {}
-            Instruction::PushConst(con) => self.stack.push(con),
-            Instruction::Drop(n) => self.stack.truncate(self.stack.len() - n),
-            Instruction::AllocLocal(n) => {
-                self.local_stack.resize(self.local_stack.len() + n, 0);
-            }
-            Instruction::DeallocLocal(n) => {
-                self.local_stack.truncate(self.local_stack.len() - n);
-            }
-            Instruction::SetLocal(offset) => {
-                let a = self.stack.pop().unwrap();
-                let n = self.local_stack.len() - 1 - offset;
-                if let Some(b) = self.local_stack.get_mut(n) {
-                    *b = a;
+    pub fn new(program: Vec<Instruction>) -> Self {
+        Self {
+            stack: MainStack::new(1024),
+            program,
+            ip: 0,
+        }
+    }
+    pub fn run(&mut self) {
+        loop {
+            match self.program.get(self.ip) {
+                Some(Instruction::PushConst(value)) => {
+                    self.stack.push(*value);
+                    self.ip += 1;
                 }
-            }
-            Instruction::ISetLocal(offset, con) => {
-                let n = self.local_stack.len() - 1 - offset;
-                if let Some(b) = self.local_stack.get_mut(n) {
-                    *b = con;
+                Some(Instruction::Drop(value)) => {
+                    self.stack.drop(*value);
+                    self.ip += 1;
                 }
-            }
-            Instruction::GetLocal(offset) => {
-                let n = self.local_stack.len() - 1 - offset;
-                if let Some(b) = self.local_stack.get_mut(n) {
-                    self.stack.push(*b);
+                Some(Instruction::Add) => {
+                    if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
+                        self.stack.push(a + b);
+                    } else {
+                        panic!("Stack underflow during Add");
+                    }
+                    self.ip += 1;
                 }
-            }
-            Instruction::RefLocal(offset) => {
-                self.stack.push(offset as i64);
-            }
-            Instruction::Deref => {
-                let a = self.stack.last_mut().unwrap();
-                if let Some(b) = self.local_stack.get(*a as usize) {
-                    *a = *b;
+                Some(Instruction::Sub) => {
+                    if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
+                        self.stack.push(a - b);
+                    } else {
+                        panic!("Stack underflow during Sub");
+                    }
+                    self.ip += 1;
                 }
-            }
-            Instruction::Call(n) => {
-                self.call_stack.push(self.ip);
-                self.ip = jump(self.ip, n);
-            },
-            Instruction::Ret => {
-                if let Some(addr) = self.call_stack.pop() {
-                    self.ip = addr;
+                Some(Instruction::Halt) => {
+                    break;
                 }
-            },
+                None => panic!("Program counter out of bounds"),
+            }
         }
     }
 }
@@ -93,12 +85,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_vm() {
-        let mut vm = VM::default();
-        vm.exec_instr(Instruction::AllocLocal(1));
-        vm.exec_instr(Instruction::ISetLocal(0, 3));
-        vm.exec_instr(Instruction::GetLocal(0));
-        vm.exec_instr(Instruction::DeallocLocal(1));
-        assert!(vm.stack.last().is_some_and(|a| *a == 3))
+    fn test_vm_1() {
+        let mut vm = VM::new(vec![
+            Instruction::Halt
+        ]);
+        vm.run();
+        assert!(vm.stack.pop().is_none())
+    }
+
+    #[test]
+    fn test_vm_2() {
+        let mut vm = VM::new(vec![
+            Instruction::PushConst(10),
+            Instruction::PushConst(20),
+            Instruction::Add,
+            Instruction::PushConst(30),
+            Instruction::Sub,
+            Instruction::Drop(1),
+            Instruction::Halt
+        ]);
+        vm.run();
+        assert!(vm.stack.pop().is_none())
     }
 }
