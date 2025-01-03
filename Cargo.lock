@@ -33,3 +33,8 @@ version = "0.1.0"
 [[package]]
 name = "chsvm"
 version = "0.1.0"
+dependencies = [
+ "chs_ast",
+ "chs_lexer",
+ "chs_util",
+]
