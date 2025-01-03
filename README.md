@@ -1,23 +1,26 @@
-# CHS programing language
+# **CHS programing language**
+An experimental language designed for maximum portability. To write code once and seamlessly execute it across diverse environments.
 
-### Goals
-  - Static Typed
+### **Goals**
+
+* **Develop a Custom Virtual Machine (CHSVM)**
+    * To run pure CHASM, make testing and perfomace checks. 
+* **Create a Custom Assembly-like Language (CHASM)**
+    * To have a common interface to compile to other targets.
+* **Implement Backends for:**
+    * **C and/or QBE**
+    * **WebAssembly (Wasm) and JavaScript**
+    * **Java Virtual Machine (JVM)**
+    * **Erlang BEAM**
 
 ### Example Code
 
 ```
 use Io
 
-fn add3(a: int, b: int) -> int =
-  add(a, b)
-
-fn main() = do {
-    if add(1, 2) < 4  {
-      Io:puts("Yes\n")
-    } else {
-      Io:puts("No\n")
-    }
-}
+fn main()
+  Io.puts("Hello, world")
+end
 
 ```
 
