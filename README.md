@@ -37,3 +37,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - IridiumVM: [GitHub - fhaynes/iridium](https://github.com/fhaynes/iridium)
 - Inko: [GitHub - inko-lang/inko](https://github.com/inko-lang/inko)
 - Boson-lang: [GitHub - Narasimha1997/boson-lang](https://github.com/Narasimha1997/boson-lang)
+- Tao: [GitHub - zesterer/tao](https://github.com/zesterer/tao)
