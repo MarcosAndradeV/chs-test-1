@@ -131,7 +131,7 @@ mod tests {
             Instruction::PushConst(20),
             Instruction::PushLocal(0),
             Instruction::PushLocal(1),
-            Instruction::Call(4),
+            Instruction::Call(6),
             Instruction::Halt,
             Instruction::Add,
             Instruction::Ret,
