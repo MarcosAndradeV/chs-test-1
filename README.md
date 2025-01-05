@@ -1,5 +1,4 @@
 # **CHS programing language**
-An experimental language designed for maximum portability. To write code once and seamlessly execute across diverse environments.
 
 ### **Goals**
 
