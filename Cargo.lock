@@ -37,4 +37,9 @@ dependencies = [
  "chs_ast",
  "chs_lexer",
  "chs_util",
+ "memory",
 ]
+
+[[package]]
+name = "memory"
+version = "0.1.0"
