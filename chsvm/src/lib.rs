@@ -1,12 +1,12 @@
 use bytecode::Instruction;
-use stack::MainStack;
+use memory::stack::Stack;
 
 pub mod bytecode;
-mod stack;
+pub mod memory;
 
 pub struct VM {
-    stack: MainStack,
-    funcs: MainStack,
+    stack: Stack<i64>,
+    funcs: Stack<usize>,
     ip: usize,
     program: Vec<Instruction>
 }
@@ -14,8 +14,8 @@ pub struct VM {
 impl VM {
     pub fn new(program: Vec<Instruction>) -> Self {
         Self {
-            stack: MainStack::new(1024),
-            funcs: MainStack::new(1024),
+            stack: Stack::with_capacity(1024),
+            funcs: Stack::with_capacity(1024),
             program,
             ip: 0,
         }
@@ -73,7 +73,7 @@ impl VM {
                     }
                 }
                 Some(Instruction::Call(n)) => {
-                    self.funcs.push(self.ip as i64 + 1);
+                    self.funcs.push(self.ip + 1);
                     self.ip = *n;
                 }
                 None => panic!("Program counter out of bounds"),
