@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::Memory;
+use super::Memory;
 
 pub struct Stack<T> {
     _marker: PhantomData<T>,
