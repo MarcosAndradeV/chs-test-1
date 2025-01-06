@@ -1,5 +1,4 @@
 use core::fmt;
-use std::slice::Iter;
 
 use chs_lexer::Token;
 use chs_util::{chs_error, CHSError, Loc};
@@ -9,19 +8,13 @@ use crate::types::CHSType;
 #[derive(Debug, Default)]
 pub struct Module {
     pub name: String,
-    pub expressions: Vec<TopLevelExpression>,
-}
-
-impl Module {
-    pub fn push(&mut self, expr: TopLevelExpression) {
-        self.expressions.push(expr);
-    }
+    pub decls: Vec<Decl>,
 }
 
 impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Module: {}", self.name)?;
-        for expr in &self.expressions {
+        for expr in &self.decls {
             writeln!(f, " {expr} ")?;
         }
         Ok(())
@@ -29,150 +22,142 @@ impl fmt::Display for Module {
 }
 
 #[derive(Debug)]
-pub enum TopLevelExpression {
-    FnDecl(Box<FnDecl>),
+pub enum Decl {
+    Function(Function),
+    TypeDecl(String, CHSType),
+    ConstDecl(ConstDecl),
 }
 
-impl fmt::Display for TopLevelExpression {
+impl fmt::Display for Decl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TopLevelExpression::FnDecl(v) => write!(f, "{v}"),
+            Decl::Function(v) => write!(f, "{v}"),
+            Decl::TypeDecl(n, v) => write!(f, "{n} : {v}"),
+            Decl::ConstDecl(v) => write!(f, "{v}"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConstExpression {
+    Symbol(String),
+    IntegerLiteral(i64),
+    BooleanLiteral(bool),
+    StringLiteral(String),
+    Void,
+}
+
+impl fmt::Display for ConstExpression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConstExpression::Symbol(v) => write!(f, "{v}"),
+            ConstExpression::IntegerLiteral(v) => write!(f, "{v}"),
+            ConstExpression::BooleanLiteral(v) => write!(f, "{v}"),
+            ConstExpression::StringLiteral(_) => write!(f, "ESCAPE THE STRINGS"),
+            ConstExpression::Void => write!(f, "()"),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum Expression {
-    VarDecl(Box<VarDecl>),
-    Literal(Literal),
-    Var(Var),
+    ConstExpression(ConstExpression),
+    // ExpressionList(Vec<Self>),
+    Binop(Box<Binop>),
     Call(Box<Call>),
+    VarDecl(Box<VarDecl>),
+    Group(Box<Self>),
     Ref(Box<Self>),
     Deref(Box<Self>),
-    ExprList(Vec<Expression>),
-    Binop(Box<Binop>),
-    Group(Box<Expression>)
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expression::VarDecl(v) => write!(f, "{v}"),
-            Expression::Literal(v) => write!(f, "{v}"),
-            Expression::Var(v) => write!(f, "{v}"),
+            // Expression::ExpressionList(v) => {
+            //     for (i, item) in v.iter().enumerate() {
+            //         if i > 0 {
+            //             write!(f, ", ")?;
+            //         }
+            //         write!(f, "{}\n", item)?;
+            //     }
+            //     writeln!(f, "")
+            // }
+            Expression::ConstExpression(v) => write!(f, "{v}"),
             Expression::Call(v) => write!(f, "{v}"),
-            Expression::Ref(v) => write!(f, "(&{v})"),
-            Expression::Deref(v) => write!(f, "(*{v})"),
-            Expression::ExprList(v) => write!(f, "{v:?}"),
             Expression::Binop(v) => write!(f, "{v}"),
+            Expression::VarDecl(v) => write!(f, "{v}"),
             Expression::Group(v) => write!(f, "({v})"),
+            Expression::Ref(v) => write!(f, "&{v}"),
+            Expression::Deref(v) => write!(f, "*{v}"),
         }
     }
 }
-
 impl Expression {
     pub fn from_literal_token(token: Token) -> Result<Self, CHSError> {
         use chs_lexer::TokenKind::*;
         match token.kind {
-            Interger => Ok(Self::Literal(Literal::IntegerLiteral {
-                loc: token.loc,
-                value: token
+            Interger => {
+                let value: i64 = token
                     .value
-                    .parse()
-                    .expect("No interger token. Probably a lexer error."),
-            })),
-            Keyword if token.val_eq("true") || token.val_eq("false") => {
-                Ok(Self::Literal(Literal::BooleanLiteral {
-                    loc: token.loc,
-                    value: token
-                        .value
-                        .parse()
-                        .expect("No interger token. Probably a lexer error."),
-                }))
+                    .parse::<i64>()
+                    .expect("No interger token. Probably a lexer error.");
+                Ok(Self::ConstExpression(ConstExpression::IntegerLiteral(
+                    value,
+                )))
             }
-            String => Ok(Self::Literal(Literal::StringLiteral {
-                loc: token.loc,
-                value: token.value,
-            })),
+            Keyword if token.val_eq("true") => {
+                Ok(Self::ConstExpression(ConstExpression::BooleanLiteral(true)))
+            }
+            Keyword if token.val_eq("false") => Ok(Self::ConstExpression(
+                ConstExpression::BooleanLiteral(false),
+            )),
+            Ident => Ok(Self::ConstExpression(ConstExpression::Symbol(token.value))),
+            String => Ok(Self::ConstExpression(ConstExpression::StringLiteral(
+                token.value,
+            ))),
             _ => chs_error!("{} Unsuported literal", token.loc),
         }
-    }
-
-    pub fn loc(&self) -> &Loc {
-        match self {
-            Expression::VarDecl(v) => &v.loc,
-            Expression::Literal(literal) => literal.loc(),
-            Expression::Var(var) => &var.loc,
-            Expression::Call(call) => &call.loc,
-            Expression::Ref(_expression) => todo!(),
-            Expression::Deref(_expression) => todo!(),
-            _ => todo!(),
-        }
-    }
-
-    pub fn precedence(&self) -> Precedence {
-        match self {
-            Expression::Binop(binop) => binop.op.precedence(),
-            Expression::Ref(_) | Expression::Deref(_) => Precedence::Prefix,
-            Expression::Call(_)  => Precedence::Call,
-            _ => Precedence::Lowest,
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        if let Expression::ExprList(v) = self {
-            v.len()
-        } else {
-            1
-        }
-    }
-
-    pub fn iter(&self) -> Iter<'_, Expression> {
-        if let Expression::ExprList(ls) = self {
-            ls.iter()
-        } else {
-            unreachable!("aaaaa")
-        }
-    }
-
-    /// Returns `true` if the expression is [`ExprList`].
-    ///
-    /// [`ExprList`]: Expression::ExprList
-    #[must_use]
-    pub fn is_expr_list(&self) -> bool {
-        matches!(self, Self::ExprList(..))
     }
 }
 
 #[derive(Debug)]
-pub struct Call {
+pub struct Function {
     pub loc: Loc,
-    pub caller: Expression,
-    pub args: Expression,
+    pub name: String,
+    pub args: Vec<(String, CHSType)>,
+    pub ret_type: CHSType,
+    pub body: Vec<Expression>,
 }
 
-impl fmt::Display for Call {
+impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}(", self.caller)?;
+        write!(f, "fn {}(", self.name)?;
         for (i, item) in self.args.iter().enumerate() {
             if i > 0 {
                 write!(f, ", ")?;
             }
-            write!(f, "{}", item)?;
+            write!(f, "{}: {}", item.0, item.1)?;
         }
-        write!(f, ")")
+        writeln!(f, ") -> {}", self.ret_type)?;
+        for expr in self.body.iter() {
+            writeln!(f, "   {expr} ")?;
+        }
+        write!(f, " end")
     }
 }
 
 #[derive(Debug)]
-pub struct Var {
+pub struct ConstDecl {
     pub loc: Loc,
     pub name: String,
+    pub value: ConstExpression,
+    pub ttype: CHSType,
 }
 
-impl fmt::Display for Var {
+impl fmt::Display for ConstDecl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{} : {} = {}", self.name, self.ttype, self.value)
     }
 }
 
@@ -201,28 +186,22 @@ impl fmt::Display for VarDecl {
 }
 
 #[derive(Debug)]
-pub struct FnDecl {
+pub struct Call {
     pub loc: Loc,
-    pub name: String,
-    pub args: Vec<(String, CHSType)>,
-    pub ret_type: CHSType,
-    pub body: Expression,
+    pub caller: Expression,
+    pub args: Vec<Expression>,
 }
 
-impl fmt::Display for FnDecl {
+impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "fn {}(", self.name)?;
+        write!(f, "{}(", self.caller)?;
         for (i, item) in self.args.iter().enumerate() {
             if i > 0 {
                 write!(f, ", ")?;
             }
-            write!(f, "{}: {}", item.0, item.1)?;
+            write!(f, "{}", item)?;
         }
-        writeln!(f, ") -> {}", self.ret_type)?;
-        for expr in self.body.iter() {
-            writeln!(f, "   {expr} ")?;
-        }
-        write!(f, " end")
+        write!(f, ")")
     }
 }
 
@@ -308,51 +287,4 @@ pub enum Precedence {
     Product,
     Prefix,
     Call,
-}
-
-#[derive(Debug)]
-pub enum Literal {
-    IntegerLiteral { loc: Loc, value: i64 },
-    BooleanLiteral { loc: Loc, value: bool },
-    StringLiteral { loc: Loc, value: String },
-}
-
-impl fmt::Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Literal::IntegerLiteral { loc: _, value } => write!(f, "{value}"),
-            Literal::BooleanLiteral { loc: _, value } => write!(f, "{value}"),
-            Literal::StringLiteral { loc: _, value: _ } => write!(f, "ESCAPE THE STRINGS"),
-        }
-    }
-}
-
-impl Literal {
-    pub fn loc(&self) -> &Loc {
-        match self {
-            Literal::IntegerLiteral { loc, value: _ } => loc,
-            Literal::BooleanLiteral { loc, value: _ } => loc,
-            Literal::StringLiteral { loc, value: _ } => loc,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use chs_lexer::Lexer;
-
-    use super::*;
-
-    #[test]
-    fn ast_literal_token() {
-        let mut lex = Lexer::new(file!().into(), "10 :".into());
-        assert!(
-            Expression::from_literal_token(lex.next_token()).is_ok(),
-            "Token 1 should be a literal"
-        );
-        assert!(
-            Expression::from_literal_token(lex.next_token()).is_err(),
-            "Token 1 should not be a literal"
-        );
-    }
 }

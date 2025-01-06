@@ -1,9 +1,9 @@
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_util::{chs_error, CHSError};
 use nodes::{
-    Binop, Call, Expression, FnDecl, Module, Operator, Precedence, TopLevelExpression, Var, VarDecl,
+    Binop, Call, ConstExpression, Decl, Expression, Function, Module, Operator, Precedence, VarDecl,
 };
-use types::CHSType;
+use types::{type_check, CHSType, TypeCheckEnv};
 
 pub mod nodes;
 pub mod types;
@@ -18,10 +18,18 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(lexer: Lexer) -> Self {
-        let modname = lexer.get_filename().with_extension("").to_string_lossy().to_string().replace("/", ".");
+        let modname = lexer
+            .get_filename()
+            .with_extension("")
+            .to_string_lossy()
+            .to_string()
+            .replace("/", ".");
         Self {
             lexer,
-            module: Module { name: modname, ..Default::default() },
+            module: Module {
+                name: modname,
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
@@ -71,12 +79,19 @@ impl Parser {
                 chs_error!("{} Invalid token '{}'", token.loc, token.value);
             }
 
-            self.parse_top_expression(token)?;
+            let value = self.parse_decl(token)?;
+            self.module.decls.push(value);
         }
+        let mut tenv = TypeCheckEnv::default();
+        tenv.type_defs.insert(
+            "print".to_string(),
+            CHSType::Func(vec![CHSType::ptr(CHSType::char())], CHSType::void().into()),
+        );
+        type_check(&self.module, &mut tenv)?;
         Ok(self.module)
     }
 
-    fn parse_top_expression(&mut self, token: Token) -> Result<(), CHSError> {
+    fn parse_decl(&mut self, token: Token) -> Result<Decl, CHSError> {
         use chs_lexer::TokenKind::*;
         match token.kind {
             Keyword if token.val_eq("fn") => {
@@ -85,15 +100,14 @@ impl Parser {
                 self.expect_kind(ParenOpen)?;
                 let (args, ret_type) = self.parse_fn_type()?;
                 let body = self.parse_expr_list(|tk| tk.val_eq("end"))?;
-                let expr = TopLevelExpression::FnDecl(Box::new(FnDecl {
+                let expr = Decl::Function(Function {
                     loc: token.loc,
                     name,
                     args,
                     ret_type,
                     body,
-                }));
-                self.module.push(expr);
-                Ok(())
+                });
+                Ok(expr)
             }
             _ => {
                 chs_error!(
@@ -125,7 +139,7 @@ impl Parser {
                     value,
                 }))
             }
-            Interger => Expression::from_literal_token(token)?,
+            String | Ident | Interger => Expression::from_literal_token(token)?,
             Keyword if token.val_eq("true") || token.val_eq("false") => {
                 Expression::from_literal_token(token)?
             }
@@ -137,11 +151,9 @@ impl Parser {
                 let expr = self.parse_expression(Precedence::Prefix)?;
                 Expression::Deref(expr.into())
             }
-            Ident => Expression::Var(Var {
-                loc: token.loc,
-                name: token.value,
-            }),
-            String => Expression::from_literal_token(token)?,
+            ParenOpen if self.peek().kind == ParenClose => {
+                Expression::ConstExpression(ConstExpression::Void)
+            }
             ParenOpen => {
                 let expr = self.parse_expression(Precedence::Lowest)?;
                 self.expect_kind(ParenClose)?;
@@ -202,7 +214,7 @@ impl Parser {
         ))
     }
 
-    fn parse_expr_list<F>(&mut self, pred: F) -> Result<Expression, CHSError>
+    fn parse_expr_list<F>(&mut self, pred: F) -> Result<Vec<Expression>, CHSError>
     where
         F: Fn(&Token) -> bool,
     {
@@ -213,7 +225,7 @@ impl Parser {
             match ptoken.kind {
                 _ if pred(ptoken) => {
                     self.next();
-                    return Ok(Expression::ExprList(args));
+                    return Ok(args);
                 }
                 Comma => {
                     self.next();
@@ -267,10 +279,11 @@ impl Parser {
         use chs_lexer::TokenKind::*;
         let ttoken = self.next();
         let ttype = match ttoken.kind {
-            Ident if ttoken.val_eq("int")    => Some(CHSType::int()),
-            Ident if ttoken.val_eq("bool")   => Some(CHSType::bool()),
-            Ident if ttoken.val_eq("char")   => Some(CHSType::char()),
-            Ident if ttoken.val_eq("void")   => Some(CHSType::void()),
+            Ident if ttoken.val_eq("int") => Some(CHSType::int()),
+            Ident if ttoken.val_eq("bool") => Some(CHSType::bool()),
+            Ident if ttoken.val_eq("char") => Some(CHSType::char()),
+            Ident if ttoken.val_eq("void") => Some(CHSType::void()),
+            Ident => Some(CHSType::custom(ttoken.value)),
             Asterisk => {
                 if let Some(ttp) = self.parse_type()? {
                     Some(CHSType::Pointer(ttp.into()))
