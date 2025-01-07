@@ -16,6 +16,7 @@ name = "chs_ast"
 version = "0.1.0"
 dependencies = [
  "chs_lexer",
+ "chs_types",
  "chs_util",
 ]
 
@@ -25,6 +26,10 @@ version = "0.1.0"
 dependencies = [
  "chs_util",
 ]
+
+[[package]]
+name = "chs_types"
+version = "0.1.0"
 
 [[package]]
 name = "chs_util"

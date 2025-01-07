@@ -3,38 +3,29 @@ use core::fmt;
 use chs_lexer::Token;
 use chs_util::{chs_error, CHSError, Loc};
 
-use crate::types::CHSType;
+use chs_types::CHSType;
 
 #[derive(Debug, Default)]
 pub struct Module {
     pub name: String,
-    pub decls: Vec<Decl>,
+    pub funcs: Vec<Function>,
+    pub type_decls: Vec<(String, CHSType)>,
+    pub const_decl: Vec<ConstDecl>,
 }
 
 impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Module: {}", self.name)?;
-        for expr in &self.decls {
+        for expr in &self.const_decl {
+            writeln!(f, " {expr} ")?;
+        }
+        for (name, t) in &self.type_decls {
+            writeln!(f, " {name} : {t} ")?;
+        }
+        for expr in &self.funcs {
             writeln!(f, " {expr} ")?;
         }
         Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub enum Decl {
-    Function(Function),
-    TypeDecl(String, CHSType),
-    ConstDecl(ConstDecl),
-}
-
-impl fmt::Display for Decl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Decl::Function(v) => write!(f, "{v}"),
-            Decl::TypeDecl(n, v) => write!(f, "{n} : {v}"),
-            Decl::ConstDecl(v) => write!(f, "{v}"),
-        }
     }
 }
 
@@ -64,11 +55,10 @@ pub enum Expression {
     ConstExpression(ConstExpression),
     // ExpressionList(Vec<Self>),
     Binop(Box<Binop>),
+    Unop(Box<Unop>),
     Call(Box<Call>),
     VarDecl(Box<VarDecl>),
     Group(Box<Self>),
-    Ref(Box<Self>),
-    Deref(Box<Self>),
 }
 
 impl fmt::Display for Expression {
@@ -86,10 +76,9 @@ impl fmt::Display for Expression {
             Expression::ConstExpression(v) => write!(f, "{v}"),
             Expression::Call(v) => write!(f, "{v}"),
             Expression::Binop(v) => write!(f, "{v}"),
+            Expression::Unop(v) => write!(f, "{v}"),
             Expression::VarDecl(v) => write!(f, "{v}"),
-            Expression::Group(v) => write!(f, "({v})"),
-            Expression::Ref(v) => write!(f, "&{v}"),
-            Expression::Deref(v) => write!(f, "*{v}"),
+            Expression::Group(v) => write!(f, "({v}"),
         }
     }
 }
@@ -220,21 +209,40 @@ impl fmt::Display for Binop {
 }
 
 #[derive(Debug)]
+pub struct Unop {
+    pub loc: Loc,
+    pub op: Operator,
+    pub left: Expression,
+}
+
+impl fmt::Display for Unop {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}{})", self.op, self.left)
+    }
+}
+
+#[derive(Debug)]
 pub enum Operator {
-    Add,
-    Div,
+    // Binary
+    Plus,
     Minus,
+    Div,
     Mult,
     Eq,
     NEq,
     Gt,
     Lt,
+    // Unary
+    Negate,
+    LNot,
+    Refer,
+    Deref,
 }
 
 impl fmt::Display for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Operator::Add => write!(f, "+"),
+            Operator::Plus => write!(f, "+"),
             Operator::Minus => write!(f, "-"),
             Operator::Mult => write!(f, "*"),
             Operator::Div => write!(f, "/"),
@@ -242,15 +250,23 @@ impl fmt::Display for Operator {
             Operator::NEq => write!(f, "!="),
             Operator::Gt => write!(f, ">"),
             Operator::Lt => write!(f, "<"),
+            Operator::Negate => write!(f, "-"),
+            Operator::LNot => write!(f, "!"),
+            Operator::Refer => write!(f, "&"),
+            Operator::Deref => write!(f, "*"),
         }
     }
 }
 
 impl Operator {
-    pub fn from_token(token: &Token) -> Result<Self, CHSError> {
+    pub fn from_token(token: &Token, unary: bool) -> Result<Self, CHSError> {
         use chs_lexer::TokenKind::*;
         match token.kind {
-            Plus => Ok(Self::Add),
+            Minus if unary => Ok(Self::Negate),
+            Bang if unary => Ok(Self::LNot),
+            Asterisk if unary => Ok(Self::Deref),
+            Ampersand if unary => Ok(Self::Refer),
+            Plus => Ok(Self::Plus),
             Minus => Ok(Self::Minus),
             Asterisk => Ok(Self::Mult),
             Slash => Ok(Self::Div),
@@ -260,19 +276,14 @@ impl Operator {
         }
     }
 
-    pub fn is_logical(&self) -> bool {
-        match self {
-            Operator::Eq | Operator::Gt | Operator::Lt | Operator::NEq => true,
-            Operator::Add | Operator::Div | Operator::Minus | Operator::Mult => false,
-        }
-    }
-
     pub fn precedence(&self) -> Precedence {
         match self {
-            Operator::Add | Operator::Minus => Precedence::Sum,
+            Operator::Plus | Operator::Minus => Precedence::Sum,
             Operator::Mult | Operator::Div => Precedence::Product,
             Operator::Lt | Operator::Gt => Precedence::LessGreater,
             Operator::Eq | Operator::NEq => Precedence::Equals,
+            Operator::Negate | Operator::LNot => Precedence::Prefix,
+            Operator::Refer | Operator::Deref => Precedence::RefDeref,
             // _ => Precedence::Lowest,
         }
     }
@@ -286,5 +297,6 @@ pub enum Precedence {
     Sum,
     Product,
     Prefix,
+    RefDeref,
     Call,
 }

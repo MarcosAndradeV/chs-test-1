@@ -1,12 +1,11 @@
 use chs_lexer::{Lexer, Token, TokenKind};
-use chs_util::{chs_error, CHSError};
+use chs_types::CHSType;
+use chs_util::{chs_error, CHSError, Loc};
 use nodes::{
-    Binop, Call, ConstExpression, Decl, Expression, Function, Module, Operator, Precedence, VarDecl,
+    Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl,
 };
-use types::{type_check, CHSType, TypeCheckEnv};
 
 pub mod nodes;
-pub mod types;
 
 /// [Token] -> [Module]
 #[derive(Default)]
@@ -78,46 +77,34 @@ impl Parser {
             if token.kind == Invalid {
                 chs_error!("{} Invalid token '{}'", token.loc, token.value);
             }
-
-            let value = self.parse_decl(token)?;
-            self.module.decls.push(value);
+            match token.kind {
+                Keyword if token.val_eq("fn") => {
+                    let loc = token.loc;
+                    let token = self.expect_kind(Ident)?;
+                    let name = token.value;
+                    self.expect_kind(ParenOpen)?;
+                    let (args, ret_type) = self.parse_fn_type()?;
+                    let body = self.parse_expr_list(|tk| tk.val_eq("end"))?;
+                    let expr = Function {
+                        loc,
+                        name,
+                        args,
+                        ret_type,
+                        body,
+                    };
+                    self.module.funcs.push(expr);
+                }
+                _ => {
+                    chs_error!(
+                        "{} Invalid Expression on top level {}('{}')",
+                        token.loc,
+                        token.kind,
+                        token.value
+                    )
+                }
+            }
         }
-        let mut tenv = TypeCheckEnv::default();
-        tenv.type_defs.insert(
-            "print".to_string(),
-            CHSType::Func(vec![CHSType::ptr(CHSType::char())], CHSType::void().into()),
-        );
-        type_check(&self.module, &mut tenv)?;
         Ok(self.module)
-    }
-
-    fn parse_decl(&mut self, token: Token) -> Result<Decl, CHSError> {
-        use chs_lexer::TokenKind::*;
-        match token.kind {
-            Keyword if token.val_eq("fn") => {
-                let token = self.expect_kind(Ident)?;
-                let name = token.value;
-                self.expect_kind(ParenOpen)?;
-                let (args, ret_type) = self.parse_fn_type()?;
-                let body = self.parse_expr_list(|tk| tk.val_eq("end"))?;
-                let expr = Decl::Function(Function {
-                    loc: token.loc,
-                    name,
-                    args,
-                    ret_type,
-                    body,
-                });
-                Ok(expr)
-            }
-            _ => {
-                chs_error!(
-                    "{} Invalid Expression on top level {}('{}')",
-                    token.loc,
-                    token.kind,
-                    token.value
-                )
-            }
-        }
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, CHSError> {
@@ -143,13 +130,27 @@ impl Parser {
             Keyword if token.val_eq("true") || token.val_eq("false") => {
                 Expression::from_literal_token(token)?
             }
-            Ampersand => {
-                let expr = self.parse_expression(Precedence::Prefix)?;
-                Expression::Ref(expr.into())
+            Ampersand | Asterisk => {
+                let expr = self.parse_expression(Precedence::RefDeref)?;
+                Expression::Unop(
+                    Unop {
+                        op: Operator::from_token(&token, true)?,
+                        loc: token.loc,
+                        left: expr,
+                    }
+                    .into(),
+                )
             }
-            Asterisk => {
+            Bang | Minus => {
                 let expr = self.parse_expression(Precedence::Prefix)?;
-                Expression::Deref(expr.into())
+                Expression::Unop(
+                    Unop {
+                        op: Operator::from_token(&token, true)?,
+                        loc: token.loc,
+                        left: expr,
+                    }
+                    .into(),
+                )
             }
             ParenOpen if self.peek().kind == ParenClose => {
                 Expression::ConstExpression(ConstExpression::Void)
@@ -184,9 +185,10 @@ impl Parser {
                     return Ok(left);
                 }
                 Plus | Asterisk | Slash | Minus | Eq | NotEq => {
-                    if precedence < Operator::from_token(&ptoken)?.precedence() {
-                        let token = self.next();
-                        let infix = self.parse_infix_expression(token, left)?;
+                    let operator = Operator::from_token(&ptoken, false)?;
+                    if precedence < operator.precedence() {
+                        let loc = self.next().loc;
+                        let infix = self.parse_infix_expression(loc, operator, left)?;
                         left = infix
                     } else {
                         return Ok(left);
@@ -199,14 +201,15 @@ impl Parser {
 
     fn parse_infix_expression(
         &mut self,
-        token: Token,
+        loc: Loc,
+        op: Operator,
         left: Expression,
     ) -> Result<Expression, CHSError> {
-        let right = self.parse_expression(Operator::from_token(&token)?.precedence())?;
+        let right = self.parse_expression(op.precedence())?;
         Ok(Expression::Binop(
             Binop {
-                op: Operator::from_token(&token)?,
-                loc: token.loc,
+                loc,
+                op,
                 right,
                 left,
             }
