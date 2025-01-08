@@ -58,6 +58,7 @@ pub enum Expression {
     Unop(Box<Unop>),
     Call(Box<Call>),
     VarDecl(Box<VarDecl>),
+    Assign(Box<Assign>),
     Group(Box<Self>),
 }
 
@@ -73,12 +74,13 @@ impl fmt::Display for Expression {
             //     }
             //     writeln!(f, "")
             // }
+            Expression::Group(v) => write!(f, "({v})"),
             Expression::ConstExpression(v) => write!(f, "{v}"),
             Expression::Call(v) => write!(f, "{v}"),
             Expression::Binop(v) => write!(f, "{v}"),
             Expression::Unop(v) => write!(f, "{v}"),
             Expression::VarDecl(v) => write!(f, "{v}"),
-            Expression::Group(v) => write!(f, "({v}"),
+            Expression::Assign(v) => write!(f, "{v}"),
         }
     }
 }
@@ -147,6 +149,19 @@ pub struct ConstDecl {
 impl fmt::Display for ConstDecl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} : {} = {}", self.name, self.ttype, self.value)
+    }
+}
+
+#[derive(Debug)]
+pub struct Assign {
+    pub loc: Loc,
+    pub name: String,
+    pub value: Expression,
+}
+
+impl fmt::Display for Assign {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} = {}", self.name, self.value)
     }
 }
 

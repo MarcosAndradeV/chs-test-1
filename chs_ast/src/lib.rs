@@ -2,7 +2,7 @@ use chs_lexer::{Lexer, Token, TokenKind};
 use chs_types::CHSType;
 use chs_util::{chs_error, CHSError, Loc};
 use nodes::{
-    Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl,
+    Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl
 };
 
 pub mod nodes;
@@ -123,6 +123,16 @@ impl Parser {
                     loc: token.loc,
                     name,
                     ttype,
+                    value,
+                }))
+            }
+            Ident if self.peek().kind == Assign => {
+                self.next();
+                let value = self.parse_expression(Precedence::Lowest)?;
+                let name = token.value;
+                Expression::Assign(Box::new(nodes::Assign {
+                    loc: token.loc,
+                    name,
                     value,
                 }))
             }

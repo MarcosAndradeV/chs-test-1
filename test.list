@@ -1,3 +1,5 @@
 ./target/debug/chs tests/hello.chs
 ./target/debug/chs tests/infix_ops.chs
+./target/debug/chs tests/prefix_ops.chs
 ./target/debug/chs tests/post_call.chs
+./target/debug/chs tests/assign.chs
