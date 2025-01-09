@@ -126,13 +126,14 @@ impl Parser {
                     value,
                 }))
             }
-            Ident if self.peek().kind == Assign => {
-                self.next();
+            Keyword if token.val_eq("set") => {
+                let loc = token.loc;
+                let assined = self.parse_expression(Precedence::Lowest)?;
+                self.expect_kind(Assign)?;
                 let value = self.parse_expression(Precedence::Lowest)?;
-                let name = token.value;
                 Expression::Assign(Box::new(nodes::Assign {
-                    loc: token.loc,
-                    name,
+                    loc,
+                    assined,
                     value,
                 }))
             }

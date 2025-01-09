@@ -45,7 +45,7 @@ impl Default for TokenKind {
 impl TokenKind {
     fn from_word_or_keyword(value: &String) -> Self {
         match value.as_str() {
-            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" => {
+            "fn" | "if" | "else" | "while" | "true" | "false" | "nil" | "return" | "do" | "set" => {
                 Self::Keyword
             }
             _ => Self::Ident,

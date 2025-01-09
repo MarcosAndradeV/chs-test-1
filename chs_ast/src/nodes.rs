@@ -155,13 +155,13 @@ impl fmt::Display for ConstDecl {
 #[derive(Debug)]
 pub struct Assign {
     pub loc: Loc,
-    pub name: String,
+    pub assined: Expression,
     pub value: Expression,
 }
 
 impl fmt::Display for Assign {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} = {}", self.name, self.value)
+        write!(f, "set {} = {}", self.assined, self.value)
     }
 }
 

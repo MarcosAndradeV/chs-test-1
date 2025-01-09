@@ -1,4 +1,6 @@
 fn main()
     x := 1
-    x = 2
+    set x = 2
+    y := &x
+    set *y = 10
 end
