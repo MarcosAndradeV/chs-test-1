@@ -77,7 +77,7 @@ impl fmt::Display for CHSType {
                 write!(f, "record {{")?;
                 for (i, item) in args.iter().enumerate() {
                     if i > 0 {
-                        write!(f, "\n")?;
+                        write!(f, ", ")?;
                     }
                     write!(f, "{}: {}", item.0, item.1)?;
                 }
@@ -87,7 +87,7 @@ impl fmt::Display for CHSType {
                 write!(f, "tuple {{")?;
                 for (i, item) in vec.iter().enumerate() {
                     if i > 0 {
-                        write!(f, "\n")?;
+                        write!(f, ", ")?;
                     }
                     write!(f, "{}", item)?;
                 }
