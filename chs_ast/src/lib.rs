@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_types::CHSType;
 use chs_util::{chs_error, CHSError, Loc};
@@ -171,6 +173,9 @@ impl Parser {
                 self.expect_kind(ParenClose)?;
                 Expression::Group(expr.into())
             }
+            CurlyOpen => {
+                self.parse_init_list()?
+            }
             _ => chs_error!(
                 "{} Unexpected token {}('{}')",
                 token.loc,
@@ -226,6 +231,42 @@ impl Parser {
             }
             .into(),
         ))
+    }
+
+    fn parse_init_list(&mut self) -> Result<Expression, CHSError>
+    {
+        use chs_lexer::TokenKind::*;
+        let mut args = vec![];
+        loop {
+            let ptoken = self.peek();
+            match ptoken.kind {
+                CurlyClose => {
+                    self.next();
+                    return Ok(Expression::ExpressionList(args))
+                },
+                Ident => {
+                    let token = self.next();
+                    let ntoken = self.next();
+                    if ntoken.kind == Assign {
+                        args.push(Expression::Assign(nodes::Assign {
+                            loc: token.loc,
+                            assined: Expression::ConstExpression(ConstExpression::Symbol(token.value)),
+                            value: self.parse_expression(Precedence::Lowest)?,
+                        }.into()));
+                        continue;
+                    } else {
+                        self.peeked = Some(ntoken);
+                    }
+                }
+                Comma => {
+                    self.next();
+                    continue;
+                }
+                _ => {}
+            }
+            let value = self.parse_expression(Precedence::Lowest)?;
+            args.push(value);
+        }
     }
 
     fn parse_expr_list<F>(&mut self, pred: F) -> Result<Vec<Expression>, CHSError>
@@ -304,6 +345,32 @@ impl Parser {
                 } else {
                     chs_error!("Expect type")
                 }
+            }
+            CurlyOpen => {
+                let mut map = BTreeMap::new();
+                loop {
+                    let field = self.expect_kind(Ident)?;
+                    self.expect_kind(Colon)?;
+                    if let Some(field_type) = self.parse_type()? {
+                        map.insert(field.value, field_type);
+                    } else {
+                        chs_error!("Expect type");
+                    }
+                    if self.next().kind == CurlyClose { break; }
+                }
+                Some(CHSType::Record(map))
+            }
+            ParenOpen => {
+                let mut tuple = Vec::new();
+                loop {
+                    if let Some(tty) = self.parse_type()? {
+                        tuple.push(tty);
+                    } else {
+                        chs_error!("Expect type");
+                    }
+                    if self.next().kind == ParenClose { break; }
+                }
+                Some(CHSType::Tuple(tuple))
             }
             Assign => None,
             _ => chs_error!("Type not implemnted {}", ttoken),

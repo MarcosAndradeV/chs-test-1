@@ -53,7 +53,7 @@ impl fmt::Display for ConstExpression {
 #[derive(Debug)]
 pub enum Expression {
     ConstExpression(ConstExpression),
-    // ExpressionList(Vec<Self>),
+    ExpressionList(Vec<Self>),
     Binop(Box<Binop>),
     Unop(Box<Unop>),
     Call(Box<Call>),
@@ -65,15 +65,16 @@ pub enum Expression {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            // Expression::ExpressionList(v) => {
-            //     for (i, item) in v.iter().enumerate() {
-            //         if i > 0 {
-            //             write!(f, ", ")?;
-            //         }
-            //         write!(f, "{}\n", item)?;
-            //     }
-            //     writeln!(f, "")
-            // }
+            Expression::ExpressionList(v) => {
+                write!(f, "{{")?;
+                for (i, item) in v.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", item)?;
+                }
+                write!(f, "}}")
+            }
             Expression::Group(v) => write!(f, "({v})"),
             Expression::ConstExpression(v) => write!(f, "{v}"),
             Expression::Call(v) => write!(f, "{v}"),
@@ -161,7 +162,7 @@ pub struct Assign {
 
 impl fmt::Display for Assign {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "set {} = {}", self.assined, self.value)
+        write!(f, "{} = {}", self.assined, self.value)
     }
 }
 
