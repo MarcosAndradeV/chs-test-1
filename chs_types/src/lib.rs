@@ -28,7 +28,6 @@ pub enum CHSType {
     Pointer(Box<CHSType>),
     Func(Vec<CHSType>, Box<CHSType>),
     Record(BTreeMap<String, CHSType>),
-    Tuple(Vec<CHSType>),
 }
 
 impl CHSType {
@@ -80,16 +79,6 @@ impl fmt::Display for CHSType {
                         write!(f, ", ")?;
                     }
                     write!(f, "{}: {}", item.0, item.1)?;
-                }
-                write!(f, "}}",)
-            }
-            CHSType::Tuple(vec) => {
-                write!(f, "tuple {{")?;
-                for (i, item) in vec.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}", item)?;
                 }
                 write!(f, "}}",)
             }

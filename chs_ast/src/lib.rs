@@ -4,7 +4,7 @@ use chs_lexer::{Lexer, Token, TokenKind};
 use chs_types::CHSType;
 use chs_util::{chs_error, CHSError, Loc};
 use nodes::{
-    Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl
+    Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl,
 };
 
 pub mod nodes;
@@ -96,6 +96,12 @@ impl Parser {
                     };
                     self.module.funcs.push(expr);
                 }
+                Keyword if token.val_eq("type") => {
+                    let token = self.expect_kind(Ident)?;
+                    let name = token.value;
+                    let chs_type = self.parse_type()?;
+                    self.module.type_decls.push((name, chs_type));
+                }
                 _ => {
                     chs_error!(
                         "{} Invalid Expression on top level {}('{}')",
@@ -115,10 +121,14 @@ impl Parser {
         let mut left: Expression = match token.kind {
             Ident if self.peek().kind == Colon => {
                 self.next();
-                let ttype = self.parse_type()?;
-                if ttype.is_some() {
+                let ttype = if self.peek().kind == Assign {
                     self.expect_kind(Assign)?;
-                }
+                    None
+                } else {
+                    let chstype = self.parse_type()?;
+                    self.expect_kind(Assign)?;
+                    Some(chstype)
+                };
                 let value = self.parse_expression(Precedence::Lowest)?;
                 let name = token.value;
                 Expression::VarDecl(Box::new(VarDecl {
@@ -173,9 +183,7 @@ impl Parser {
                 self.expect_kind(ParenClose)?;
                 Expression::Group(expr.into())
             }
-            CurlyOpen => {
-                self.parse_init_list()?
-            }
+            CurlyOpen => self.parse_init_list()?,
             _ => chs_error!(
                 "{} Unexpected token {}('{}')",
                 token.loc,
@@ -233,8 +241,7 @@ impl Parser {
         ))
     }
 
-    fn parse_init_list(&mut self) -> Result<Expression, CHSError>
-    {
+    fn parse_init_list(&mut self) -> Result<Expression, CHSError> {
         use chs_lexer::TokenKind::*;
         let mut args = vec![];
         loop {
@@ -242,17 +249,22 @@ impl Parser {
             match ptoken.kind {
                 CurlyClose => {
                     self.next();
-                    return Ok(Expression::ExpressionList(args))
-                },
+                    return Ok(Expression::ExpressionList(args));
+                }
                 Ident => {
                     let token = self.next();
                     let ntoken = self.next();
                     if ntoken.kind == Assign {
-                        args.push(Expression::Assign(nodes::Assign {
-                            loc: token.loc,
-                            assined: Expression::ConstExpression(ConstExpression::Symbol(token.value)),
-                            value: self.parse_expression(Precedence::Lowest)?,
-                        }.into()));
+                        args.push(Expression::Assign(
+                            nodes::Assign {
+                                loc: token.loc,
+                                assined: Expression::ConstExpression(ConstExpression::Symbol(
+                                    token.value,
+                                )),
+                                value: self.parse_expression(Precedence::Lowest)?,
+                            }
+                            .into(),
+                        ));
                         continue;
                     } else {
                         self.peeked = Some(ntoken);
@@ -306,9 +318,8 @@ impl Parser {
                     let ptoken = self.peek();
                     if ptoken.kind == Arrow {
                         self.next();
-                        if let Some(value) = self.parse_type()? {
-                            ret_type = value;
-                        }
+                        let value = self.parse_type()?;
+                        ret_type = value;
                     }
                     return Ok((list, ret_type));
                 }
@@ -319,60 +330,41 @@ impl Parser {
                 Ident => {
                     let token = self.next();
                     self.expect_kind(Colon)?;
-                    if let Some(value) = self.parse_type()? {
-                        list.push((token.value, value));
-                    } else {
-                        return Ok((list, ret_type));
-                    }
+                    let value = self.parse_type()?;
+                    list.push((token.value, value));
                 }
                 _ => chs_error!(""),
             }
         }
     }
 
-    fn parse_type(&mut self) -> Result<Option<CHSType>, CHSError> {
+    fn parse_type(&mut self) -> Result<CHSType, CHSError> {
         use chs_lexer::TokenKind::*;
         let ttoken = self.next();
         let ttype = match ttoken.kind {
-            Ident if ttoken.val_eq("int") => Some(CHSType::int()),
-            Ident if ttoken.val_eq("bool") => Some(CHSType::bool()),
-            Ident if ttoken.val_eq("char") => Some(CHSType::char()),
-            Ident if ttoken.val_eq("void") => Some(CHSType::void()),
-            Ident => Some(CHSType::custom(ttoken.value)),
+            Ident if ttoken.val_eq("int") => CHSType::int(),
+            Ident if ttoken.val_eq("bool") => CHSType::bool(),
+            Ident if ttoken.val_eq("char") => CHSType::char(),
+            Ident if ttoken.val_eq("void") => CHSType::void(),
+            Ident => CHSType::custom(ttoken.value),
             Asterisk => {
-                if let Some(ttp) = self.parse_type()? {
-                    Some(CHSType::Pointer(ttp.into()))
-                } else {
-                    chs_error!("Expect type")
-                }
+                let ttp = self.parse_type()?;
+                CHSType::Pointer(ttp.into())
             }
-            CurlyOpen => {
+            Keyword if ttoken.val_eq("record") => {
+                self.expect_kind(CurlyOpen)?;
                 let mut map = BTreeMap::new();
                 loop {
                     let field = self.expect_kind(Ident)?;
                     self.expect_kind(Colon)?;
-                    if let Some(field_type) = self.parse_type()? {
-                        map.insert(field.value, field_type);
-                    } else {
-                        chs_error!("Expect type");
+                    let field_type = self.parse_type()?;
+                    map.insert(field.value, field_type);
+                    if self.next().kind == CurlyClose {
+                        break;
                     }
-                    if self.next().kind == CurlyClose { break; }
                 }
-                Some(CHSType::Record(map))
+                CHSType::Record(map)
             }
-            ParenOpen => {
-                let mut tuple = Vec::new();
-                loop {
-                    if let Some(tty) = self.parse_type()? {
-                        tuple.push(tty);
-                    } else {
-                        chs_error!("Expect type");
-                    }
-                    if self.next().kind == ParenClose { break; }
-                }
-                Some(CHSType::Tuple(tuple))
-            }
-            Assign => None,
             _ => chs_error!("Type not implemnted {}", ttoken),
         };
         Ok(ttype)
