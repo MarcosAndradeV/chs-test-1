@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashMap;
 
 use chs_lexer::Token;
 use chs_util::{chs_error, CHSError, Loc};
@@ -9,7 +10,7 @@ use chs_types::CHSType;
 pub struct Module {
     pub name: String,
     pub funcs: Vec<Function>,
-    pub type_decls: Vec<(String, CHSType)>,
+    pub type_decls: HashMap<String, CHSType>,
     pub const_decl: Vec<ConstDecl>,
 }
 

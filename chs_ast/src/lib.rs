@@ -87,6 +87,10 @@ impl Parser {
                     self.expect_kind(ParenOpen)?;
                     let (args, ret_type) = self.parse_fn_type()?;
                     let body = self.parse_expr_list(|tk| tk.val_eq("end"))?;
+                    let fn_type = CHSType::Func(args.clone().into_iter().map(|(_, t)| t).collect(), ret_type.clone().into());
+                    if self.module.type_decls.insert(name.clone(), fn_type).is_some() {
+                        chs_error!("Redefinition of {}", name)
+                    }
                     let expr = Function {
                         loc,
                         name,
@@ -100,7 +104,9 @@ impl Parser {
                     let token = self.expect_kind(Ident)?;
                     let name = token.value;
                     let chs_type = self.parse_type()?;
-                    self.module.type_decls.push((name, chs_type));
+                    if self.module.type_decls.insert(name.clone(), chs_type).is_some() {
+                        chs_error!("Redefinition of {}", name)
+                    }
                 }
                 _ => {
                     chs_error!(
