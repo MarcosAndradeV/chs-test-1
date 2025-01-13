@@ -18,11 +18,11 @@ impl fmt::Display for CHSError {
 #[macro_export]
 macro_rules! chs_error {
     ($message: expr, $($field: expr),*) => {
-        return Err(CHSError (format!($message, $($field),*)))
+        return Err(chs_util::CHSError (format!($message, $($field),*)))
     };
 
     ($message: expr) => {
-        return Err(CHSError ($message.to_string()))
+        return Err(chs_util::CHSError ($message.to_string()))
     }
 }
 

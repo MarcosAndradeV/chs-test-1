@@ -1,1 +1,3 @@
-"Hello, world!\n" print
+fn main()
+    print("Hello, world\n")
+end
