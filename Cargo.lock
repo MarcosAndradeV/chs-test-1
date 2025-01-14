@@ -21,6 +21,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "chs_compiler"
+version = "0.1.0"
+
+[[package]]
 name = "chs_lexer"
 version = "0.1.0"
 dependencies = [
