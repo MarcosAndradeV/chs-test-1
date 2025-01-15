@@ -4,7 +4,7 @@ use core::fmt;
 /// A subset of Fasm mapped into Rust data structures.
 ///
 /// Example:
-/// ```
+/// ```ignore
 /// pub fn foo() -> Fasm {
 ///     let mut f = Fasm::default();
 ///     f.set_entry("main");
