@@ -1,27 +1,5 @@
 # **CHS programing language**
 
-### **Goals**
-
-* **Develop a Custom Virtual Machine (CHSVM)**
-    * To run pure CHASM, make testing and perfomace checks. 
-* **Create a Custom Assembly-like Language (CHASM)**
-    * To have a common interface to compile to other targets.
-* **Implement Backends for:**
-    * **C and/or QBE**
-    * **WebAssembly (Wasm) and JavaScript**
-    * **Java Virtual Machine (JVM)**
-    * **Erlang BEAM**
-
-### Example Code
-
-```
-use Io
-
-fn main()
-  Io.puts("Hello, world")
-end
-
-```
 
 ## License
 
