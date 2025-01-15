@@ -56,7 +56,7 @@ pub fn usage(program: &str) {
 
     for ele in COMMANDS.iter() {
         println!(
-            "      {name}      {descripition}",
+            "      {name: <7}      {descripition}",
             name = ele.name,
             descripition = ele.descripition,
         );
