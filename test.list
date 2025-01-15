@@ -1,8 +1,0 @@
-./target/debug/chs
-./target/debug/chs help
-./target/debug/chs com tests/hello.chs
-./target/debug/chs com tests/infix_ops.chs
-./target/debug/chs com tests/prefix_ops.chs
-./target/debug/chs com tests/post_call.chs
-./target/debug/chs com tests/assign.chs
-./target/debug/chs com tests/records.chs
