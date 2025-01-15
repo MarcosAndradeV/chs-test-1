@@ -28,7 +28,7 @@ pub fn foo() -> Fasm {
     seg.add_insruction("mov rax, SYS_WRITE");
     seg.add_insruction("mov rdi, STDOUT_FILENO");
     seg.add_insruction("mov rsi, msg");
-    seg.add_insruction("mov rdx, msg.len");
+    seg.add_insruction("mov rdx, [rsi+string.len]");
     seg.add_insruction("syscall");
 
     seg.add_insruction("mov rax, SYS_EXIT");

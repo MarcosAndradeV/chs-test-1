@@ -10,6 +10,7 @@ use chs_types::CHSType;
 pub struct Module {
     pub name: String,
     pub funcs: Vec<Function>,
+    pub fasm_funcs: Vec<FasmFunction>,
     pub type_decls: HashMap<String, CHSType>,
     pub const_decl: Vec<ConstDecl>,
 }
@@ -17,12 +18,15 @@ pub struct Module {
 impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Module: {}", self.name)?;
-        for expr in &self.const_decl {
-            writeln!(f, " {expr} ")?;
-        }
+        writeln!(f, "\ntypes")?;
         for (name, t) in &self.type_decls {
             writeln!(f, " {name} : {t} ")?;
         }
+        writeln!(f, "\nfasm functions")?;
+        for expr in &self.fasm_funcs {
+            writeln!(f, " {expr} ")?;
+        }
+        writeln!(f, "\nfunctions")?;
         for expr in &self.funcs {
             writeln!(f, " {expr} ")?;
         }
@@ -111,6 +115,29 @@ impl Expression {
             ))),
             _ => chs_error!("{} Unsuported literal", token.loc),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct FasmFunction {
+    pub loc: Loc,
+    pub name: String,
+    pub args: Vec<(String, CHSType)>,
+    pub ret_type: CHSType,
+    pub body: Vec<String>,
+}
+
+impl fmt::Display for FasmFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "fasm fn {}(", self.name)?;
+        for (i, item) in self.args.iter().enumerate() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}: {}", item.0, item.1)?;
+        }
+        write!(f, ") -> {}", self.ret_type)?;
+        Ok(())
     }
 }
 

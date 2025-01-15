@@ -1,14 +1,12 @@
 use std::collections::BTreeMap;
 
+
+use crate::nodes::{
+    self, FasmFunction, Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl,
+};
 use chs_lexer::{Lexer, Token, TokenKind};
 use chs_types::CHSType;
 use chs_util::{chs_error, CHSResult, Loc};
-use crate::nodes;
-use crate::nodes::{
-    Binop, Call, ConstExpression, Expression, Function, Module, Operator, Precedence, Unop, VarDecl,
-};
-
-
 
 /// [Token] -> [Module]
 #[derive(Default)]
@@ -81,6 +79,50 @@ impl Parser {
                 chs_error!("{} Invalid token '{}'", token.loc, token.value);
             }
             match token.kind {
+                Keyword if token.val_eq("fasm") && self.peek().val_eq("fn") => {
+                    self.next();
+                    let loc = token.loc;
+                    let token = self.expect_kind(Ident)?;
+                    let name = token.value;
+                    self.expect_kind(ParenOpen)?;
+                    let (args, ret_type) = self.parse_fn_type()?;
+                    let mut body = vec![];
+                    loop {
+                        use chs_lexer::TokenKind::*;
+                        let ptoken = self.peek();
+                        match ptoken.kind {
+                            Keyword if ptoken.val_eq("end") => {
+                                self.next();
+                                break;
+                            }
+                            String => {
+                                let ptoken = self.next();
+                                body.push(ptoken.value.to_string());
+                            }
+                            _ => chs_error!("Unexpected {}", ptoken),
+                        }
+                    }
+                    let fn_type = CHSType::Func(
+                        args.clone().into_iter().map(|(_, t)| t).collect(),
+                        ret_type.clone().into(),
+                    );
+                    if self
+                        .module
+                        .type_decls
+                        .insert(name.clone(), fn_type)
+                        .is_some()
+                    {
+                        chs_error!("Redefinition of {}", name)
+                    }
+                    let expr = FasmFunction {
+                        loc,
+                        name,
+                        args,
+                        ret_type,
+                        body,
+                    };
+                    self.module.fasm_funcs.push(expr);
+                }
                 Keyword if token.val_eq("fn") => {
                     let loc = token.loc;
                     let token = self.expect_kind(Ident)?;
@@ -88,8 +130,16 @@ impl Parser {
                     self.expect_kind(ParenOpen)?;
                     let (args, ret_type) = self.parse_fn_type()?;
                     let body = self.parse_expr_list(|tk| tk.val_eq("end"))?;
-                    let fn_type = CHSType::Func(args.clone().into_iter().map(|(_, t)| t).collect(), ret_type.clone().into());
-                    if self.module.type_decls.insert(name.clone(), fn_type).is_some() {
+                    let fn_type = CHSType::Func(
+                        args.clone().into_iter().map(|(_, t)| t).collect(),
+                        ret_type.clone().into(),
+                    );
+                    if self
+                        .module
+                        .type_decls
+                        .insert(name.clone(), fn_type)
+                        .is_some()
+                    {
                         chs_error!("Redefinition of {}", name)
                     }
                     let expr = Function {
@@ -105,7 +155,12 @@ impl Parser {
                     let token = self.expect_kind(Ident)?;
                     let name = token.value;
                     let chs_type = self.parse_type()?;
-                    if self.module.type_decls.insert(name.clone(), chs_type).is_some() {
+                    if self
+                        .module
+                        .type_decls
+                        .insert(name.clone(), chs_type)
+                        .is_some()
+                    {
                         chs_error!("Redefinition of {}", name)
                     }
                 }
