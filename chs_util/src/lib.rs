@@ -11,7 +11,7 @@ impl fmt::Debug for CHSError {
 
 impl fmt::Display for CHSError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ERROR: {}", self.0)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -24,6 +24,13 @@ macro_rules! chs_error {
     ($message: expr) => {
         return Err(chs_util::CHSError ($message.to_string()))
     }
+}
+
+#[macro_export]
+macro_rules! chs_fmt {
+    ($message: expr, $($field: expr),*) => {
+        return chs_util::CHSError(format!($message, $($field),*))
+    };
 }
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Default)]

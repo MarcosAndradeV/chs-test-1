@@ -4,6 +4,9 @@ build:
 release:
 	cargo build --release --bin chs
 
+test:
+	cargo test
+
 chsc: release
 
 help:

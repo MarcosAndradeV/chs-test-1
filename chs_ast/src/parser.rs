@@ -408,6 +408,7 @@ impl Parser {
             Ident if ttoken.val_eq("bool") => CHSType::bool(),
             Ident if ttoken.val_eq("char") => CHSType::char(),
             Ident if ttoken.val_eq("void") => CHSType::void(),
+            Ident if ttoken.val_eq("string") => CHSType::String,
             Ident => CHSType::custom(ttoken.value),
             Asterisk => {
                 let ttp = self.parse_type()?;

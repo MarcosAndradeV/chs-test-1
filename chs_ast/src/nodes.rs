@@ -15,6 +15,12 @@ pub struct Module {
     pub const_decl: Vec<ConstDecl>,
 }
 
+impl AsRef<Self> for Module {
+    fn as_ref(&self) -> &Self {
+        &self
+    }
+}
+
 impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Module: {}", self.name)?;

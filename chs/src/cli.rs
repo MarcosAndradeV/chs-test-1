@@ -1,5 +1,7 @@
 use std::{env::Args, process::ExitCode};
 
+use chs_ast::check_module;
+
 pub const COMMANDS: &[Command] = &[
     Command {
         name: "help",
@@ -42,6 +44,28 @@ pub const COMMANDS: &[Command] = &[
             }
         },
     },
+    Command {
+        name: "check",
+        descripition: "TODO",
+        run: |program, args| {
+            if let Some(file_path) = args.next() {
+                match chs_ast::parse_file(file_path) {
+                    Ok(mut ast) => {
+                        check_module(&mut ast).err()
+                            .inspect(|err| println!("{err}"));
+                        ExitCode::SUCCESS
+                    }
+                    Err(err) => {
+                        eprintln!("{err}");
+                        ExitCode::FAILURE
+                    }
+                }
+            } else {
+                eprintln!("Expect file path.");
+                ExitCode::FAILURE
+            }
+        },
+    }
 ];
 
 pub struct Command {

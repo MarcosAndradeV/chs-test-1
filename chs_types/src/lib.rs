@@ -24,6 +24,7 @@ impl fmt::Display for Primitive {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CHSType {
     Custom(String),
+    String,
     Primitive(Primitive),
     Pointer(Box<CHSType>),
     Func(Vec<CHSType>, Box<CHSType>),
@@ -60,6 +61,7 @@ impl fmt::Display for CHSType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CHSType::Custom(n) => write!(f, "{n}"),
+            CHSType::String => write!(f, "string"),
             CHSType::Primitive(n) => write!(f, "{n}"),
             CHSType::Pointer(a) => write!(f, "*{a}"),
             CHSType::Func(args, ret) => {
